@@ -152,7 +152,7 @@
   gap: 12px;
   padding: 12px 16px;
   color: var(--admin-text);
-  text-decoration: none;
+  text-decoration: none !important; /* force no underline in all states */
   transition: var(--admin-transition);
   border-left: 3px solid transparent;
   white-space: nowrap;
@@ -169,11 +169,18 @@
 .admin-sidebar nav ul li a .menu-text {
   font-size: 14px;
   font-weight: 500;
+  text-decoration: none !important; /* ensure menu text never has underline */
+}
+
+.admin-sidebar nav ul li a span {
+  
+  text-decoration: none !important; /* ensure menu text never has underline */
 }
 
 .admin-sidebar nav ul li a:hover {
   background-color: var(--color-sky-light);
   color: var(--admin-primary);
+  text-decoration: none !important; /* remove underline on hover */
 }
 
 .admin-sidebar nav ul li a.active {
@@ -181,6 +188,12 @@
   color: var(--admin-primary);
   border-left-color: var(--admin-primary);
   font-weight: 600;
+  text-decoration: none !important; /* remove underline when active */
+}
+
+.admin-sidebar nav ul li a:focus,
+.admin-sidebar nav ul li a:visited {
+  text-decoration: none !important; /* remove underline on focus and visited states */
 }
 
 .admin-sidebar.closed .menu-text {
@@ -1087,6 +1100,15 @@
   width: 100%;
   border-collapse: collapse;
   min-width: 600px;
+  border-spacing: 0; /* ensure no spacing between cells */
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-table tbody tr:last-child {
+  border-bottom: none;
 }
 
 @media (max-width: 768px) {
@@ -1098,12 +1120,17 @@
 .admin-table th {
   text-align: left;
   padding: 15px 16px;
-  border-bottom: 1px solid var(--admin-border);
   color: var(--admin-secondary);
   font-weight: 600;
   white-space: nowrap;
   font-family: 'Poppins', sans-serif;
   font-size: 0.9rem;
+  vertical-align: middle;
+  border: none;
+}
+
+.admin-table thead {
+  border-bottom: 2px solid var(--admin-border); /* stronger header separator */
 }
 
 @media (max-width: 768px) {
@@ -1122,8 +1149,9 @@
 
 .admin-table td {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--admin-border);
   font-family: 'Inter', sans-serif;
+  vertical-align: middle;
+  border: none; /* borders handled at row level for single clean lines */
 }
 
 @media (max-width: 768px) {
@@ -1140,7 +1168,11 @@
   }
 }
 
-.admin-table tr:last-child td {
+.admin-table tbody tr {
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-table tbody tr:last-child {
   border-bottom: none;
 }
 
@@ -1169,33 +1201,39 @@
 /* Status toggles */
 .status-toggle {
   display: inline-block;
-  padding: 6px 15px;
-  border-radius: 50px;
-  border: none;
-  font-size: 0.75rem;
-  font-weight: 500;
+  padding: 8px 18px; /* slightly larger for better tap target */
+  border-radius: 40px;
+  border: 1px solid transparent;
+  font-size: 0.72rem;
+  font-weight: 600;
   cursor: pointer;
   transition: var(--admin-transition);
   font-family: 'Inter', sans-serif;
   box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+  letter-spacing: .5px;
+  line-height: 1; /* keep pill compact */
+  white-space: nowrap; /* prevent awkward line breaks ("Active" splitting) */
+  position: relative;
 }
 
 .status-toggle.active {
-  background-color: rgba(16, 185, 129, 0.1);
+  background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
   color: var(--admin-success);
+  border-color: rgba(16,185,129,0.25);
 }
 
 .status-toggle.active:hover {
-  background-color: rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(16,185,129,0.1));
 }
 
 .status-toggle.inactive {
-  background-color: rgba(239, 68, 68, 0.1);
+  background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
   color: var(--admin-error);
+  border-color: rgba(239,68,68,0.25);
 }
 
 .status-toggle.inactive:hover {
-  background-color: rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.1));
 }
 
 .admin-toggle {
@@ -1222,6 +1260,41 @@
   white-space: nowrap;
   display: flex;
   gap: 8px;
+  align-items: center;
+  vertical-align: middle !important;
+}
+
+/* Product table specific column alignment */
+.admin-table .product-image {
+  width: 100px;
+  vertical-align: middle !important;
+}
+
+.admin-table .product-title {
+  vertical-align: middle !important;
+}
+
+.admin-table .stock-qty {
+  text-align: center;
+  vertical-align: middle !important;
+}
+
+.admin-table td[data-label="SKU"],
+.admin-table td[data-label="Price"],
+.admin-table td[data-label="Stock"],
+.admin-table td[data-label="Category"],
+.admin-table td[data-label="Status"] {
+  vertical-align: middle !important;
+}
+
+/* Price formatting in admin table */
+.admin-table .old-price {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--admin-text-light);
+  text-decoration: line-through;
+  font-size: 0.85em;
+  vertical-align: middle;
 }
 
 .edit-btn, .delete-btn, .view-details-btn {
