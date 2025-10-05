@@ -21,26 +21,14 @@ function App() {
       <Router>
         <div className="app-wrapper">
           <Routes>
-            {/* Public routes */}
+            {/* Public routes - accessible without login */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/products" element={<ProductListPage />} />
+            <Route path="/product/:slug" element={<ProductDetailPage />} />
             
-            {/* Customer-facing routes - protected */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <LandingPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/products" element={
-              <ProtectedRoute>
-                <ProductListPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/product/:slug" element={
-              <ProtectedRoute>
-                <ProductDetailPage />
-              </ProtectedRoute>
-            } />
+            {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>
                 <CartPage />
