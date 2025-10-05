@@ -60,10 +60,10 @@ const AdminDashboard: React.FC = () => {
   
   return (
     <div className="admin-dashboard">
-      <h2>Dashboard</h2>
+      <h2 className="tw-text-xl sm:tw-text-2xl tw-font-bold tw-mb-4 sm:tw-mb-6">Dashboard</h2>
       
       {/* Stats Overview */}
-      <div className="stats-cards">
+      <div className="stats-cards tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-3 sm:tw-gap-4 tw-mb-4 sm:tw-mb-6">
         <div className="stat-card">
           <div className="stat-icon">
             <span className="material-symbols-outlined">payments</span>
@@ -106,7 +106,7 @@ const AdminDashboard: React.FC = () => {
       </div>
       
       {/* Action Cards */}
-      <div className="action-cards">
+      <div className="action-cards tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-3 sm:tw-gap-4 tw-mb-4 sm:tw-mb-6">
         <div className="action-card pending-orders">
           <div className="action-content">
             <h3>Pending Orders</h3>
@@ -131,13 +131,13 @@ const AdminDashboard: React.FC = () => {
       </div>
       
       {/* Sales Chart */}
-      <div className="admin-panel sales-chart">
-        <h3>Sales Last 30 Days</h3>
-        <div className="chart-container">
-          <ResponsiveContainer width="100%" height={300}>
+      <div className="admin-panel sales-chart tw-mb-4 sm:tw-mb-6">
+        <h3 className="tw-text-lg sm:tw-text-xl">Sales Last 30 Days</h3>
+        <div className="chart-container tw-w-full tw-h-64 sm:tw-h-80">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={stats.sales_by_day}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -145,9 +145,10 @@ const AdminDashboard: React.FC = () => {
                 tickFormatter={(date) => {
                   const d = new Date(date);
                   return `${d.getMonth() + 1}/${d.getDate()}`;
-                }} 
+                }}
+                tick={{ fontSize: 12 }}
               />
-              <YAxis />
+              <YAxis tick={{ fontSize: 12 }} />
               <Tooltip 
                 formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
                 labelFormatter={(label) => {
@@ -155,7 +156,7 @@ const AdminDashboard: React.FC = () => {
                   return `${d.toLocaleDateString()}`;
                 }}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
               <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
               <Line type="monotone" dataKey="orders" stroke="#82ca9d" />
             </LineChart>
@@ -164,68 +165,73 @@ const AdminDashboard: React.FC = () => {
       </div>
       
       {/* Recent Orders & Top Products */}
-      <div className="admin-panels-row">
+      <div className="admin-panels-row tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-4 sm:tw-gap-6">
         {/* Recent Orders */}
-        <div className="admin-panel recent-orders">
-          <h3>Recent Orders</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.recent_orders.map((order) => (
-                <tr key={order.id}>
-                  <td>{order.order_id.substring(0, 8)}...</td>
-                  <td>{order.customer_name}</td>
-                  <td>${formatCurrency(order.total_amount)}</td>
-                  <td>
-                    <span className={`status-badge ${order.status}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td>
-                    <Link to={`/admin/orders/${order.id}`} className="view-btn">View</Link>
-                  </td>
+        <div className="admin-panel recent-orders tw-overflow-hidden">
+          <h3 className="tw-text-lg sm:tw-text-xl">Recent Orders</h3>
+          <div className="tw-overflow-x-auto">
+            <table className="tw-w-full tw-min-w-[500px]">
+              <thead>
+                <tr>
+                  <th className="tw-text-xs sm:tw-text-sm">Order ID</th>
+                  <th className="tw-text-xs sm:tw-text-sm">Customer</th>
+                  <th className="tw-text-xs sm:tw-text-sm">Total</th>
+                  <th className="tw-text-xs sm:tw-text-sm">Status</th>
+                  <th className="tw-text-xs sm:tw-text-sm">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {stats.recent_orders.map((order) => (
+                  <tr key={order.id}>
+                    <td className="tw-text-xs sm:tw-text-sm">{order.order_id.substring(0, 8)}...</td>
+                    <td className="tw-text-xs sm:tw-text-sm">{order.customer_name}</td>
+                    <td className="tw-text-xs sm:tw-text-sm">${formatCurrency(order.total_amount)}</td>
+                    <td>
+                      <span className={`status-badge ${order.status} tw-text-xs`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td>
+                      <Link to={`/admin/orders/${order.id}`} className="view-btn tw-text-xs">View</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="panel-footer">
-            <Link to="/admin/orders" className="view-all-btn">View All Orders</Link>
+            <Link to="/admin/orders" className="view-all-btn tw-text-sm">View All Orders</Link>
           </div>
         </div>
         
         {/* Top Products */}
         <div className="admin-panel top-products">
-          <h3>Top Selling Products</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart
-              data={stats.top_selling_products}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              layout="vertical"
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis 
-                type="category" 
-                dataKey="title" 
-                width={100}
-                tickFormatter={(title) => title.length > 15 ? title.substring(0, 15) + '...' : title} 
-              />
-              <Tooltip 
-                formatter={(value: number) => [value, 'Units Sold']}
-              />
-              <Bar dataKey="sold" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
+          <h3 className="tw-text-lg sm:tw-text-xl">Top Selling Products</h3>
+          <div className="tw-w-full tw-h-56 sm:tw-h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={stats.top_selling_products}
+                margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+                layout="vertical"
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tick={{ fontSize: 12 }} />
+                <YAxis 
+                  type="category" 
+                  dataKey="title" 
+                  width={80}
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(title) => title.length > 12 ? title.substring(0, 12) + '...' : title} 
+                />
+                <Tooltip 
+                  formatter={(value: number) => [value, 'Units Sold']}
+                />
+                <Bar dataKey="sold" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
           <div className="panel-footer">
-            <Link to="/admin/products" className="view-all-btn">View All Products</Link>
+            <Link to="/admin/products" className="view-all-btn tw-text-sm">View All Products</Link>
           </div>
         </div>
       </div>

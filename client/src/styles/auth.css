@@ -321,6 +321,179 @@ html, body, #root {
   }
 }
 
+/* ============================================ */
+/* ADDITIONAL RESPONSIVE STYLES FOR AUTH */
+/* ============================================ */
+
+/* Mobile Portrait (320px - 575px) */
+@media (max-width: 575px) {
+  .auth-page {
+    padding: 15px 8px;
+    min-height: calc(100vh - 120px);
+  }
+  
+  .auth-card {
+    border-radius: 10px;
+  }
+  
+  .auth-card-header {
+    padding: 18px 15px;
+  }
+  
+  .auth-card-header h2 {
+    font-size: 22px;
+  }
+  
+  .auth-card-header p {
+    font-size: 13px;
+  }
+  
+  .auth-card-body {
+    padding: 20px 15px;
+  }
+  
+  .auth-form-group {
+    margin-bottom: 16px;
+  }
+  
+  .auth-form-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  
+  .auth-form-control {
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+  
+  .auth-submit-btn {
+    padding: 11px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+  
+  .auth-alert {
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+  
+  .auth-footer-text {
+    margin-top: 20px;
+    padding-top: 20px;
+    font-size: 13px;
+  }
+  
+  .otp-icon {
+    font-size: 52px;
+    margin-bottom: 15px;
+  }
+  
+  .otp-input {
+    font-size: 20px !important;
+    letter-spacing: 8px !important;
+    padding: 15px !important;
+  }
+  
+  .otp-timer {
+    font-size: 12px;
+  }
+  
+  .resend-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+  
+  .back-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: 6px;
+    margin-top: 12px;
+  }
+  
+  .auth-form-text {
+    font-size: 11px;
+  }
+  
+  .password-strength {
+    height: 3px;
+  }
+}
+
+/* Extra Small Devices (320px - 374px) */
+@media (max-width: 374px) {
+  .auth-page {
+    padding: 12px 5px;
+  }
+  
+  .auth-card-header {
+    padding: 15px 12px;
+  }
+  
+  .auth-card-header h2 {
+    font-size: 20px;
+  }
+  
+  .auth-card-header p {
+    font-size: 12px;
+  }
+  
+  .auth-card-body {
+    padding: 18px 12px;
+  }
+  
+  .auth-form-group {
+    margin-bottom: 14px;
+  }
+  
+  .auth-form-label {
+    font-size: 12px;
+  }
+  
+  .auth-form-control {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+  
+  .auth-submit-btn {
+    padding: 10px;
+    font-size: 13px;
+  }
+  
+  .otp-icon {
+    font-size: 48px;
+  }
+  
+  .otp-input {
+    font-size: 18px !important;
+    letter-spacing: 6px !important;
+    padding: 12px !important;
+  }
+}
+
+/* Tablet landscape optimization */
+@media (min-width: 768px) and (max-width: 991px) {
+  .auth-card {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+}
+
+/* Ensure proper spacing on all mobile devices */
+@media (max-width: 767px) {
+  .auth-row {
+    margin-left: -5px;
+    margin-right: -5px;
+  }
+  
+  .auth-col {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+}
+
 /* Footer always at bottom */
 .footer-wrapper {
   margin-top: auto;

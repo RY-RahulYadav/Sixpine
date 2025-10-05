@@ -76,3 +76,72 @@
     font-size: 0.8rem;
   }
 }
+
+/* ============================================ */
+/* ADDITIONAL RESPONSIVE STYLES FOR ADMIN PRODUCTS */
+/* ============================================ */
+
+/* Tablets (768px - 991px) */
+@media (max-width: 991px) {
+  .admin-thumb {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .product-image .no-image {
+    width: 70px;
+    height: 70px;
+  }
+}
+
+/* Mobile Landscape and Small Tablets (576px - 767px) */
+@media (max-width: 767px) {
+  .admin-thumb {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .product-image .no-image {
+    width: 60px;
+    height: 60px;
+    font-size: 12px;
+  }
+  
+  .admin-pagination {
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 1.5rem;
+  }
+  
+  .admin-pagination button {
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .admin-pagination .page-info {
+    order: -1;
+    margin: 0;
+  }
+}
+
+/* Extra Small Devices (320px - 374px) */
+@media (max-width: 374px) {
+  .admin-thumb {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .product-image .no-image {
+    width: 50px;
+    height: 50px;
+    font-size: 11px;
+  }
+  
+  .admin-pagination button {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .admin-pagination .page-info {
+    font-size: 0.75rem;
+  }
+}

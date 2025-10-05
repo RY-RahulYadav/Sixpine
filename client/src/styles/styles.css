@@ -483,3 +483,359 @@
 
 
 /* ------------------------------------------------------ */
+
+/* ============================================ */
+/* RESPONSIVE STYLES FOR ADDITIONAL SECTIONS */
+/* ============================================ */
+
+/* Tablets (768px - 991px) */
+@media (max-width: 991px) {
+  .contact_us {
+    padding: 80px 100px;
+  }
+  
+  .headline {
+    font-size: 23px;
+  }
+  
+  .headline img {
+    width: 45px;
+  }
+  
+  .headline a {
+    font-size: 21px;
+  }
+  
+  .rhn-title {
+    font-size: 20px;
+  }
+  
+  .need_help_1 {
+    font-size: 23px;
+    padding: 40px;
+  }
+}
+
+/* Mobile Landscape and Small Tablets (576px - 767px) */
+@media (max-width: 767px) {
+  .contact_us {
+    padding: 50px 20px;
+  }
+  
+  .contact_car {
+    margin-bottom: 15px;
+    height: auto;
+    min-height: 180px;
+  }
+  
+  .contact_car .card-body {
+    padding: 1rem 2rem;
+  }
+  
+  .contact_car .card-body h5 {
+    font-size: 16px;
+  }
+  
+  .contact_car .card-body .card-text {
+    font-size: 13px;
+  }
+  
+  .headline {
+    font-size: 21px;
+    margin: 8px 0;
+  }
+  
+  .headline img {
+    width: 40px;
+  }
+  
+  .headline a {
+    font-size: 19px;
+  }
+  
+  .breadcrumb_01 {
+    padding: 8px;
+  }
+  
+  .breadcrumb_01 h6 {
+    font-size: 14px;
+  }
+  
+  .breadcrumb_01 span {
+    margin-left: 10px;
+    font-size: 13px;
+  }
+  
+  .member_search {
+    width: 100%;
+  }
+  
+  .member_search h5 {
+    font-size: 20px;
+  }
+  
+  .need_help_1 {
+    font-size: 21px;
+    padding: 35px 20px;
+  }
+  
+  .filter_g {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .filter_g .form-select {
+    width: 100%;
+  }
+  
+  .rhn-title {
+    font-size: 19px;
+  }
+  
+  .rhn-subtitle,
+  .rhn-desc,
+  .rhn-text {
+    font-size: 13px;
+  }
+  
+  .rhn-heading {
+    font-size: 17px;
+  }
+  
+  .rhn-subheading {
+    font-size: 15px;
+  }
+  
+  .rhn-list li {
+    font-size: 13px;
+  }
+  
+  .rhn-table {
+    font-size: 13px;
+  }
+  
+  .rhn-card-header,
+  .rhn-card-body {
+    padding: 10px 12px;
+  }
+}
+
+/* Mobile Portrait (320px - 575px) */
+@media (max-width: 575px) {
+  .contact_us {
+    padding: 40px 10px;
+  }
+  
+  .contact_car {
+    margin-bottom: 12px;
+    min-height: 160px;
+  }
+  
+  .contact_car .card-body {
+    padding: 0.8rem 1.5rem;
+  }
+  
+  .contact_car .card-body .card-title {
+    font-size: 15px;
+  }
+  
+  .contact_car .card-body .card-title i {
+    left: -30px;
+    font-size: 17px;
+  }
+  
+  .contact_car .card-body h5 {
+    font-size: 15px;
+  }
+  
+  .contact_car .card-body .card-text {
+    font-size: 12px;
+  }
+  
+  .card_btn {
+    font-size: 13px;
+    padding: 3px 18px;
+    margin: 12px 0;
+  }
+  
+  .headline {
+    font-size: 19px;
+    padding: 8px;
+  }
+  
+  .headline img {
+    width: 35px;
+  }
+  
+  .headline a {
+    font-size: 17px;
+  }
+  
+  .breadcrumb_01 {
+    padding: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .breadcrumb_01 h6 {
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+  
+  .breadcrumb_01 span {
+    margin-left: 0;
+    font-size: 12px;
+  }
+  
+  .member_search {
+    padding: 0 3px 8px 0;
+  }
+  
+  .member_search h5 {
+    font-size: 18px;
+  }
+  
+  .need_help_1 {
+    font-size: 19px;
+    padding: 30px 15px;
+  }
+  
+  .filter_g .form-select {
+    width: 100%;
+    font-size: 13px;
+  }
+  
+  .btn-go {
+    width: 100%;
+    margin-top: 10px;
+  }
+  
+  .rhn-title {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  
+  .rhn-subtitle,
+  .rhn-desc,
+  .rhn-text {
+    font-size: 12px;
+  }
+  
+  .rhn-heading {
+    font-size: 16px;
+    margin: 18px 0 8px;
+  }
+  
+  .rhn-subheading {
+    font-size: 14px;
+  }
+  
+  .rhn-list li {
+    font-size: 12px;
+    padding-left: 20px;
+  }
+  
+  .rhn-warning-box {
+    padding: 12px;
+    margin: 15px 0;
+  }
+  
+  .rhn-select {
+    max-width: 100%;
+  }
+  
+  .rhn-table {
+    font-size: 12px;
+  }
+  
+  .rhn-table thead th,
+  .rhn-table td {
+    padding: 8px;
+  }
+  
+  .rhn-card-header {
+    padding: 10px;
+    font-size: 13px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .rhn-card-body {
+    padding: 10px;
+  }
+  
+  .rhn-card-footer {
+    padding: 8px 10px;
+  }
+  
+  .rhn-small,
+  .rhn-muted,
+  .rhn-footer-note {
+    font-size: 11px;
+  }
+  
+  .menu_search_container .input-group {
+    width: 100% !important;
+  }
+}
+
+/* Extra Small Devices (320px - 374px) */
+@media (max-width: 374px) {
+  .contact_us {
+    padding: 35px 8px;
+  }
+  
+  .contact_car .card-body {
+    padding: 0.7rem 1.2rem;
+  }
+  
+  .headline {
+    font-size: 17px;
+  }
+  
+  .headline a {
+    font-size: 16px;
+  }
+  
+  .need_help_1 {
+    font-size: 17px;
+    padding: 25px 12px;
+  }
+  
+  .rhn-title {
+    font-size: 17px;
+  }
+  
+  .rhn-heading {
+    font-size: 15px;
+  }
+}
+
+/* Owl Carousel responsive improvements */
+@media (max-width: 767px) {
+  .owl-nav {
+    display: none !important;
+  }
+  
+  .btn-nav {
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+  }
+}
+
+/* Ensure proper scrolling on mobile */
+@media (max-width: 767px) {
+  .scroll-tabs,
+  .sub-nav {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .scroll-tabs::-webkit-scrollbar,
+  .sub-nav::-webkit-scrollbar {
+    display: none;
+  }
+}

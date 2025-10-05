@@ -66,3 +66,111 @@
     background: #ff6600;
     color: #fff;
 }
+
+/* ============================================ */
+/* RESPONSIVE STYLES FOR TAB MENU */
+/* ============================================ */
+
+/* Tablets (768px - 991px) */
+@media (max-width: 991px) {
+    .tab-categories .nav-tabs {
+        gap: 12px;
+        padding: 8px;
+    }
+    
+    .tab-categories .nav-tabs .nav-link {
+        font-size: 14px;
+        padding: 7px 12px;
+    }
+    
+    .scroll-tabs {
+        padding: 7px 8px;
+        gap: 8px;
+    }
+    
+    .scroll-tabs a {
+        padding: 7px 11px;
+        margin-right: 7px;
+        font-size: 13px;
+    }
+}
+
+/* Mobile Landscape and Small Tablets (576px - 767px) */
+@media (max-width: 767px) {
+    .tab-categories .nav-tabs {
+        gap: 10px;
+        padding: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    
+    .tab-categories .nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tab-categories .nav-tabs .nav-link {
+        font-size: 13px;
+        padding: 6px 10px;
+        white-space: nowrap;
+    }
+    
+    .tab-categories .dropdown-menu {
+        position: static;
+        width: 100%;
+        box-shadow: none;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    
+    .scroll-tabs {
+        padding: 6px;
+        gap: 6px;
+    }
+    
+    .scroll-tabs a {
+        padding: 6px 10px;
+        margin-right: 6px;
+        font-size: 12px;
+        border-radius: 15px;
+    }
+}
+
+/* Mobile Portrait (320px - 575px) */
+@media (max-width: 575px) {
+    .tab-categories .nav-tabs {
+        gap: 8px;
+        padding: 5px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .tab-categories .nav-tabs .nav-link {
+        font-size: 12px;
+        padding: 5px 8px;
+    }
+    
+    .scroll-tabs {
+        padding: 5px;
+        gap: 5px;
+    }
+    
+    .scroll-tabs a {
+        padding: 5px 8px;
+        margin-right: 5px;
+        font-size: 11px;
+    }
+}
+
+/* Extra Small Devices (320px - 374px) */
+@media (max-width: 374px) {
+    .tab-categories .nav-tabs .nav-link {
+        font-size: 11px;
+        padding: 4px 7px;
+    }
+    
+    .scroll-tabs a {
+        padding: 4px 7px;
+        font-size: 10px;
+    }
+}

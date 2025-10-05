@@ -94,3 +94,178 @@
   background: #0b5ed7;
   transform: translateY(-3px);
 }
+
+/* ============================================ */
+/* RESPONSIVE STYLES FOR FOOTER */
+/* ============================================ */
+
+/* Tablets (768px - 991px) */
+@media (max-width: 991px) {
+  .footer {
+    padding: 40px 20px 20px;
+  }
+  
+  .footer-title {
+    font-size: 17px;
+    margin-bottom: 12px;
+  }
+  
+  .footer-links li {
+    margin-bottom: 7px;
+  }
+  
+  .footer-links a {
+    font-size: 14px;
+  }
+  
+  .social-icons a {
+    font-size: 19px;
+    margin-right: 9px;
+  }
+  
+  .back-to-top {
+    bottom: 25px;
+    right: 25px;
+    padding: 9px 17px;
+    font-size: 13px;
+  }
+}
+
+/* Mobile Landscape and Small Tablets (576px - 767px) */
+@media (max-width: 767px) {
+  .footer {
+    padding: 35px 15px 15px;
+    text-align: center;
+  }
+  
+  .footer-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  
+  .footer-title::after {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .footer-links {
+    text-align: center;
+  }
+  
+  .footer-links li {
+    margin-bottom: 6px;
+  }
+  
+  .footer-links a {
+    font-size: 13px;
+  }
+  
+  .footer-links a::before {
+    display: none;
+  }
+  
+  .footer-links a:hover {
+    padding-left: 0;
+  }
+  
+  .social-icons {
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  .social-icons a {
+    font-size: 18px;
+    margin-right: 8px;
+  }
+  
+  .back-to-top {
+    bottom: 20px;
+    right: 20px;
+    padding: 8px 15px;
+    font-size: 12px;
+  }
+  
+  .footer .row > div {
+    margin-bottom: 25px;
+  }
+  
+  .footer .row > div:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* Mobile Portrait (320px - 575px) */
+@media (max-width: 575px) {
+  .footer {
+    padding: 30px 10px 12px;
+  }
+  
+  .footer-title {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  
+  .footer-title::after {
+    width: 35px;
+    height: 2px;
+  }
+  
+  .footer-links li {
+    margin-bottom: 5px;
+  }
+  
+  .footer-links a {
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+  
+  .social-icons a {
+    font-size: 17px;
+    margin-right: 7px;
+  }
+  
+  .back-to-top {
+    bottom: 15px;
+    right: 15px;
+    padding: 7px 12px;
+    font-size: 11px;
+    border-radius: 4px;
+  }
+  
+  .footer .row > div {
+    margin-bottom: 20px;
+  }
+  
+  .footer p,
+  .footer .text-muted {
+    font-size: 12px;
+  }
+}
+
+/* Extra Small Devices (320px - 374px) */
+@media (max-width: 374px) {
+  .footer {
+    padding: 25px 8px 10px;
+  }
+  
+  .footer-title {
+    font-size: 14px;
+  }
+  
+  .footer-links a {
+    font-size: 11px;
+  }
+  
+  .social-icons a {
+    font-size: 16px;
+    margin-right: 6px;
+  }
+  
+  .back-to-top {
+    bottom: 12px;
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+}
