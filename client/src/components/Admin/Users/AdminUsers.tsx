@@ -141,10 +141,9 @@ const AdminUsers: React.FC = () => {
               <th>Name</th>
               <th>Email</th>
               <th>Joined</th>
-              {/* <th>Last Login</th> */}
               <th>Status</th>
-              {/* <th>Admin</th> */}
-              {/* <th>Actions</th> */}
+              <th>Admin</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +162,7 @@ const AdminUsers: React.FC = () => {
                     {user.is_active ? 'Active' : 'Inactive'}
                   </button>
                 </td>
-                {/* <td>
+                <td>
                   <button 
                     className={`admin-toggle ${user.is_staff ? 'admin' : ''}`}
                     onClick={() => handleToggleStaff(user.id, user.is_staff)}
@@ -185,7 +184,7 @@ const AdminUsers: React.FC = () => {
                   >
                     <span className="material-symbols-outlined">delete</span>
                   </button>
-                </td> */}
+                </td>
               </tr>
             ))}
             

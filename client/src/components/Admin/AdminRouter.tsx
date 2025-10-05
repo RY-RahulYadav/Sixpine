@@ -13,7 +13,7 @@ import AdminUsers from './Users/AdminUsers';
 import AdminUserDetail from './Users/AdminUserDetail';
 import AdminCategories from './Categories/AdminCategories';
 import AdminCategoryDetail from './Categories/AdminCategoryDetail';
-import AdminLogs from './Logs/AdminLogs';
+import AdminLogs from './Logs/AdminLogs.tsx';
 import AdminSettings from './Settings/AdminSettings';
 
 const AdminRouter = () => {
