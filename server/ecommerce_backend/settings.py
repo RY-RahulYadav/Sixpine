@@ -27,7 +27,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-k*2=b-o7b5iumj$znr89e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*' , 'https://sixpine-78lj.vercel.app']
 
 
 # Application definition
@@ -157,6 +157,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
+    "https://sixpine-78lj.vercel.app"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
