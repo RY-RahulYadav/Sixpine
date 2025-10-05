@@ -13,7 +13,6 @@ import AdminUsers from './Users/AdminUsers';
 import AdminUserDetail from './Users/AdminUserDetail';
 import AdminCategories from './Categories/AdminCategories';
 import AdminCategoryDetail from './Categories/AdminCategoryDetail';
-import AdminLogs from './Logs/AdminLogs.tsx';
 import AdminSettings from './Settings/AdminSettings';
 
 const AdminRouter = () => {
@@ -58,7 +57,6 @@ const AdminRouter = () => {
         <Route path="users/:id" element={<AdminUserDetail />} />
         <Route path="categories" element={<AdminCategories />} />
         <Route path="categories/:id" element={<AdminCategoryDetail />} />
-        <Route path="logs" element={<AdminLogs />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
     </Routes>
