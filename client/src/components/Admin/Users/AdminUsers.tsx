@@ -134,7 +134,7 @@ const AdminUsers: React.FC = () => {
       
       {/* Users table */}
       <div className="admin-table-container">
-        <table className="admin-table">
+        <table className="admin-table responsive-table">
           <thead>
             <tr>
               <th>Username</th>
@@ -147,13 +147,13 @@ const AdminUsers: React.FC = () => {
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id}>
-                <td>{user.username}</td>
-                <td>{user.first_name} {user.last_name}</td>
-                <td>{user.email}</td>
-                <td>{new Date(user.date_joined).toLocaleDateString()}</td>
+              <tr key={user.id} className="responsive-row">
+                <td data-label="Username">{user.username}</td>
+                <td data-label="Name">{user.first_name} {user.last_name}</td>
+                <td data-label="Email">{user.email}</td>
+                <td data-label="Joined">{new Date(user.date_joined).toLocaleDateString()}</td>
                 {/* <td>{user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</td> */}
-                <td>
+                <td data-label="Status">
                   <button 
                     className={`status-toggle ${user.is_active ? 'active' : 'inactive'}`}
                     onClick={() => handleToggleActive(user.id, user.is_active)}

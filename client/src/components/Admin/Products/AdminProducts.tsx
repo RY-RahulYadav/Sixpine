@@ -260,7 +260,7 @@ const AdminProducts: React.FC = () => {
       
       {/* Products table */}
       <div className="admin-table-container">
-        <table className="admin-table">
+        <table className="admin-table responsive-table">
           <thead>
             <tr>
               <th></th>
@@ -275,8 +275,8 @@ const AdminProducts: React.FC = () => {
           </thead>
           <tbody>
             {products.map((product) => (
-              <tr key={product.id}>
-                <td className="product-image">
+              <tr key={product.id} className="responsive-row">
+                <td className="product-image" data-label="Image">
                   {product.main_image_url ? (
                     <img src={product.main_image_url} alt={product.title} className="admin-thumb" />
                   ) : (
@@ -285,21 +285,21 @@ const AdminProducts: React.FC = () => {
                     </div>
                   )}
                 </td>
-                <td className="product-title">
+                <td className="product-title" data-label="Product">
                   <Link to={`/admin/products/${product.id}`}>{product.title}</Link>
                 </td>
-                <td>{product.sku}</td>
-                <td>
+                <td data-label="SKU">{product.sku}</td>
+                <td data-label="Price">
                   ${formatCurrency(product.price)}
                   {product.old_price && (
                     <span className="old-price">${formatCurrency(product.old_price)}</span>
                   )}
                 </td>
-                <td className={`stock-qty ${product.stock_quantity === 0 ? 'out-of-stock' : product.stock_quantity < 10 ? 'low-stock' : ''}`}>
+                <td className={`stock-qty ${product.stock_quantity === 0 ? 'out-of-stock' : product.stock_quantity < 10 ? 'low-stock' : ''}`} data-label="Stock">
                   {product.stock_quantity}
                 </td>
-                <td>{product.category_name}</td>
-                <td>
+                <td data-label="Category">{product.category_name}</td>
+                <td data-label="Status">
                   <button 
                     className={`status-toggle ${product.is_active ? 'active' : 'inactive'}`}
                     onClick={() => handleToggleActive(product.id, product.is_active)}
@@ -308,7 +308,7 @@ const AdminProducts: React.FC = () => {
                   </button>
                 </td>
                 
-                <td className="actions">
+                <td className="actions" data-label="Actions">
                   <Link to={`/admin/products/${product.id}`} className="edit-btn">
                     <span className="material-symbols-outlined">edit</span>
                   </Link>

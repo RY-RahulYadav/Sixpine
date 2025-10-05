@@ -2654,6 +2654,25 @@
   overflow-x: hidden;
 }
 
+/* Ensure main content always fits viewport width */
+.admin-content, .admin-products, .admin-orders, .admin-users {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Prevent subtle right cut-off on certain mobile browsers */
+@media (max-width: 900px) {
+  .admin-table-container { width: 100%; }
+  .admin-table.responsive-table { width: 100%; }
+  .admin-table.responsive-table tbody tr.responsive-row { margin-left: 0; margin-right: 0; }
+  .admin-header-actions, .admin-filters { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .admin-table.responsive-table tbody tr.responsive-row td { font-size: 0.75rem; }
+  .admin-table.responsive-table tbody tr.responsive-row td::before { flex-basis: 80px; font-size: 0.6rem; }
+}
+
 /* Touch-friendly buttons on mobile */
 @media (max-width: 767px) {
   button,
@@ -2670,4 +2689,123 @@
     min-width: 40px;
     min-height: 40px;
   }
+}
+
+/* ============================================ */
+/* RESPONSIVE STACKING TABLE (SMALL <900px)    */
+/* Extended to tablets to avoid clipping        */
+/* ============================================ */
+@media (max-width: 900px) {
+  /* Remove enforced min-width for responsive tables */
+  .admin-table.responsive-table { min-width: 100% !important; }
+  .admin-table.responsive-table thead {
+    display: none;
+  }
+  .admin-table.responsive-table tbody tr.responsive-row {
+    display: block;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    margin: 0 0 12px 0;
+    padding: 8px 10px;
+    background: var(--admin-card-bg);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .admin-table.responsive-table tbody tr.responsive-row:hover {
+    background: var(--color-sky-light);
+  }
+  .admin-table.responsive-table tbody tr.responsive-row td {
+    display: flex;
+    width: 100%;
+    padding: 6px 4px;
+    border: none;
+    font-size: 0.8rem;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .admin-table.responsive-table tbody tr.responsive-row td::before {
+    content: attr(data-label);
+    flex: 0 0 90px;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: .5px;
+  }
+  .admin-table.responsive-table tbody tr.responsive-row td.actions {
+    justify-content: flex-start;
+  }
+  .admin-table.responsive-table tbody tr.responsive-row td[data-label='Image'] {
+    justify-content: flex-start;
+  }
+  .admin-table.responsive-table tbody tr.responsive-row .product-image img,
+  .admin-table.responsive-table tbody tr.responsive-row .admin-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  .admin-table.responsive-table tbody tr.responsive-row td .status-toggle {
+    margin-left: 0;
+  }
+}
+
+/* ===================================================== */
+/* SUPER RESPONSIVE PRODUCT LIST (enhancements override) */
+/* ===================================================== */
+/* Give products view breathing room so cards aren't cut */
+.admin-products {
+  padding: 0 12px 40px; /* side padding prevents visual cut against scrollbar */
+  box-sizing: border-box;
+}
+
+/* Reserve space for scrollbar (Chromium) to prevent last column clipping */
+.admin-table-container {
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Slight horizontal margin on stacked rows while keeping full width */
+@media (max-width: 900px) {
+  .admin-table.responsive-table tbody tr.responsive-row {
+    margin: 0 4px 12px 4px; /* avoids flush edge look */
+  }
+  .admin-table.responsive-table tbody tr.responsive-row td {
+    align-items: center; /* nicer vertical alignment */
+  }
+  /* Allow product title/content to wrap naturally */
+  .admin-table.responsive-table tbody tr.responsive-row td.product-title a,
+  .admin-table.responsive-table tbody tr.responsive-row td[data-label='Product'] a {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+  }
+}
+
+/* Ultra small devices: reduce label width so values have space */
+@media (max-width: 420px) {
+  .admin-table.responsive-table tbody tr.responsive-row td::before {
+    flex: 0 0 70px;
+  }
+}
+
+@media (max-width: 360px) {
+  .admin-table.responsive-table tbody tr.responsive-row td::before {
+    flex: 0 0 64px;
+    font-size: 0.58rem;
+  }
+  .admin-table.responsive-table tbody tr.responsive-row td {
+    font-size: 0.72rem;
+  }
+}
+
+/* Prevent horizontal scroll caused by long unbroken content */
+.admin-table.responsive-table tbody tr.responsive-row td { 
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Ensure images never push width */
+.admin-table.responsive-table tbody tr.responsive-row .product-image img,
+.admin-table.responsive-table tbody tr.responsive-row .admin-thumb {
+  flex-shrink: 0;
 }

@@ -163,7 +163,7 @@ const AdminOrders: React.FC = () => {
       
       {/* Orders table */}
       <div className="admin-table-container">
-        <table className="admin-table">
+        <table className="admin-table responsive-table">
           <thead>
             <tr>
               <th>Order ID</th>
@@ -178,23 +178,23 @@ const AdminOrders: React.FC = () => {
           </thead>
           <tbody>
             {orders.map((order) => (
-              <tr key={order.id}>
-                <td>{order.order_id.substring(0, 8)}...</td>
-                <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                <td>{order.customer_name}</td>
-                <td>
+              <tr key={order.id} className="responsive-row">
+                <td data-label="Order ID">{order.order_id.substring(0, 8)}...</td>
+                <td data-label="Date">{new Date(order.created_at).toLocaleDateString()}</td>
+                <td data-label="Customer">{order.customer_name}</td>
+                <td data-label="Status">
                   <span className={`status-badge ${order.status}`}>
                     {order.status}
                   </span>
                 </td>
-                <td>
+                <td data-label="Payment">
                   <span className={`status-badge ${order.payment_status}`}>
                     {order.payment_status}
                   </span>
                 </td>
-                <td>{order.items_count}</td>
-                <td>${formatCurrency(order.total_amount)}</td>
-                <td className="actions">
+                <td data-label="Items">{order.items_count}</td>
+                <td data-label="Total">${formatCurrency(order.total_amount)}</td>
+                <td className="actions" data-label="Actions">
                   <Link to={`/admin/orders/${order.id}`} className="view-btn">
                     <span className="material-symbols-outlined">visibility</span>
                   </Link>

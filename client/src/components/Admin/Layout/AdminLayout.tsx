@@ -193,7 +193,7 @@ const AdminLayout: React.FC = () => {
         
         {/* Main Content */}
         <main className={`tw-flex-1 tw-min-h-screen tw-mt-14 sm:tw-mt-16 tw-transition-all tw-duration-300 ${sidebarOpen ? 'lg:tw-ml-64' : 'lg:tw-ml-64'}`}>
-          <div className="tw-px-3 sm:tw-px-4 md:tw-px-6 tw-py-3 sm:tw-py-4 tw-max-w-full tw-overflow-x-hidden">
+          <div className="tw-px-3 sm:tw-px-4 md:tw-px-6 tw-py-3 sm:tw-py-4 tw-w-full">
             <Outlet />
           </div>
         </main>
