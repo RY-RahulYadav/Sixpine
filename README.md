@@ -133,6 +133,15 @@ yarn dev
 
 Frontend will be available at: http://localhost:5173
 
+#### Vite environment variables
+Create a `.env` file in the `client/` folder (copy from `.env.example`) and set the API base URL used by the frontend:
+
+```
+# client/.env
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+Vite exposes variables prefixed with `VITE_` via `import.meta.env` in the client code. The frontend will fall back to `http://localhost:8000/api` if this variable is not set.
+
 ## 📚 API Documentation
 
 ### Swagger UI Documentation
