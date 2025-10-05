@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import adminAPI from '../../../services/adminApi';
 
 interface User {
@@ -65,32 +64,7 @@ const AdminUsers: React.FC = () => {
     }
   };
   
-  const handleToggleStaff = async (id: number, isStaff: boolean) => {
-    try {
-      await adminAPI.toggleUserStaff(id);
-      
-      // Update the user in the local state
-      setUsers(users.map(user => 
-        user.id === id ? { ...user, is_staff: !isStaff } : user
-      ));
-    } catch (err) {
-      console.error('Error toggling staff status:', err);
-      alert('Failed to update admin status');
-    }
-  };
   
-  const handleDeleteUser = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await adminAPI.deleteUser(id);
-        // Remove the user from the local state
-        setUsers(users.filter(user => user.id !== id));
-      } catch (err) {
-        console.error('Error deleting user:', err);
-        alert('Failed to delete user');
-      }
-    }
-  };
   
   if (loading && users.length === 0) {
     return (
