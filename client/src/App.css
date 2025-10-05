@@ -1,0 +1,18 @@
+/* App wrapper for sticky footer */
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Page content should grow to push footer down */
+.page-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Footer wrapper should be at the bottom */
+.footer-wrapper {
+  margin-top: auto;
+}

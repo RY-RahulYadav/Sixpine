@@ -1,0 +1,166 @@
+import axios from 'axios';
+
+// Create axios instance with base configuration
+const API = axios.create({
+  baseURL: 'http://localhost:8000/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add token to requests
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Token ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle errors
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API calls
+export const authAPI = {
+  login: (credentials: { username: string; password: string }) =>
+    API.post('/auth/login/', credentials),
+  
+  register: (userData: {
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+    password_confirm: string;
+  }) => API.post('/auth/register/', userData),
+  
+  requestOTP: (userData: {
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+    password_confirm: string;
+  }) => API.post('/auth/register/request-otp/', userData),
+  
+  verifyOTP: (data: { email: string; otp: string }) =>
+    API.post('/auth/register/verify-otp/', data),
+  
+  resendOTP: (data: { email: string }) =>
+    API.post('/auth/register/resend-otp/', data),
+  
+  logout: () => API.post('/auth/logout/'),
+  
+  getProfile: () => API.get('/auth/profile/'),
+  
+  updateProfile: (data: any) => API.put('/auth/profile/', data),
+  
+  changePassword: (data: {
+    old_password: string;
+    new_password: string;
+    new_password_confirm: string;
+  }) => API.post('/auth/change-password/', data),
+};
+
+// Product API calls
+export const productAPI = {
+  getCategories: () => API.get('/categories/'),
+  
+  getBrands: () => API.get('/brands/'),
+  
+  getProducts: (params?: any) => API.get('/products/', { params }),
+  
+  getProduct: (slug: string) => API.get(`/products/${slug}/`),
+  
+  getProductDetail: (slug: string) => API.get(`/products/${slug}/`),
+  
+  getFeaturedProducts: () => API.get('/products/featured/'),
+  
+  getNewArrivals: () => API.get('/products/new-arrivals/'),
+  
+  searchProducts: (query: string, params?: any) => 
+    API.get(`/products/search/?q=${encodeURIComponent(query)}`, { params }),
+  
+  advancedSearch: (params?: any) => API.get('/products/advanced-search/', { params }),
+  
+  getSearchSuggestions: (query: string) => 
+    API.get(`/search/suggestions/?q=${encodeURIComponent(query)}`),
+  
+  getHomeData: () => API.get('/home-data/'),
+  
+  getProductReviews: (slug: string) => API.get(`/products/${slug}/reviews/`),
+  
+  addReview: (slug: string, reviewData: any) =>
+    API.post(`/products/${slug}/reviews/`, reviewData),
+};
+
+// Cart API calls
+export const cartAPI = {
+  getCart: () => API.get('/cart/'),
+  
+  addToCart: (data: { product_id: number; quantity: number }) =>
+    API.post('/cart/add/', data),
+  
+  updateCartItem: (itemId: number, data: { quantity: number }) =>
+    API.put(`/cart/items/${itemId}/`, data),
+  
+  removeFromCart: (itemId: number) =>
+    API.delete(`/cart/items/${itemId}/remove/`),
+  
+  clearCart: () => API.delete('/cart/clear/'),
+};
+
+// Wishlist API calls
+export const wishlistAPI = {
+  getWishlist: () => API.get('/wishlist/'),
+  
+  addToWishlist: (productId: number) =>
+    API.post('/wishlist/', { product_id: productId }),
+  
+  removeFromWishlist: (itemId: number) =>
+    API.delete(`/wishlist/${itemId}/`),
+};
+
+// Address API calls
+export const addressAPI = {
+  getAddresses: () => API.get('/addresses/'),
+  
+  addAddress: (data: any) => API.post('/addresses/', data),
+  
+  updateAddress: (id: number, data: any) => API.put(`/addresses/${id}/`, data),
+  
+  deleteAddress: (id: number) => API.delete(`/addresses/${id}/`),
+};
+
+// Order API calls
+export const orderAPI = {
+  getOrders: () => API.get('/orders/'),
+  
+  getOrder: (orderId: string) => API.get(`/orders/${orderId}/`),
+  
+  createOrder: (data: any) => API.post('/orders/create/', data),
+  
+  checkoutFromCart: (data: { shipping_address_id: number; order_notes?: string }) =>
+    API.post('/orders/checkout/', data),
+  
+  cancelOrder: (orderId: string) => API.post(`/orders/${orderId}/cancel/`),
+};
+
+export default API;

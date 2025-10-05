@@ -1,0 +1,68 @@
+/* Desktop Tabs */
+
+.tab-categories .nav-tabs {
+    border-bottom: 2px solid #eee;
+    justify-content: center;
+    gap: 15px;
+    background: #eee;
+    padding: 10px;
+    /* margin-bottom: 65px; */
+}
+
+.tab-categories .nav-tabs .nav-link {
+    font-size: 15px;
+    color: #333;
+    padding: 8px 14px;
+    border: none;
+    position: relative;
+}
+
+.tab-categories .nav-tabs .nav-link:hover {
+    color: #ff6600;
+}
+
+
+/* Dropdown on Hover */
+
+.tab-categories .dropdown:hover .dropdown-menu {
+    display: block;
+    margin-top: 0;
+}
+
+.tab-categories .dropdown-menu {
+    z-index: 9999;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Mobile Scrollable Tabs */
+
+.scroll-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    border-bottom: 2px solid #eee;
+    padding: 8px 10px;
+    gap: 10px;
+}
+
+.scroll-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.scroll-tabs a {
+    display: inline-block;
+    padding: 8px 12px;
+    margin-right: 8px;
+    border-radius: 20px;
+    background: #f8f8f8;
+    color: #333;
+    font-size: 14px;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.scroll-tabs a:hover {
+    background: #ff6600;
+    color: #fff;
+}
