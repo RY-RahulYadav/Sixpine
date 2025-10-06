@@ -937,6 +937,7 @@ class DataSeeder:
                 tax_amount = (subtotal * Decimal('0.05')).quantize(Decimal('0.01'))  # 5% tax, rounded
                 total_amount = (subtotal + shipping_cost + tax_amount).quantize(Decimal('0.01'))
                 
+                
                 # Create order with varying statuses
                 status = random.choice(order_statuses)
                 payment_status = 'paid' if status in ['delivered', 'shipped', 'processing'] else random.choice(payment_statuses)
