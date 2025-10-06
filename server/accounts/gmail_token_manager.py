@@ -166,7 +166,7 @@ class GmailTokenManager:
     
     @staticmethod
     def create_new_token():
-        """Create a new token using OAuth flow"""
+        """Create a new token using OAuth flow with offline access"""
         client_config = {
             "installed": {
                 "client_id": settings.GOOGLE_OAUTH2_CLIENT_ID,
@@ -178,10 +178,13 @@ class GmailTokenManager:
         }
         
         flow = InstalledAppFlow.from_client_config(client_config, GmailTokenManager.SCOPES)
+        
         credentials = flow.run_local_server(
             port=0,
             success_message='Authentication successful! You can close this window.',
-            open_browser=True
+            open_browser=True,
+            access_type='offline',
+            prompt='consent'  # Force consent screen to get refresh token
         )
         
         GmailTokenManager.save_token(credentials)

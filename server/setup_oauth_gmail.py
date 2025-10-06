@@ -103,16 +103,20 @@ def setup_oauth():
     input()
     
     try:
-        # Run OAuth flow
+        # Run OAuth flow with offline access to get refresh token
         flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
         
         print("\n🌐 Opening browser for authentication...")
         print("(If browser doesn't open, copy the URL from the console)")
+        print("⚠️  IMPORTANT: You may need to re-authorize even if you've done this before")
+        print("    This ensures we get a refresh token for automatic token renewal.")
         
         creds = flow.run_local_server(
             port=0,
             success_message='Authentication successful! You can close this window.',
-            open_browser=True
+            open_browser=True,
+            access_type='offline',
+            prompt='consent'  # Force consent screen to get refresh token
         )
         
         # Save credentials to environment variables
@@ -125,30 +129,32 @@ def setup_oauth():
         print("✓ Token also saved to .env file")
         print("✓ Gmail API is now configured")
         
-        # Test the credentials
+        # Test the credentials by sending a test email
         print("\n📧 Testing email sending...")
         service = build('gmail', 'v1', credentials=creds)
         
-        # Try to get user profile to verify
-        profile = service.users().getProfile(userId='me').execute()
-        print(f"✓ Connected as: {profile.get('emailAddress')}")
-        
-        # Send a test email
-        from email.mime.text import MIMEText
-        import base64
-        
-        message = MIMEText("This is a test email from your E-Commerce application. OTP setup is working!")
-        message['to'] = settings.EMAIL_HOST_USER
-        message['subject'] = 'OAuth Setup Successful - Test Email'
-        
-        raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
-        result = service.users().messages().send(
-            userId='me',
-            body={'raw': raw}
-        ).execute()
-        
-        print(f"✓ Test email sent! (Message ID: {result['id']})")
-        print(f"✓ Check your inbox: {settings.EMAIL_HOST_USER}")
+        # Send a test email directly (skipping profile check which needs additional scope)
+        try:
+            from email.mime.text import MIMEText
+            import base64
+            
+            message = MIMEText("This is a test email from your E-Commerce application. OAuth setup is working!")
+            message['to'] = settings.EMAIL_HOST_USER
+            message['from'] = settings.EMAIL_HOST_USER
+            message['subject'] = 'OAuth Setup Successful - Test Email'
+            
+            raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+            result = service.users().messages().send(
+                userId='me',
+                body={'raw': raw}
+            ).execute()
+            
+            print(f"✓ Test email sent! (Message ID: {result['id']})")
+            print(f"✓ Check your inbox: {settings.EMAIL_HOST_USER}")
+            print(f"✓ Gmail API authentication is working correctly!")
+        except Exception as e:
+            print(f"⚠️  Test email failed: {e}")
+            print("✓ OAuth token saved successfully, but email sending needs debugging")
         
         print("\n" + "="*70)
         print("NEXT STEPS")
