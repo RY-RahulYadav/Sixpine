@@ -53,14 +53,14 @@ const LoginPage: React.FC = () => {
                   <form onSubmit={handleSubmit}>
                     <div className="auth-form-group">
                       <label htmlFor="username" className="auth-form-label">
-                        <i className="bi bi-person me-2"></i>Username or Email
+                        <i className="bi bi-person me-2"></i>Username 
                       </label>
                       <input
                         type="text"
                         className="auth-form-control"
                         id="username"
                         name="username"
-                        placeholder="Enter your username or email"
+                        placeholder="Enter your username"
                         value={formData.username}
                         onChange={handleChange}
                         required
