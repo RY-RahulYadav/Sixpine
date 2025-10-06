@@ -285,7 +285,7 @@ const AdminProducts: React.FC = () => {
                     </div>
                   )}
                 </td>
-                <td className="product-title" data-label="Product">
+                <td className='' data-label="Product">
                   <Link to={`/admin/products/${product.id}`}>{product.title}</Link>
                 </td>
                 <td data-label="SKU">{product.sku}</td>
