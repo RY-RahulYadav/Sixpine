@@ -6,6 +6,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from .swagger_views import serve_swagger_ui, serve_swagger_yaml
+from .views import root_welcome
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -14,6 +15,7 @@ urlpatterns = [
     path('api/', include('cart.urls')),
     path('api/', include('orders.urls')),
     path('api/admin/', include('admin_api.urls')),
+    path('', root_welcome),
     
     # Swagger Documentation
     path('docs/', serve_swagger_ui, name='swagger-ui'),
