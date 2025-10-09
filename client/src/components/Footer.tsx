@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import styles from "../../src/styles/Footer.module.css";
+import styles from "../styles/footer.module.css";
 
 export default function Footer() {
   const scrollToTop = () => {

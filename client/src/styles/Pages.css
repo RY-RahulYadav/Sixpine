@@ -16,9 +16,8 @@
 .supply_container
 {
   max-width: 100vw; 
-  margin: 0 auto;
-  padding-left: 20px;
-  padding-right:35px;
+  margin: 0 20px;
+  
   padding-bottom: 60px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -27,6 +26,7 @@
 .homepage_container > * {
   width: 100%;
   box-sizing: border-box;
+  
 }
 
 /* Section spacing - standardized for consistent layout */
@@ -45,6 +45,7 @@
   margin-bottom: 0;
   padding-top: 10px;
   padding-bottom: 10px;
+  
 }
 
 /* Common section styling */
