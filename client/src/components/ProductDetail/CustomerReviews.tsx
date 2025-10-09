@@ -16,7 +16,7 @@ const CustomerReviews: React.FC = () => {
   };
 
   return (
-    <div className="container my-4 custom_padding_section">
+    <div className="custom_padding_section mb-4">
       <div className="row">
         <div className="col-md-6">
           <div className="customer_reviews_1">

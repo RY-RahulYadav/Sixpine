@@ -107,7 +107,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({ title, products, caro
   };
 
   return (
-    <section className="product-carousel container s_pb">
+    <section className="product-carousel custom_padding_section s_pb">
       <h4 className="mb-3">{title}</h4>
       <div className={`owl-carousel ${uniqueClass} owl-theme`}>
         {products.map((product, index) => (

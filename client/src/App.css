@@ -3,6 +3,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background: white;
 }
 
 /* Page content should grow to push footer down */

@@ -660,6 +660,7 @@
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     /* ðŸ‘ˆ sirf ek line */
     -webkit-box-orient: vertical;
     font-size: 16px;
@@ -882,6 +883,7 @@ p {
 .product-desc {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     /* 2 lines */
     -webkit-box-orient: vertical;
     overflow: hidden;
@@ -1006,7 +1008,7 @@ p {
 /* Page content wrapper for sticky footer */
 .page-content {
     flex: 1;
-    min-height: calc(100vh - 200px);
+    /* min-height: calc(100vh - 200px); */
 }
 
 
@@ -1256,6 +1258,10 @@ strong {
         padding: 0 20px;
     }
     
+    .homepage_container, .productdetails_container {
+        padding: 0 20px;
+    }
+    
     .products_nav {
         display: none;
     }
@@ -1357,6 +1363,10 @@ strong {
     }
     
     .custom_padding_section {
+        padding: 0 15px;
+    }
+    
+    .homepage_container, .productdetails_container {
         padding: 0 15px;
     }
     
@@ -1561,6 +1571,10 @@ strong {
     }
     
     .custom_padding_section {
+        padding: 0 10px;
+    }
+    
+    .homepage_container, .productdetails_container {
         padding: 0 10px;
     }
     

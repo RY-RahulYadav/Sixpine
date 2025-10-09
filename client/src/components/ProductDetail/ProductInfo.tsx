@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface ProductInfoProps {
   product: any;
@@ -15,6 +15,23 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     if (product?.variants && product.variants.length > 0) {
       onVariantSelect?.(product.variants[0]);
     }
+  }, [product]);
+
+  // When product loads, set demo fallback selections if backend doesn't provide attributes
+  useEffect(() => {
+    // demo fallbacks in case backend doesn't send options
+    const demoColors = ['Red', 'Blue', 'Black'];
+    const demoSizes = ['S', 'M', 'L'];
+    const demoPatterns = ['Exact', 'Classic'];
+
+    const backendColors = product?.colors || getAttributeValues('Color');
+    const backendSizes = product?.sizes || getAttributeValues('Size');
+    const backendPatterns = product?.patterns || getAttributeValues('Pattern');
+
+    // set defaults only when nothing is already selected
+    if (!selectedColor) setSelectedColor((backendColors && backendColors.length > 0) ? backendColors[0] : demoColors[0]);
+    if (!selectedSize) setSelectedSize((backendSizes && backendSizes.length > 0) ? backendSizes[0] : demoSizes[0]);
+    if (!selectedPattern) setSelectedPattern((backendPatterns && backendPatterns.length > 0) ? backendPatterns[0] : demoPatterns[0]);
   }, [product]);
 
   const renderStars = (rating: number) => {
@@ -41,6 +58,32 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const currentPrice = selectedVariant?.effective_price || product?.price || 0;
   const oldPrice = selectedVariant?.effective_old_price || product?.old_price;
 
+  // Local UI state for options (Color / Size / Pattern)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
+
+  const getAttributeValues = (name: string) => {
+    if (!product?.attributes) return [];
+    return product.attributes
+      .filter((a: any) => a.filter_attribute?.name?.toLowerCase() === name.toLowerCase())
+      .map((a: any) => a.value)
+      .filter((v: any, i: number, arr: any[]) => v != null && arr.indexOf(v) === i);
+  };
+
+  // Provide demo fallbacks so UI always shows controls even if backend omits them
+  const demoColors = ['Red', 'Blue', 'Black'];
+  const demoSizes = ['S', 'M', 'L'];
+  const demoPatterns = ['Exact', 'Classic'];
+
+  const backendColors = product?.colors || getAttributeValues('Color');
+  const backendSizes = product?.sizes || getAttributeValues('Size');
+  const backendPatterns = product?.patterns || getAttributeValues('Pattern');
+
+  const colors = (backendColors && backendColors.length > 0) ? backendColors : demoColors;
+  const sizes = (backendSizes && backendSizes.length > 0) ? backendSizes : demoSizes;
+  const patterns = (backendPatterns && backendPatterns.length > 0) ? backendPatterns : demoPatterns;
+
   return (
     <>
       <h2 className="product-title">{product?.title}</h2>
@@ -55,18 +98,32 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       </div>
 
       <div className="price-section">
-        <h4 className="text-danger">
-          ₹{currentPrice.toLocaleString()}
-        </h4>
+        <div className="d-flex align-items-baseline gap-2 mb-1">
+          <h1 className="mb-0 fw-bold" style={{ fontSize: '2rem' }}>₹{currentPrice.toLocaleString()}</h1>
+          <span className="text-muted" style={{ fontSize: '0.9rem' }}>/month (3 months)</span>
+        </div>
+        <p className="mb-2" style={{ fontSize: '0.85rem' }}>
+          with <strong>No Cost EMI</strong> on your ICICI Credit Card{' '}
+          <a href="#" className="text-primary text-decoration-none">
+            All EMI Plans <i className="bi bi-chevron-down"></i>
+          </a>
+        </p>
         {oldPrice && oldPrice > currentPrice && (
-          <p className="text-success">
-            {product?.discount_percentage}% Off{' '}
-            <span className="text-decoration-line-through text-muted">
-              ₹{oldPrice.toLocaleString()}
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <span className="badge bg-danger fw-bold text-white" style={{ fontSize: '1rem', padding: '0.4rem 0.6rem' }}>
+              -{product?.discount_percentage}%
             </span>
+            <h3 className="mb-0 fw-bold" style={{ fontSize: '1.5rem' }}>₹{currentPrice.toLocaleString()}</h3>
+          </div>
+        )}
+        {oldPrice && oldPrice > currentPrice && (
+          <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
+            M.R.P: <span className="text-decoration-line-through">₹{oldPrice.toLocaleString()}</span>
           </p>
         )}
       </div>
+
+      
 
       <div className="availability-section mb-3">
         <p className={`fw-bold ${product?.stock_quantity > 0 ? 'text-success' : 'text-danger'}`}>
@@ -151,6 +208,70 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       )}
 
       <div className="product_details_1">
+        {/* Options (Color / Size / Pattern) - placed above Key Details */}
+        <div className="product-options mb-3">
+          {/* Color */}
+          {((colors && colors.length > 0) || (sizes && sizes.length > 0) || (patterns && patterns.length > 0)) && (
+            <>
+              {colors && colors.length > 0 && (
+                <div className="variant-row option-row">
+                  <strong>Color:</strong>
+                  <div className="d-flex flex-wrap gap-2">
+                    {colors.map((c: any) => (
+                      <button
+                        type="button"
+                        key={`color-${c}`}
+                        className={`btn option-btn ${selectedColor === c ? 'active' : ''}`}
+                        onClick={() => setSelectedColor(c)}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Size */}
+              {sizes && sizes.length > 0 && (
+                <div className="variant-row option-row">
+                  <strong>Size:</strong>
+                  <div className="d-flex flex-wrap gap-2">
+                    {sizes.map((s: any) => (
+                      <button
+                        type="button"
+                        key={`size-${s}`}
+                        className={`btn option-btn ${selectedSize === s ? 'active' : ''}`}
+                        onClick={() => setSelectedSize(s)}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pattern */}
+              {patterns && patterns.length > 0 && (
+                <div className="variant-row option-row">
+                  <strong>Pattern:</strong>
+                  <div className="d-flex flex-wrap gap-2">
+                    {patterns.map((p: any) => (
+                      <button
+                        type="button"
+                        key={`pattern-${p}`}
+                        className={`btn option-btn ${selectedPattern === p ? 'active' : ''}`}
+                        onClick={() => setSelectedPattern(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
         <div className="key-details">
           <h6>Key Details</h6>
           <div className="details-grid">

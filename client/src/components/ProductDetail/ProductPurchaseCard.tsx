@@ -15,6 +15,10 @@ const ProductPurchaseCard: React.FC<ProductPurchaseCardProps> = ({
 }) => {
   const [quantity, setQuantity] = useState(1);
 
+  // Shared box style so both panels have the same width and a visible subtle dark-gray border
+  // Slightly darker gray so the border is visible on white backgrounds
+  const boxStyle: React.CSSProperties = { border: '1px solid #bdbdbd', width: '100%', borderRadius: 8 };
+
   const handleQuantityChange = (value: number) => {
     if (value >= 1 && value <= (product?.stock_quantity || 1)) {
       setQuantity(value);
@@ -26,7 +30,7 @@ const ProductPurchaseCard: React.FC<ProductPurchaseCardProps> = ({
 
   return (
     <div className="details_info">
-      <div className="card cart_summary_top">
+      <div className="card cart_summary_top" style={boxStyle}>
         <div className="card-body">
           <strong>Purchase Summary</strong>
           <div className="deatailsnbn">
@@ -94,7 +98,7 @@ const ProductPurchaseCard: React.FC<ProductPurchaseCardProps> = ({
         </div>
       </div>
 
-      <div className="small-ad-box mt-3 p-3 border rounded shadow-sm">
+  <div className="small-ad-box mt-3 p-3 border rounded shadow-sm" style={boxStyle}>
         <img
           src="https://webdori.in/sixpine/assets/img/furniture-products/sofa2.jpg"
           className="img-fluid mb-2"

@@ -5,7 +5,6 @@ import './styles/main.css'
 import './styles/hero.css'
 import './styles/styles.css'
 import './styles/tab-menu.css'
-import './styles/footer.css'
 import './styles/responsive.css'
 import App from './App.tsx'
 

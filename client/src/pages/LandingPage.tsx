@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
-import CategoryTabs from '../components/CategoryTabs';
-import HeroSection from '../components/HeroSection';
-import KeepShopping from '../components/KeepShopping';
-import HomeDeals from '../components/HomeDeals';
-import ProductCarousel from '../components/ProductCarousel';
-import Banner from '../components/Banner';
 import Footer from '../components/Footer';
+import HeroSection from "../components/Home/heroSection";
+import HeroSection2 from "../components/Home/heroSection2";
+import HeroSection3 from "../components/Home/heroSection3";
+import BannerCards from "../components/Home/bannerCards";
+import FurnitureInfoSection from "../components/Home/FurnitureInfoSection";
+import FurnitureCategories from "../components/Home/furnitureCategories";
+import FurnitureSections from "../components/Home/furnitureSections";
+import FurnitureOfferSection from "../components/Home/furnitureOfferSections";
+// import HomepageText from "../components/Home/HomepageText";
+import FeatureCard from "../components/Home/FeatureCard";
 import { productAPI } from '../services/api';
-
+import "../styles/Pages.css";
+import "../styles/HomeSections.css";
+import CategoryTabs from '../components/CategoryTabs';
 const LandingPage: React.FC = () => {
-  const [homeData, setHomeData] = useState<any>(null);
+  const [, setHomeData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +36,8 @@ const LandingPage: React.FC = () => {
   };
 
   // Transform product data to match ProductCarousel interface
+  // Commented out because it's not currently used
+  /*
   const transformProduct = (product: any) => ({
     id: product.id,
     slug: product.slug,
@@ -41,6 +49,7 @@ const LandingPage: React.FC = () => {
     price: parseFloat(product.price),
     oldPrice: product.old_price ? parseFloat(product.old_price) : parseFloat(product.price)
   });
+  */
 
   if (loading) {
     return (
@@ -66,7 +75,7 @@ const LandingPage: React.FC = () => {
       <div className="page-content">
         <SubNav />
         <CategoryTabs />
-        <HeroSection />
+        {/* <HeroSection />
         <KeepShopping />
       <HomeDeals />
       {homeData?.featured_products && (
@@ -83,7 +92,36 @@ const LandingPage: React.FC = () => {
           products={homeData.new_arrivals.map(transformProduct)} 
           carouselClass="owl-carousel_2" 
         />
-      )}
+      )} */}
+
+       
+      </div>
+
+      <div className="homepage_container">
+          <HeroSection />
+          <HeroSection2 />
+
+          <HeroSection3 />
+       
+        
+        
+          <FurnitureCategories />
+        
+        
+  
+        
+     
+          <FurnitureSections />
+        
+          <FurnitureOfferSection />
+        
+          <FeatureCard />
+        
+          <BannerCards />
+
+          <FurnitureInfoSection />
+
+        {/* <HomepageText /> */}
       </div>
       <div className="footer-wrapper">
         <Footer />

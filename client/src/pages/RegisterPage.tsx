@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import '../styles/auth.css';
 import Navbar from '../components/Navbar';
+import SubNav from '../components/SubNav';
 import Footer from '../components/Footer';
 
 const RegisterPage: React.FC = () => {
@@ -11,6 +13,7 @@ const RegisterPage: React.FC = () => {
     email: '',
     first_name: '',
     last_name: '',
+    mobile: '',
     password: '',
     password_confirm: ''
   });
@@ -19,6 +22,8 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Timer effect for resend OTP
   React.useEffect(() => {
@@ -129,257 +134,198 @@ const RegisterPage: React.FC = () => {
 
   return (
     <>
-      <Navbar />
-      <div className="auth-page">
-        <div className="container">
-          <div className="row justify-content-center">
-            <div className="col-md-8 col-lg-6">
-              <div className="auth-card">
-                <div className="auth-card-header">
-                  <h2>{step === 'register' ? 'Create Your Account' : 'Verify Your Email'}</h2>
-                  <p>{step === 'register' ? 'Join Sixpine today and start shopping!' : 'Enter the code we sent to your email'}</p>
+    <Navbar />
+     <div className="page-content">
+        <SubNav />
+        </div>
+    <div className="sixpine-auth-page">
+      <div className="sixpine-auth-container">
+        <div className="sixpine-auth-card">
+          {/* Header with brand name */}
+          <div className="sixpine-brand">
+            <h1 style={{marginBottom:12}}>Sixpine</h1>
+          </div>
+          
+          {/* Toggle buttons */}
+          <div className="sixpine-toggle-buttons">
+            <Link to="/login" className="sixpine-toggle-btn">Sign in</Link>
+            <button className="sixpine-toggle-btn active">Create account</button>
+          </div>
+
+          {/* Error/Success messages */}
+          {error && (
+            <div className="sixpine-error-message">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="sixpine-success-message">
+              {success}
+            </div>
+          )}
+
+          {step === 'register' ? (
+            /* Registration Form */
+            <form onSubmit={handleRequestOTP} className="sixpine-form">
+              {/* First row: name and email side-by-side */}
+              <div className="sixpine-row" style={{marginBottom:16}}>
+                <div className="sixpine-col">
+                  <div className="sixpine-form-group">
+                    <label>Your name</label>
+                    <input
+                      type="text"
+                      name="first_name"
+                      value={formData.first_name}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
                 </div>
-                
-                <div className="auth-card-body">
-                  {error && (
-                    <div className="auth-alert auth-alert-error" role="alert">
-                      <i className="bi bi-exclamation-circle me-2"></i>
-                      {error}
-                    </div>
-                  )}
 
-                  {success && (
-                    <div className="auth-alert auth-alert-success" role="alert">
-                      <i className="bi bi-check-circle me-2"></i>
-                      {success}
-                    </div>
-                  )}
-
-                  {step === 'register' ? (
-                    <form onSubmit={handleRequestOTP}>
-                      <div className="row auth-row">
-                        <div className="col-md-6 auth-col">
-                          <div className="auth-form-group">
-                            <label htmlFor="first_name" className="auth-form-label">
-                              <i className="bi bi-person me-2"></i>First Name
-                            </label>
-                            <input
-                              type="text"
-                              className="auth-form-control"
-                              id="first_name"
-                              name="first_name"
-                              placeholder="John"
-                              value={formData.first_name}
-                              onChange={handleChange}
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="col-md-6 auth-col">
-                          <div className="auth-form-group">
-                            <label htmlFor="last_name" className="auth-form-label">
-                              <i className="bi bi-person me-2"></i>Last Name
-                            </label>
-                            <input
-                              type="text"
-                              className="auth-form-control"
-                              id="last_name"
-                              name="last_name"
-                              placeholder="Doe"
-                              value={formData.last_name}
-                              onChange={handleChange}
-                              required
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="auth-form-group">
-                        <label htmlFor="username" className="auth-form-label">
-                          <i className="bi bi-at me-2"></i>Username
-                        </label>
-                        <input
-                          type="text"
-                          className="auth-form-control"
-                          id="username"
-                          name="username"
-                          placeholder="johndoe"
-                          value={formData.username}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-
-                      <div className="auth-form-group">
-                        <label htmlFor="email" className="auth-form-label">
-                          <i className="bi bi-envelope me-2"></i>Email Address
-                        </label>
-                        <input
-                          type="email"
-                          className="auth-form-control"
-                          id="email"
-                          name="email"
-                          placeholder="john@example.com"
-                          value={formData.email}
-                          onChange={handleChange}
-                          required
-                        />
-                        <div className="auth-form-text">
-                          <i className="bi bi-info-circle me-1"></i>
-                          We'll send a verification code to this email
-                        </div>
-                      </div>
-
-                      <div className="auth-form-group">
-                        <label htmlFor="password" className="auth-form-label">
-                          <i className="bi bi-shield-lock me-2"></i>Password
-                        </label>
-                        <input
-                          type="password"
-                          className="auth-form-control"
-                          id="password"
-                          name="password"
-                          placeholder="••••••••"
-                          value={formData.password}
-                          onChange={handleChange}
-                          minLength={8}
-                          required
-                        />
-                        <div className="auth-form-text">
-                          <i className="bi bi-info-circle me-1"></i>
-                          Must be at least 8 characters long
-                        </div>
-                      </div>
-
-                      <div className="auth-form-group">
-                        <label htmlFor="password_confirm" className="auth-form-label">
-                          <i className="bi bi-shield-check me-2"></i>Confirm Password
-                        </label>
-                        <input
-                          type="password"
-                          className="auth-form-control"
-                          id="password_confirm"
-                          name="password_confirm"
-                          placeholder="••••••••"
-                          value={formData.password_confirm}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="auth-submit-btn"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            Sending OTP...
-                          </>
-                        ) : (
-                          <>
-                            <i className="bi bi-arrow-right-circle me-2"></i>
-                            Continue
-                          </>
-                        )}
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleVerifyOTP}>
-                      <div className="text-center mb-4">
-                        <div className="otp-icon">
-                          <i className="bi bi-envelope-check"></i>
-                        </div>
-                        <p style={{ color: '#666', fontSize: '15px' }}>
-                          We've sent a 6-digit verification code to<br />
-                          <strong style={{ color: '#333', fontSize: '16px' }}>{formData.email}</strong>
-                        </p>
-                      </div>
-
-                      <div className="auth-form-group">
-                        <label htmlFor="otp" className="auth-form-label text-center w-100">
-                          Enter Verification Code
-                        </label>
-                        <input
-                          type="text"
-                          className="auth-form-control otp-input"
-                          id="otp"
-                          name="otp"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          maxLength={6}
-                          placeholder="000000"
-                          required
-                        />
-                        <div className="auth-form-text text-center otp-timer">
-                          <i className="bi bi-clock me-1"></i>
-                          Code expires in 10 minutes
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="auth-submit-btn"
-                        disabled={loading || otp.length !== 6}
-                      >
-                        {loading ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            Verifying...
-                          </>
-                        ) : (
-                          <>
-                            <i className="bi bi-check-circle me-2"></i>
-                            Verify & Create Account
-                          </>
-                        )}
-                      </button>
-
-                      <div className="text-center my-3">
-                        {resendTimer > 0 ? (
-                          <p className="otp-timer mb-0">
-                            <i className="bi bi-hourglass-split me-1"></i>
-                            Resend code in <strong>{resendTimer}s</strong>
-                          </p>
-                        ) : (
-                          <button
-                            type="button"
-                            className="resend-btn"
-                            onClick={handleResendOTP}
-                            disabled={loading}
-                          >
-                            <i className="bi bi-arrow-clockwise me-2"></i>
-                            Resend Code
-                          </button>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        className="back-btn"
-                        onClick={handleBackToRegister}
-                        disabled={loading}
-                      >
-                        <i className="bi bi-arrow-left me-2"></i>
-                        Change Email
-                      </button>
-                    </form>
-                  )}
-
-                  <div className="auth-footer-text">
-                    Already have an account? <Link to="/login">Login here</Link>
+                <div className="sixpine-col">
+                  <div className="sixpine-form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="abc@gmail.com"
+                      className="sixpine-prefilled"
+                      required
+                    />
                   </div>
                 </div>
               </div>
-            </div>
+
+              <div className="sixpine-form-group">
+                <label>Mobile (optional)</label>
+                <input
+                  type="tel"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="sixpine-form-group">
+                <label>Password</label>
+                <div className="sixpine-password-input">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••"
+                    minLength={8}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="sixpine-password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="sixpine-form-group">
+                <label>Re-enter password</label>
+                <div className="sixpine-password-input">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="password_confirm"
+                    value={formData.password_confirm}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="sixpine-password-toggle"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="sixpine-submit-btn"
+                disabled={loading}
+              >
+                {loading ? 'Creating account...' : 'Create account'}
+              </button>
+            </form>
+          ) : (
+            /* OTP Verification Form */
+            <form onSubmit={handleVerifyOTP} className="sixpine-form">
+              <div className="sixpine-otp-section">
+                <p>We've sent a 6-digit verification code to</p>
+                <p><strong>{formData.email}</strong></p>
+                
+                <div className="sixpine-form-group">
+                  <label>Enter Verification Code</label>
+                  <input
+                    type="text"
+                    className="sixpine-otp-input"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                    placeholder="000000"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="sixpine-submit-btn"
+                  disabled={loading || otp.length !== 6}
+                >
+                  {loading ? 'Verifying...' : 'Verify & Create Account'}
+                </button>
+
+                <div className="sixpine-otp-actions">
+                  {resendTimer > 0 ? (
+                    <p>Resend code in {resendTimer}s</p>
+                  ) : (
+                    <button
+                      type="button"
+                      className="sixpine-link-btn"
+                      onClick={handleResendOTP}
+                      disabled={loading}
+                    >
+                      Resend Code
+                    </button>
+                  )}
+                  
+                  <button
+                    type="button"
+                    className="sixpine-link-btn"
+                    onClick={handleBackToRegister}
+                    disabled={loading}
+                  >
+                    Change Email
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* Footer links */}
+          <div className="sixpine-footer-links">
+            <Link to="/privacy">Privacy</Link>
+            <span>•</span>
+            <Link to="/terms">Terms</Link>
+            <span>•</span>
+            <Link to="/help">Help</Link>
           </div>
         </div>
       </div>
-      <div className="footer-wrapper">
-        <Footer />
-      </div>
+    </div>
+    <Footer/>
     </>
   );
 };

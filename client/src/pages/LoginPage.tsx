@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import '../styles/auth.css';
 import Navbar from '../components/Navbar';
+import SubNav from '../components/SubNav';
 import Footer from '../components/Footer';
 
 const LoginPage: React.FC = () => {
@@ -11,6 +13,8 @@ const LoginPage: React.FC = () => {
     username: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -31,89 +35,102 @@ const LoginPage: React.FC = () => {
 
   return (
     <>
-      <Navbar />
-      <div className="auth-page">
-        <div className="container">
-          <div className="row justify-content-center">
-            <div className="col-md-6 col-lg-5">
-              <div className="auth-card">
-                <div className="auth-card-header">
-                  <h2>Welcome Back!</h2>
-                  <p>Login to your Sixpine account</p>
-                </div>
-                
-                <div className="auth-card-body">
-                  {state.error && (
-                    <div className="auth-alert auth-alert-error" role="alert">
-                      <i className="bi bi-exclamation-circle me-2"></i>
-                      {state.error}
-                    </div>
-                  )}
+    <Navbar />
+     <div className="page-content">
+        <SubNav />
+        </div>
+    <div className="sixpine-auth-page">
+      <div className="sixpine-auth-container">
+        <div className="sixpine-auth-card">
+          {/* Header with brand name */}
+          <div className="sixpine-brand">
+            <h1>Sixpine</h1>
+          </div>
+          
+          {/* Toggle buttons */}
+          <div className="sixpine-toggle-buttons">
+            <button className="sixpine-toggle-btn active">Sign in</button>
+            <Link to="/register" className="sixpine-toggle-btn">Create account</Link>
+          </div>
 
-                  <form onSubmit={handleSubmit}>
-                    <div className="auth-form-group">
-                      <label htmlFor="username" className="auth-form-label">
-                        <i className="bi bi-person me-2"></i>Username 
-                      </label>
-                      <input
-                        type="text"
-                        className="auth-form-control"
-                        id="username"
-                        name="username"
-                        placeholder="Enter your username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
+          {/* Error message */}
+          {state.error && (
+            <div className="sixpine-error-message">
+              {state.error}
+            </div>
+          )}
 
-                    <div className="auth-form-group">
-                      <label htmlFor="password" className="auth-form-label">
-                        <i className="bi bi-lock me-2"></i>Password
-                      </label>
-                      <input
-                        type="password"
-                        className="auth-form-control"
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="sixpine-form">
+            <div className="sixpine-form-group">
+              <label>Email or Mobile</label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="abc@gmail.com"
+                required
+              />
+            </div>
 
-                    <button
-                      type="submit"
-                      className="auth-submit-btn"
-                      disabled={state.loading}
-                    >
-                      {state.loading ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                          Logging in...
-                        </>
-                      ) : (
-                        <>
-                          <i className="bi bi-box-arrow-in-right me-2"></i>
-                          Login
-                        </>
-                      )}
-                    </button>
-                  </form>
-
-                  <div className="auth-footer-text">
-                    Don't have an account? <Link to="/register">Register here</Link>
-                  </div>
-                </div>
+            <div className="sixpine-form-group">
+              <div className="sixpine-password-header">
+                <label>Password</label>
+                <Link to="/forgot-password" className="sixpine-forgot-link">Forget Password?</Link>
+              </div>
+              <div className="sixpine-password-input">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  className="sixpine-password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
               </div>
             </div>
+
+            <div className="sixpine-checkbox-group">
+              <label className="sixpine-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={keepSignedIn}
+                  onChange={(e) => setKeepSignedIn(e.target.checked)}
+                />
+                <span className="sixpine-checkbox-custom"></span>
+                Keep me signed in
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className="sixpine-submit-btn"
+              disabled={state.loading}
+            >
+              {state.loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+
+          {/* Footer links */}
+          <div className="sixpine-footer-links">
+            <Link to="/privacy">Privacy</Link>
+            <span>•</span>
+            <Link to="/terms">Terms</Link>
+            <span>•</span>
+            <Link to="/help">Help</Link>
           </div>
         </div>
       </div>
-      <div className="footer-wrapper">
-        <Footer />
-      </div>
+    </div>
+    <Footer/>
     </>
   );
 };

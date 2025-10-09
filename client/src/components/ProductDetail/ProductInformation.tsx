@@ -35,8 +35,8 @@ const ProductInformation: React.FC<ProductInformationProps> = ({ relatedProducts
   };
 
   return (
-    <div className="container my-5 custom_padding_section" id="luxury_1">
-      <div className="container my-5 product-info-section">
+    <div className="custom_padding_section mt-5" id="luxury_1">
+      <div className="mt-5 product-info-section">
         <h2 className="mb-2 fw-bold">Product information</h2>
         <div className="row g-4">
           <div className="col-md-6">
@@ -146,9 +146,7 @@ const ProductInformation: React.FC<ProductInformationProps> = ({ relatedProducts
         </div>
 
         <div className="row mt-5">
-          <div className="col-12 col_relative">
-            <h4>Customers Frequently viewed | Popular products in the last 7 days</h4>
-          </div>
+        
           <div className="frq_products">
             <div className="d-flex gap-3 flex-wrap">
               {relatedProducts?.slice(0, 3).map((product) => (

@@ -16,6 +16,8 @@ import Modals from '../components/ProductDetail/Modals';
 import { productAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import '../styles/products.css'
+// import BannerCards from '../components/Home/bannerCards';
+import SuggestedBox from '../components/ProductDetail/suggestedBox';
 
 interface Product {
   id: number;
@@ -174,78 +176,70 @@ const ProductDetailPage: React.FC = () => {
         <div id="navbar-changed">
           <SubNav />
           <CategoryTabs />
-        
-        <div className="container-fluid">
-          <div className="row mb-2">
-            <div className="d-flex justify-content-center">
-              <AdBanner />
+          <div className="row mb-3">
+              <div className="d-flex justify-content-center">
+                <AdBanner />
+              </div>
+            </div>
+        </div>
+       
+        <div className="productdetails_container">
+          
+
+          <div className="custom_padding_section">
+            <Breadcrumb />
+          </div>
+
+          <div className="product-details-page custom_padding_section">
+            <div className="row">
+              <div className="col-md-5">
+                <ProductImageGallery 
+                  images={productImages}
+                  selectedImage={selectedImage}
+                  onImageSelect={setSelectedImage}
+                />
+              </div>
+
+              <div className="col-md-4 mid_info_products">
+                <ProductInfo 
+                  product={product}
+                  selectedVariant={selectedVariant}
+                  onVariantSelect={setSelectedVariant}
+                />
+              </div>
+
+              <div className="col-md-3 p-lg-0">
+                <ProductPurchaseCard 
+                  product={product}
+                  selectedVariant={selectedVariant}
+                  onAddToCart={handleAddToCart}
+                  onBuyNow={handleBuyNow}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="container custom_padding_section">
-          <Breadcrumb />
-        </div>
+          {product.related_products && product.related_products.length > 0 && (
+            <ProductCarousel 
+              title="Related Products"
+              products={product.related_products.map(transformRelatedProduct)}
+              carouselId="carousel2"
+            />
+          )}
 
-        <div className="container product-details-page custom_padding_section">
-          <div className="row">
-            <div className="col-md-5">
-              <ProductImageGallery 
-                images={productImages}
-                selectedImage={selectedImage}
-                onImageSelect={setSelectedImage}
-              />
-            </div>
+          {product.related_products && product.related_products.length > 0 && (
+            <ProductCarousel 
+              title="Customers who viewed this item also viewed"
+              products={product.related_products.map(transformRelatedProduct)}
+              carouselId="carousel3"
+            />
+          )}
 
-            <div className="col-md-4 mid_info_products">
-              <ProductInfo 
-                product={product}
-                selectedVariant={selectedVariant}
-                onVariantSelect={setSelectedVariant}
-              />
-            </div>
+          <ProductInformation relatedProducts={product.related_products?.map(transformRelatedProduct) || []} />
+          <CustomerReviews />
 
-            <div className="col-md-3 p-lg-0">
-              <ProductPurchaseCard 
-                product={product}
-                selectedVariant={selectedVariant}
-                onAddToCart={handleAddToCart}
-                onBuyNow={handleBuyNow}
-              />
-            </div>
-          </div>
-        </div>
-
-        {product.related_products && product.related_products.length > 0 && (
-          <ProductCarousel 
-            title="Related Products"
-            products={product.related_products.map(transformRelatedProduct)}
-            carouselId="carousel2"
-          />
-        )}
-
-        {product.related_products && product.related_products.length > 0 && (
-          <ProductCarousel 
-            title="Customers who viewed this item also viewed"
-            products={product.related_products.map(transformRelatedProduct)}
-            carouselId="carousel3"
-          />
-        )}
-
-        <ProductInformation relatedProducts={product.related_products?.map(transformRelatedProduct) || []} />
-
-        <CustomerReviews />
-
-        {product.related_products && product.related_products.length > 0 && (
-          <ProductCarousel 
-            title="You might also like"
-            products={product.related_products.map(transformRelatedProduct)}
-            carouselId="carousel1"
-          />
-        )}
-
-        <div className="p-5"></div>
-
+          <SuggestedBox />
+          <div className="p-5"></div>
         </div>
       </div>
       <div className="footer-wrapper">

@@ -14,6 +14,15 @@
 
 /* Left Image Section */
 
+/* Make the image gallery sticky */
+.product-details-page .col-md-5 {
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
 .main-image img {
     border-radius: 8px;
     object-fit: contain;
@@ -47,7 +56,7 @@
 .product-details-page .product-title {
     font-size: 1.6rem;
     font-weight: 600;
-    margin-bottom: 10px;
+    margin-bottom: -29px;
     /* color: var(--blue01); */
     text-transform: uppercase;
 }
@@ -282,7 +291,9 @@
 }
 
 .custom_padding_section {
-    padding: 0px 70px 0 35px;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
 .cart_side_fixed {
@@ -493,6 +504,65 @@
     /* Furniture site ke liye dark blue */
 }
 
+/* Option selectors (Color / Size / Pattern) */
+.product-options {
+    margin-bottom: 12px;
+}
+
+.product-options .option-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.product-options .option-row strong {
+    width: 70px;
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.option-btn {
+    width: 110px;
+    min-width: 64px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid #e6e6e6;
+    color: #333;
+    box-shadow: none;
+    transition: all 0.15s ease;
+}
+
+.option-btn:hover {
+    transform: translateY(-2px);
+}
+
+.option-btn.active {
+    background: rgba(255,153,0,0.12); /* subtle orange fill */
+    color: #e06a00; /* deep orange text */
+    border-color: #e06a00;
+    font-weight: 600;
+}
+
+/* Make sure buttons wrap nicely on small screens */
+@media (max-width: 575px) {
+    .product-options .option-row strong {
+        width: 100%;
+    }
+    .product-options .option-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .option-btn {
+        width: 100%;
+        min-width: 56px;
+        padding: 6px 10px;
+        margin-right: 6px;
+    }
+}
+
 
 /* Grid Layout */
 
@@ -570,6 +640,13 @@
 /* Mobile */
 
 @media (max-width: 768px) {
+    /* Remove sticky behavior on mobile */
+    .product-details-page .col-md-5 {
+        position: relative !important;
+        top: auto !important;
+        max-height: none !important;
+    }
+    
     /* .product-details-page .row {
         flex-direction: column;
     } */
@@ -596,6 +673,10 @@
     .col-md-5 {
         flex: 0 0 100% !important;
         max-width: 100% !important;
+        /* Remove sticky on tablets */
+        position: relative !important;
+        top: auto !important;
+        max-height: none !important;
     }
     .col-md-4,
     .col-md-3 {
@@ -611,6 +692,13 @@
 
 /* Mobile Portrait (320px - 575px) */
 @media (max-width: 575px) {
+    /* Remove sticky behavior on mobile portrait */
+    .product-details-page .col-md-5 {
+        position: relative !important;
+        top: auto !important;
+        max-height: none !important;
+    }
+    
     .product-details-page .product-title {
         font-size: 1.1rem;
     }
@@ -655,7 +743,7 @@
     }
     
     .custom_padding_section {
-        padding: 0 10px;
+        padding: 0 15px;
     }
     
     .cpl {
@@ -723,4 +811,58 @@
         padding: 8px 10px;
         font-size: 13px;
     }
+}
+
+/* Added: keep main product image area a consistent responsive height so selecting different thumbnails
+   doesn't change the layout. Use object-fit: cover to crop images while preserving aspect ratio. */
+.main-image {
+    /* establish a fixed aspect-height box that responds to container width */
+    width: 100%;
+    display: block;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.main-image img {
+    width: 100%;
+    height: 430px; /* default desktop height */
+    object-fit: cover; /* ensures image fills the box without stretching */
+    display: block;
+    background: #f0ece9;
+}
+
+@media (max-width: 992px) {
+    .main-image img {
+        height: 350px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-image img {
+        height: 280px;
+    }
+}
+
+@media (max-width: 575px) {
+    .main-image img {
+        height: 250px;
+    }
+}
+
+/* Make the small ad box match the purchase card width and add a subtle dark-gray border */
+.small-ad-box {
+    width: 100%;
+    max-width: 100%;
+    background: #fff;
+    text-align: center;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid #bdbdbd; /* matches the purchase card border */
+    border-radius: 8px;
+}
+
+.small-ad-box img {
+    max-height: 120px;
+    width: auto;
+    object-fit: cover;
 }

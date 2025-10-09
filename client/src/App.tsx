@@ -14,6 +14,7 @@ import AdminRouter from './components/Admin/AdminRouter';
 import './App.css';
 import './styles/admin.css';
 import './styles/auth.css';
+import NewProductDetails from './pages/newproductdetails';
 
 function App() {
   return (
@@ -27,7 +28,8 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/products" element={<ProductListPage />} />
             <Route path="/product/:slug" element={<ProductDetailPage />} />
-            
+            <Route path="/products-details" element={<NewProductDetails />} />
+
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>

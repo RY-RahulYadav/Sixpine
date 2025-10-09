@@ -1,0 +1,103 @@
+/* Homepage.css */
+.homepage_container, .productdetails_container, .aboutpage_container, .advertisepage_container, .advertisingpreferece_container, .career_container,
+.accountpage_container,
+.closeyoursixpineaccount_container,
+.communicationpreferences_container,
+.datarequest_container,
+.emailsubscriptions_container,
+.feedback_container,
+.global_selling_container,
+.login_container,
+.loginsecurity_container,
+.pressrelease_container,
+.purchaseprotection_container,
+.recalls_product_container,
+.sixpineapp_container,
+.supply_container
+{
+  max-width: 100vw; 
+  margin: 0 auto;
+  padding-left: 20px;
+  padding-right:35px;
+  padding-bottom: 60px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Ensure all direct children align properly */
+.homepage_container > * {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Section spacing - standardized for consistent layout */
+
+.homepage_container > section:last-child {
+  margin-bottom: 0;
+}
+
+/* Apply requested spacing to every direct child of homepage_container except the hero container
+   - margin-top: 40px
+   - margin-bottom: 0
+   - padding top/bottom: 10px
+   This uses a generic child selector to catch divs/sections/components while excluding .heroContainer */
+.homepage_container > *:not(.heroContainer) {
+  margin-top: 40px;
+  margin-bottom: 0;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Common section styling */
+.section-title {
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+  color: #333;
+  position: relative;
+}
+
+.section-title:after {
+  content: '';
+  display: block;
+  width: 80px;
+  height: 3px;
+  background-color: #ff6f00;
+  margin: 12px auto 0;
+}
+
+/* Responsive adjustments - maintaining spacing consistency */
+@media (max-width: 768px) {
+  .homepage_container > section {
+    margin-bottom: 35px;
+  }
+  
+  .homepage_container > section:last-child {
+    margin-bottom: 0;
+  }
+  
+  .section-title {
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .homepage_container {
+    padding: 0 15px;
+  }
+  
+  .homepage_container > section {
+    margin-bottom: 25px;
+  }
+  
+  .homepage_container > section:last-child {
+    margin-bottom: 0;
+  }
+  
+  .section-title {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+}
+
