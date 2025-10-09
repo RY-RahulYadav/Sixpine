@@ -1,16 +1,64 @@
 
+import React from 'react';
 import { Link } from "react-router-dom";
 import styles from "../styles/footer.module.css";
 
 export default function Footer() {
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Try window first
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      // ignore
+    }
+
+    // Try document.scrollingElement and document root/body
+    const candidates: (Element | null | undefined)[] = [
+      document.scrollingElement,
+      document.documentElement,
+      document.body,
+      document.getElementById('root'),
+      document.querySelector('.app-wrapper'),
+      document.querySelector('.page-content'),
+    ];
+
+    for (const el of candidates) {
+      if (!el) continue;
+      // Some entries may be Document or Element — coerce to any for runtime use
+      const anyEl: any = el;
+      try {
+        if (typeof anyEl.scrollTo === 'function') {
+          anyEl.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          anyEl.scrollTop = 0;
+        }
+      } catch (e) {
+        try {
+          anyEl.scrollTop = 0;
+        } catch {}
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Activate on Enter or Space to behave like a button for keyboard users
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      scrollToTop();
+    }
   };
 
   return (
     <footer className={styles.footer}>
       {/* Back to top */}
-      <div className={styles.backToTop} onClick={scrollToTop}>
+      <div
+        className={styles.backToTop}
+        onClick={scrollToTop}
+        role="button"
+        tabIndex={0}
+        aria-label="Back to top"
+        onKeyDown={handleKeyDown}
+      >
         Back to top
       </div>
 

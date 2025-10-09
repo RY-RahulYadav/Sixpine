@@ -72,17 +72,29 @@
   border-radius: 10px;
 }
 
+/* Combined Timer and Offer Box */
+.combinedBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  padding: 14px 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex: 1 1 auto;
+  gap: 20px;
+}
+
 /* Timer Box */
 .timerBox {
-  background-color: #fff; 
-  padding: 12px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   font-family: 'Inter', sans-serif;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 0 0 auto;
+  flex: 1;
+  padding-right: 20px;
+  border-right: 2px solid #e5e7eb;
 }
 
 .saleLabel {
@@ -96,6 +108,7 @@
 .timerNumbers {
   display: flex;
   align-items: center;
+  justify-content: center;
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 4px;
@@ -109,16 +122,17 @@
 
 .timerLabels {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
+  gap: 8px;
 }
 
 .timerLabels span {
-  flex: 1;
+  flex: 0 0 auto;
   text-align: center;
   color: #000000;
   font-weight: 600;
@@ -129,20 +143,16 @@
   font-weight: 600;
   text-transform: uppercase;
   color: #d60f0f;
+  margin-right: 8px;
 }
 
 /* Offer Box */
 .offerBox {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
-  background-color: #fff;
-  padding: 14px 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1 1 auto;
-  min-width: 280px;
-  max-width: 450px;
+  flex: 1;
 }
 
 .offerText {
@@ -164,10 +174,10 @@
   display: flex;
   align-items: center;
   background-color: #ffffff;
-  padding: 12px 16px;
+  padding: 12px 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  gap: 20px;
-  flex-wrap: wrap;
+  gap: 0;
+  flex-wrap: nowrap;
   border-radius: 8px;
   flex: 0 1 auto;
 }
@@ -176,13 +186,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
-  border-right: 1px solid #e5e7eb;
+  padding: 0 20px;
+  border-right: 2px solid #e5e7eb;
   flex: 0 0 auto;
+}
+
+.badgeItem:first-child {
+  padding-left: 0;
 }
 
 .badgeItem:last-child {
   border-right: none;
+  padding-right: 0;
 }
 
 .badgeText {
@@ -228,26 +243,48 @@
   }
 
   /* children should not break */
-  .timerBox,
-  .offerBox,
+  .combinedBox,
   .infoBadges {
     flex: 0 0 auto;         
     white-space: nowrap;     
   }
 
+  .combinedBox {
+    gap: 16px;
+    padding: 12px 16px;
+    justify-content: center;
+  }
+
+  .timerBox {
+    padding-right: 16px;
+    border-right: 2px solid #e5e7eb;
+    flex: 1;
+    align-items: center;
+  }
+
   .offerBox {
-    max-width: 250px;
-    width: auto;            
-    padding: 15px 20px;
+    gap: 10px;
+    flex: 1;
+    justify-content: center;
   }
 
   .infoBadges {
-    gap: 15px;
-    padding: 15px 20px;
+    gap: 0;
+    padding: 12px 16px;
   }
 
   .badgeItem {
-    padding: 0 20px;
+    padding: 0 15px;
+    border-right: 2px solid #e5e7eb;
+  }
+
+  .badgeItem:first-child {
+    padding-left: 0;
+  }
+
+  .badgeItem:last-child {
+    border-right: none;
+    padding-right: 0;
   }
 }
 
@@ -272,28 +309,49 @@
     padding: 12px 12px;
   }
 
+  .combinedBox {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .timerBox {
     width: 100%;
-    max-width: 100%;
+    padding-right: 0;
+    border-right: none;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 12px;
+    align-items: center;
   }
 
   .offerBox {
     width: 100%;
-    max-width: 100%;
-    min-width: auto;
   }
 
   .infoBadges {
     width: 100%;
     justify-content: space-between;
     padding: 12px 12px;
+    gap: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .badgeItem {
     flex: 1 1 auto;
     justify-content: center;
-    padding: 0 6px;
+    padding: 0 8px;
     min-width: auto;
+    border-right: 1px solid #e5e7eb;
+  }
+
+  .badgeItem:first-child {
+    padding-left: 8px;
+  }
+
+  .badgeItem:last-child {
+    border-right: none;
+    padding-right: 8px;
   }
 
   .badgeText {
@@ -351,11 +409,21 @@
       padding: 8px;
     }
 
+    .combinedBox {
+      width: 100%;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+    }
+
     .timerBox {
-    align-items: self-start;
-    /* flex: 0 0 auto; */
-    font-size: 14px;
-  }
+      align-items: flex-start;
+      font-size: 14px;
+      padding-right: 0;
+      border-right: none;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 10px;
+    }
 
   .saleLabel {
     margin-top: 4px;
@@ -389,29 +457,40 @@
     /* OfferBox compact */
     .offerBox {
       flex-direction: row;
-      text-align: center;
-      gap: 4px;
-      padding: 10px;
+      text-align: left;
+      gap: 8px;
+      padding: 0;
     }
     .offerText {
-      font-size: 14px;
+      font-size: 11px;
     }
     .discountText {
-      font-size: 14px;
+      font-size: 13px;
     }
-    /* Info Badges – 2 per row */
+    /* Info Badges – keep in single row with dividers */
     .infoBadges {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 10px;
+      flex-wrap: nowrap;
+      gap: 0;
+      padding: 10px 8px;
       justify-content: space-between;
+      overflow-x: auto;
     }
 
     .badgeItem {
-      flex: 0 0 calc(50% - 10px); 
-      border-right: none;         
-      justify-content: flex-start;
+      flex: 1 1 auto;
+      border-right: 1px solid #e5e7eb;
+      justify-content: center;
+      padding: 0 6px;
+    }
+
+    .badgeItem:first-child {
+      padding-left: 0;
+    }
+
+    .badgeItem:last-child {
+      border-right: none;
+      padding-right: 0;
     }
 
     .badgeText {
@@ -456,11 +535,20 @@
     gap: 6px;
     padding: 6px;
   }
+
+  .combinedBox {
+    gap: 8px;
+    padding: 8px;
+  }
+
 /* Timer Box Compact Styling */
 .timerBox {
   font-size: 12px;      
- 
   border-radius: 6px;
+  padding-right: 0;
+  border-right: none;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
 }
 
 /* Sale label */
@@ -516,22 +604,35 @@
 
 
   .offerBox {
-    gap: 4px;
-    padding: 6px;
+    gap: 6px;
+    padding: 0;
   }
   .offerText {
-    font-size: 11px;
+    font-size: 10px;
   }
   .discountText {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .infoBadges {
-    gap: 8px;
-    padding: 6px;
+    gap: 0;
+    padding: 6px 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
   .badgeItem {
-    flex: 0 0 calc(50% - 6px);
+    flex: 1 1 auto;
+    border-right: 1px solid #e5e7eb;
+    padding: 0 4px;
+  }
+
+  .badgeItem:first-child {
+    padding-left: 0;
+  }
+
+  .badgeItem:last-child {
+    border-right: none;
+    padding-right: 0;
   }
   .badgeText {
     font-size: 10px;
