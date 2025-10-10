@@ -14,6 +14,23 @@ import './App.css';
 import './styles/admin.css';
 import './styles/auth.css';
 import NewProductDetails from './pages/productdetails';
+import AboutPage from './pages/about';
+import AdvertisePage from './pages/AdvertisePage';
+import CareerPage from './pages/CareerPage';
+import Global_SellingPage from './pages/global_selling';
+import PressReleasePage from './pages/press_release';
+import EmailSubscriptionsPage from './pages/EmailSubscriptionsPage';
+import CloseYourSixpineAccountPage from './pages/CloseYourSixpineAccountPage';
+import CommunicationPreferencesPage from './pages/CommunicationPreferencesPage';
+import DataRequestPage from './pages/DataRequestPage';
+import LoginSecurityPage from './pages/LoginSecurityPage';
+import SupplyPage from './pages/SupplyPage';
+import PurchaseProtectionPage from './pages/PurchaseProtectionPage';
+import RecallsProductSafetyAlertsPage from './pages/Recalls_product _safety_alerts_Page';
+import AdvertisingPreferecePage from './pages/AdvertisingPreferecePage';
+import AccountPage from './pages/AccountPage';
+import SixpineAppPage from './pages/SixpineAppPage';
+import PrivacyPage from './pages/privacy';
 
 function App() {
   return (
@@ -27,7 +44,24 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/products" element={<ProductListPage />} />
             <Route path="/products-details" element={<NewProductDetails />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/career" element={<CareerPage />} />
+            <Route path="/global-selling" element={<Global_SellingPage />} />
+            <Route path='/press-release' element={<PressReleasePage />} />
+            <Route path="/email" element={<EmailSubscriptionsPage />} />
+            <Route path="/close-your-sixpine-account" element={<CloseYourSixpineAccountPage />} />
+            <Route path="/communication-preferences" element={<CommunicationPreferencesPage />} />
+            <Route path="/data-request" element={<DataRequestPage />} />
+            <Route path="/login-security" element={<LoginSecurityPage />} />
+            <Route path="/supply" element={<SupplyPage />} />
+            <Route path="/recalls_product" element={<RecallsProductSafetyAlertsPage />} />
+            <Route path="/purchaseProtection" element={<PurchaseProtectionPage />} />
+            <Route path="/your-app" element={<SixpineAppPage />} />
+            <Route path="/advertising-preferece" element={<AdvertisingPreferecePage />} />
+        <Route path="/your-account" element={<AccountPage />} />
 
+            <Route path="/advertise" element={<AdvertisePage />} />
+            <Route path="/privacy-policy" element={<PrivacyPage />} />
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>
@@ -49,7 +83,7 @@ function App() {
                 <ProfilePage />
               </ProtectedRoute>
             } />
-            
+
             {/* Admin routes */}
             <Route path="/admin/*" element={<AdminRouter />} />
           </Routes>

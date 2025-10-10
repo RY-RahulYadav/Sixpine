@@ -114,7 +114,7 @@ export default function Footer() {
             <li><Link to="/products-details">Products Details</Link></li>
             <li>Warranty Policy</li>
             <li>Payment Options</li>
-            <li>Privacy Policy</li>
+            <li> <Link to="/privacy-policy">Privacy Policy</Link></li>
             <li>Terms & Conditions</li>
           </ul>
         </div>

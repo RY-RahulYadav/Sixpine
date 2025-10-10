@@ -251,7 +251,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 10;
+  z-index: 1;
   
   /* square button with subtle corners to match design */
   border-radius: 6px;

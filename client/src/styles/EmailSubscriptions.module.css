@@ -1,0 +1,316 @@
+/* email.module.css */
+
+.emailSubscriptionsContainer {
+  font-family: Arial, sans-serif;
+  padding:60px 20px;
+  /* background-color: #f9f9f9;
+  border-radius: 8px; */
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+  max-width: 80%;
+  margin: 10px auto;
+}
+
+.breadcrumbs {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 20px;
+  font-weight: 400;
+}
+
+.breadcrumbs a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  font-size: 1.5em;
+  color: #333;
+  margin: 0;
+  font-weight: 600;
+}
+
+.searchBar {
+  display: flex;
+}
+
+.searchBar input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  /* border-radius: 4px 0 0 4px; */
+  font-size: 1em;
+  width: 250px;
+}
+
+.searchBar button {
+  padding: 8px 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  /* border-radius: 0 4px 4px 0; */
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.searchBar button:hover {
+  background-color: #555;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 20px;
+}
+
+.tabButton {
+  padding: 10px 15px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 1em;
+  color: #555;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.tabButton:hover {
+  color: #000;
+}
+
+.tabButton.active {
+  color: #007bff;
+}
+
+.tabButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #007bff;
+}
+
+.tabContent {
+  padding-top: 10px;
+}
+
+.tabContent p {
+  color: #777;
+  margin-bottom: 15px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.table th {
+  font-weight: bold;
+  color: #555;
+
+  
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+  border-bottom: 1px solid #eee;
+}
+
+.noSubscriptions {
+  text-align: center;
+  color: #777;
+  padding: 30px 0;
+  font-size: 1.1em;
+  
+}
+
+.subscribeButton {
+  padding: 8px 15px;
+  background-color: #ffc107; /* Yellowish color from the image */
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: bold;
+}
+
+.subscribeButton:hover {
+  background-color: #e0a800;
+}
+
+.browseAllLink {
+  
+  display: inline-block;
+  margin-top: 20px;
+  color: #007bff;
+  text-decoration: none;
+  font-size: 0.9em;
+}
+
+.browseAllLink:hover {
+  text-decoration: underline;
+}
+/* ---------- Responsive Styles ---------- */
+
+/* Tablets (<=768px) */
+@media (max-width: 768px) {
+  .emailSubscriptionsContainer {
+    max-width: 95%;
+    padding: 30px 20px;
+  }
+
+  .header h1 {
+    font-size: 1.3em;
+  }
+
+  .searchBar input {
+    width: 200px;
+    font-size: 0.95em;
+  }
+
+  .tabButton {
+    font-size: 0.95em;
+    padding: 8px 12px;
+  }
+
+  .table th, .table td {
+    font-size: 0.9em;
+    padding: 10px 6px;
+  }
+}
+
+/* Mobile Large (<=425px) */
+@media (max-width: 425px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .header h1 {
+    font-size: 1.2em;
+  }
+
+  .searchBar {
+    width: 90%;
+    /* height: 30px; */
+  }
+
+  .searchBar input {
+    width: 100%;
+    font-size: 0.9em;
+  
+
+
+  }
+
+  .searchBar button {
+    width: 50%;
+    /* margin-top: 8px; */
+  }
+
+  .tabs {
+    flex-wrap: wrap;
+  }
+
+  .tabButton {
+    font-size: 0.9em;
+    padding: 6px 10px;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .subscribeButton {
+    font-size: 0.9em;
+    padding: 6px 12px;
+  }
+}
+
+/* Mobile Medium (<=375px) */
+@media (max-width: 375px) {
+  .header h1 {
+    font-size: 1.1em;
+  }
+
+  .searchBar input {
+    font-size: 0.85em;
+    padding: 6px 10px;
+  }
+
+  .searchBar button {
+    font-size: 0.85em;
+    padding: 6px 10px;
+  }
+
+  .tabButton {
+    font-size: 0.85em;
+  }
+
+  .subscribeButton {
+    font-size: 0.85em;
+    padding: 5px 10px;
+  }
+
+  .noSubscriptions {
+    font-size: 1em;
+  }
+   .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  
+  }
+}
+
+/* Mobile Small (<=325px) */
+@media (max-width: 325px) {
+
+  
+  .header h1 {
+    font-size: 1em;
+  }
+
+  .searchBar input,
+  .searchBar button {
+    font-size: 0.8em;
+    padding: 5px 8px;
+  }
+
+  .tabButton {
+    font-size: 0.8em;
+    padding: 5px 8px;
+  }
+
+  .subscribeButton {
+    font-size: 0.8em;
+    padding: 4px 8px;
+  }
+
+  .noSubscriptions {
+    font-size: 0.9em;
+  }
+}

@@ -2,6 +2,7 @@
 
 /* Admin-specific utility classes that complement Tailwind */
 .admin-card {
+  
   @apply tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-200 tw-p-6 tw-transition-all tw-duration-200;
 }
 
