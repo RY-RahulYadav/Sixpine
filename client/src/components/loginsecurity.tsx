@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styles from '../styles/LoginSecurity.module.css';
+import styles from '../styles/loginsecurity.module.css';
 
 const LoginSecurity = () => {
     const [name, setName] = useState('Sixpine');

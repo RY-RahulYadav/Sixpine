@@ -1,4 +1,4 @@
-import styles from "../styles/PurchaseProtection.module.css";
+import styles from "../styles/purchaseProtection.module.css";
 import { Shield, CreditCard, Package, RefreshCw, Headphones } from "lucide-react";
 
 export default function PurchaseProtection() {

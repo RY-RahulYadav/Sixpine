@@ -1,4 +1,4 @@
-import styles from "../styles/SixpineApp.module.css";
+import styles from "../styles/sixpineApp.module.css";
 import { Smartphone, ShoppingBag, Truck, Shield, Heart } from "lucide-react";
 
 export default function SixpineApp() {

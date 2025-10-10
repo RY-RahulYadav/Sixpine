@@ -1,4 +1,4 @@
-import styles from '../styles/Supply.module.css';
+import styles from '../styles/supply.module.css';
 
 const Supply = () => {
   return (
