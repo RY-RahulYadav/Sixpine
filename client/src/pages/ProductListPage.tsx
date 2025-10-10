@@ -439,7 +439,7 @@ const ProductListPage: React.FC = () => {
                                 {product.discount_percentage}% OFF
                               </span>
                             )}
-                            <Link to={`/product/${product.slug}`}>
+                            <Link to={`/products-details`}>
                               <img
                                 src={product.main_image || '/placeholder-image.jpg'}
                                 alt={product.title}
@@ -455,7 +455,7 @@ const ProductListPage: React.FC = () => {
                           </div>
                           
                           <div className="product-info">
-                            <Link to={`/product/${product.slug}`} className="product-link">
+                            <Link to={`/products-details`} className="product-link">
                               <h3 className="product-name">{product.title}</h3>
                             </Link>
                             

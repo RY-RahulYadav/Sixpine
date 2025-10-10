@@ -57,7 +57,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
+  z-index: 9;
   transition: all 0.25s ease;
   color: #fff; /* white chevrons on gray background */
 }
@@ -428,7 +428,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 1000;
 }
 
 .supportBtn {
@@ -438,6 +437,7 @@
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .supportBtn:hover {
@@ -499,6 +499,84 @@
   gap: 15px;
   position: relative;
   animation: slideInRight 0.3s ease-out;
+}
+
+/* Callback specific variations */
+.callbackContent {
+  /* Match the phone popup width so both modals look consistent */
+  width: 320px;
+  /* Slightly reduced padding to match compact screenshot */
+  padding: 14px 14px 18px 14px;
+  /* Keep drawer visually similar height as phone popup; grow with content */
+  min-height: 320px;
+}
+
+.callbackHeader {
+  text-align: center;
+  padding-top: 6px;
+}
+
+.callbackTitle {
+  font-size: 18px;
+  margin: 0 0 6px 0;
+  color: #333;
+}
+
+.callbackSubtitle {
+  font-size: 12px;
+  color: #777;
+  margin: 0;
+}
+
+.callbackForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.formGroup {
+  width: 100%;
+}
+
+.inputField {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.inputField:focus {
+  border-color: #ff8c42;
+  box-shadow: 0 0 0 3px rgba(255,140,66,0.08);
+}
+
+.submitBtn {
+  background: linear-gradient(135deg,#ff6b35,#ff8c42);
+  color: white;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+
+.submitBtn:hover {
+  filter: brightness(0.95);
+}
+
+.visitBanner {
+  margin-top: 6px;
+  background: #fef0ec;
+  padding: 10px;
+  text-align: center;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
 }
 
 @keyframes slideInRight {
@@ -825,18 +903,22 @@
   top: 70%;
 }
 
-.supportBtn {
-  padding:5px;
+.submitBtn {
+  background: linear-gradient(135deg,#ff6b35,#ff8c42);
   color: white;
-  text-align: center;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  /* Make the submit button narrower and centered like the screenshot */
+  width: 140px;
+  display: block;
+  margin: 6px auto 0 auto;
+  box-shadow: 0 6px 14px rgba(255,108,60,0.18);
 }
-
-
-.supportIcon {
-  /* margin-bottom: px; */
- display: none;
+.submitBtn:hover {
+  filter: brightness(0.95);
 }
 
 }

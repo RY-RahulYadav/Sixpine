@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
-import ProductDetailPage from './pages/ProductDetailPage';
 import ProductListPage from './pages/ProductListPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -14,7 +13,7 @@ import AdminRouter from './components/Admin/AdminRouter';
 import './App.css';
 import './styles/admin.css';
 import './styles/auth.css';
-import NewProductDetails from './pages/newproductdetails';
+import NewProductDetails from './pages/productdetails';
 
 function App() {
   return (
@@ -27,7 +26,6 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/products" element={<ProductListPage />} />
-            <Route path="/product/:slug" element={<ProductDetailPage />} />
             <Route path="/products-details" element={<NewProductDetails />} />
 
             {/* Protected routes - require authentication */}

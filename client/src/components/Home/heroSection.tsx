@@ -4,6 +4,7 @@ import styles from './heroSection.module.css';
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpertOpen, setIsExpertOpen] = useState(false);
 
   const slides = [
     {
@@ -45,6 +46,10 @@ const HeroSection = () => {
 
    const togglePopup = () => {
     setIsOpen(!isOpen);
+  };
+
+  const toggleExpertPopup = () => {
+    setIsExpertOpen(!isExpertOpen);
   };
 
   useEffect(() => {
@@ -194,7 +199,7 @@ const HeroSection = () => {
           </div>
 
           {/* Get Expert Help */}
-          <div className={`${styles.supportBtn} ${styles.expertBtn}`}>
+          <div className={`${styles.supportBtn} ${styles.expertBtn}`} onClick={toggleExpertPopup}>
             <div className={styles.supportIcon}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M21 15C21 15.54 20.54 16 20 16H7L3 20V4C3 3.46 3.46 3 4 3H20C20.54 3 21 3.46 21 4V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -252,6 +257,42 @@ const HeroSection = () => {
     </div>
   </div>
 )}
+      {/* Expert Callback Drawer */}
+      {isExpertOpen && (
+        <div className={styles.popupOverlay} onClick={toggleExpertPopup}>
+          <div className={`${styles.popupContent} ${styles.callbackContent}`} style={{marginTop: '80px'}} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeIcon} onClick={toggleExpertPopup}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+
+            <div className={styles.callbackHeader}>
+              <h3 className={styles.callbackTitle}>Get A Callback From Us</h3>
+              <p className={styles.callbackSubtitle}>Our Nearest Store Will Contact You</p>
+            </div>
+
+            <form className={styles.callbackForm} onSubmit={(e) => { e.preventDefault(); /* TODO: submit handler */ toggleExpertPopup(); }}>
+              <div className={styles.formGroup}>
+                <input type="text" name="name" placeholder="Full Name" className={styles.inputField} required />
+              </div>
+              <div className={styles.formGroup}>
+                <input type="text" name="pincode" placeholder="Pincode" className={styles.inputField} required />
+              </div>
+              <div className={styles.formGroup}>
+                <input type="tel" name="phone" placeholder="Phone Number" className={styles.inputField} required />
+              </div>
+              <div className={styles.formGroup}>
+                <button type="submit" className={styles.submitBtn}>SUBMIT</button>
+              </div>
+            </form>
+
+            <div className={styles.visitBanner}>
+              <strong>Visit Us In Person</strong>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
 
