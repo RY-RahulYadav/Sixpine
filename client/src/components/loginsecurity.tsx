@@ -3,6 +3,7 @@ import styles from '../styles/loginsecurity.module.css';
 
 const LoginSecurity = () => {
     const [name, setName] = useState('Sixpine');
+    
     const [email, setEmail] = useState('miliyaqatm@gmail.com');
     const [mobile, setMobile] = useState('+91 8865884786');
     const [password, setPassword] = useState('********');
