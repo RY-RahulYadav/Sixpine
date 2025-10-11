@@ -5,14 +5,14 @@ const SubNav: React.FC = () => {
   // Top-level sub navigation items (matching screenshot)
   const items = [
     { to: '/', label: 'Home', isActive: true },
-    { to: '/trendings', label: 'Trendings', isActive: false },
-    { to: '/buy-again', label: 'Buy Again', isActive: false },
-    { to: '/keep-shopping', label: 'Continue Shopping', isActive: false },
-    { to: '/deals', label: 'Best Deals', isActive: false },
-    { to: '/recently-browsed', label: 'Recently Browsed', isActive: false },
+    { to: '/trending', label: 'Trendings', isActive: true },
+    { to: '/orders?tab=buyAgain', label: 'Buy Again', isActive: true },
+    { to: '/products', label: 'Continue Shopping', isActive: true },
+    { to: '/best-deals', label: 'Best Deals', isActive: true },
+    { to: '/recently-browsed', label: 'Recently Browsed', isActive: true },
     { to: '/buy-in-bulk', label: 'Buy in Bulk', isActive: false },
-    { to: '/track-order', label: 'Track Order', isActive: false },
-    { to: '/contact', label: 'Contact Us', isActive: false },
+    { to: '/orders', label: 'Track Order', isActive: true },
+    { to: '/contact', label: 'Contact Us', isActive: true },
     { to: '/help', label: 'Help', isActive: false },
   ];
 

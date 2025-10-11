@@ -31,6 +31,10 @@ import AdvertisingPreferecePage from './pages/AdvertisingPreferecePage';
 import AccountPage from './pages/AccountPage';
 import SixpineAppPage from './pages/SixpineAppPage';
 import PrivacyPage from './pages/privacy';
+import ContactPage from './pages/ContactPage';
+import TrendingPage from './pages/TrendingPage';
+import BestDealsPage from './pages/BestDealsPage';
+import RecentlyBrowsedPage from './pages/RecentlyBrowsedPage';
 
 function App() {
   return (
@@ -62,6 +66,12 @@ function App() {
 
             <Route path="/advertise" element={<AdvertisePage />} />
             <Route path="/privacy-policy" element={<PrivacyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/trending" element={<TrendingPage />} />
+            <Route path="/best-deals" element={<BestDealsPage />} />
+            <Route path="/recently-browsed" element={<RecentlyBrowsedPage />} />
+            {/* <Route path="/bulk-order" element={<BulkOrderPage />} /> */}
+            {/* <Route path="/help" element={<HelpPage />} /> */}
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>

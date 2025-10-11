@@ -13,7 +13,10 @@
 .purchaseprotection_container,
 .recalls_product_container,
 .sixpineapp_container,
-.supply_container
+.supply_container,
+.bestdeals_container,
+.trending_container,
+.recentlybrowsed_container
 {
   max-width: 100vw; 
   margin: 0 20px;

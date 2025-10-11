@@ -7,9 +7,7 @@ import {
   FaUserShield,
   FaMapMarkerAlt,
   FaCreditCard,
-  FaWallet,
   FaHeadset,
-  FaClipboardList,
 } from "react-icons/fa";
 
 const YourAccount = () => {
@@ -43,10 +41,7 @@ const YourAccount = () => {
           <p>Edit addresses for orders and gifts</p>
         </div>
 
-        <div className={styles.card}>
-          <FaClipboardList className={styles.icon} />
-          <h3>Sixpine business account</h3>
-        </div>
+       
 
         <div className={styles.card}>
           <FaCreditCard className={styles.icon} />
@@ -54,10 +49,7 @@ const YourAccount = () => {
           <p>Edit or add payment option methods</p>
         </div>
 
-        <div className={styles.card}>
-          <FaWallet className={styles.icon} />
-          <h3>Sixpine Wallet</h3>
-        </div>
+        
 
         <div className={styles.card}>
           <FaHeadset className={styles.icon} />
