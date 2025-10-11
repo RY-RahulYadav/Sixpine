@@ -327,7 +327,17 @@ const ProductDetails = () => {
               <li>1-year warranty included.</li>
             </ul>
 
-            <button className={styles.seeMoreBtn}>See More</button>
+            <button
+              className={styles.seeMoreBtn}
+              onClick={() => {
+                const el = document.getElementById("product-info");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
+            >
+              See More
+            </button>
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import styles from "./productInformation.module.css";
 
 const ProductInformation = () => {
   return (
-    <div className={styles.infocontainer}>
+    <div id="product-info" className={styles.infocontainer}>
       <h2 className={styles.heading}>Product information</h2>
 
       <div className={styles.grid}>
@@ -112,8 +112,10 @@ const ProductInformation = () => {
             Extra Features: Noise Cancellation, Foldable Design, Built-in Mic
           </li>
         </ul>
+
         <p>
-          <strong>What is in box:</strong> Sofa, Legs, Screws
+          <strong>What is in box:</strong> 
+          <br/>Sofa, Legs, Screws
         </p>
       </div>
     </div>

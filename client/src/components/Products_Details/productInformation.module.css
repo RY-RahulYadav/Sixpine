@@ -47,13 +47,16 @@
 }
 
 .description h3 {
-  font-size: 1.5rem;
-  /* margin-bottom: 10px; */
+  font-size: 1.9rem;
+  margin-bottom: 10px;
+  font-weight: 700;
 }
 
 .description p {
-  margin-bottom: 5px;
-  line-height: 1.5;
+  margin-bottom: 10px;
+  line-height: 1.7;
+  font-size: 1.05rem;
+  color: #333;
 }
 
 .description ul {
@@ -90,7 +93,7 @@
   }
 
   .description h3 {
-    font-size: 1.3rem;
+    font-size: 1.65rem;
   }
 }
 
@@ -113,11 +116,11 @@
   }
 
   .description h3 {
-    font-size: 1.2rem;
+    font-size: 1.45rem;
   }
 
   .description p {
-    font-size: 0.9rem;
+    font-size: 0.98rem;
   }
 }
 
@@ -143,11 +146,11 @@
   }
 
   .description h3 {
-    font-size: 1.1rem;
+    font-size: 1.35rem;
   }
 
   .description p {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     line-height: 1.4;
   }
 }
@@ -167,11 +170,11 @@
   }
 
   .description h3 {
-    font-size: 1rem;
+    font-size: 1.2rem;
   }
 
   .description p {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .cardHeader {

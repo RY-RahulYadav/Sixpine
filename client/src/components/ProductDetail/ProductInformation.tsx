@@ -137,6 +137,7 @@ const ProductInformation: React.FC<ProductInformationProps> = ({ relatedProducts
           </ul>
           <div className="what_box">
             <p>What is in box</p>
+           
             <ul className="list-unstyled d-flex gap-1 ps-2">
               <li>Sofa,</li>
               <li>Legs,</li>
