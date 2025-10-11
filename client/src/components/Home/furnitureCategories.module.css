@@ -139,15 +139,7 @@
   display: inline-block;
 }
 
-.title2:after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 0;
-  width: 80px;
-  height: 3px;
-  background-color: #ff6f00;
-}
+/* Removed the orange underline as per request */
 
 .subtitle2 {
   margin: 20px 0 25px;
@@ -181,7 +173,7 @@
 }
 
 .moreLink {
-  color: #c90e0e; /* red accent */
+  color: #007ec3; /* blue accent */
   font-weight: 600;
   cursor: pointer;
   margin-left: 5px;
@@ -258,41 +250,38 @@
 
 .navBtn {
   position: absolute;
-  top: 50%;
+  /* top: 50%; */
   transform: translateY(-50%);
   background: #fff;
   border: none;
-  color: #333;
-  font-size: 22px;
-  width: 38px;
-  height: 38px;
-  border-radius: 8px; /* pill-like button to match discover arrows */
+  color: #000;
+  font-size: 34px;
+  font-weight: normal;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-weight: bold;
   z-index: 1;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: all 0.18s ease;
-  padding: 0; /* ensure icon sits centered without internal padding */
-  line-height: 1; /* normalize glyph vertical centering */
-  text-align: center; /* ensure glyph is horizontally centered */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* consistent glyph metrics */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+  padding: 0;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .navBtn:hover {
-  background: #ff6f00;
-  color: white;
-  box-shadow: 0 4px 12px rgba(255,111,0,0.25);
+  background: #fff;
+  transform: translateY(-50%) scale(1.1);
 }
 
 .navBtn.left {
-  left: 12px;  /* Position inside the gray box */
+  left: -15px;  /* Position outside the gray box to match other sections */
 }
 
 .navBtn.right {
-  right: 12px; /* Position inside the gray box */
+  right: -15px; /* Position outside the gray box to match other sections */
 }
 
 .navBtn:disabled {
