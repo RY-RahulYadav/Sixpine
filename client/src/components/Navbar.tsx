@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { productAPI } from '../services/api';
 
@@ -12,6 +12,7 @@ interface SearchSuggestion {
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { state } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -19,6 +20,16 @@ const Navbar: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const searchRef = useRef<HTMLFormElement>(null);
   const debounceRef = useRef<number | null>(null);
+
+  // Update search query when URL params change
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchQuery(decodeURIComponent(searchParam));
+    } else {
+      setSearchQuery('');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

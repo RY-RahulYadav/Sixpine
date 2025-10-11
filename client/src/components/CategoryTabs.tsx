@@ -142,7 +142,7 @@ const CategoryTabs: React.FC = () => {
                   <ul className="mega-menu-list">
                     {category.items.map((item, itemIdx) => (
                       <li key={itemIdx}>
-                        <Link to={`/category/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link to={`/products?search=${encodeURIComponent(item)}`}>
                           {item}
                         </Link>
                       </li>
@@ -156,7 +156,7 @@ const CategoryTabs: React.FC = () => {
 
         {/* Sofa & Couches as Mega Menu (same style as All) */}
         <li className="nav-item dropdown">
-          <Link className="nav-link" to="/category/sofa-couches">Sofa & Couches</Link>
+          <Link className="nav-link" to="/products?search=Sofa">Sofa & Couches</Link>
           <div className="dropdown-menu mega-menu">
             <div className="mega-menu-grid">
               {sofaCouchesMega.map((col, idx) => (
@@ -165,7 +165,7 @@ const CategoryTabs: React.FC = () => {
                   <ul className="mega-menu-list">
                     {col.items.map((item, itemIdx) => (
                       <li key={itemIdx}>
-                        <Link to={`/category/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link to={`/products?search=${encodeURIComponent(item)}`}>
                           {item}
                         </Link>
                       </li>
@@ -179,7 +179,7 @@ const CategoryTabs: React.FC = () => {
 
         {/* Sofa Chairs as mini Mega Menu (same design as All) */}
         <li className="nav-item dropdown">
-          <Link className="nav-link" to="/category/sofa-chairs">Sofa Chairs</Link>
+          <Link className="nav-link" to="/products?search=Sofa Chairs">Sofa Chairs</Link>
           <div className="dropdown-menu mega-menu">
             <div className="mega-menu-grid">
               {sofaChairsMega.map((col, idx) => (
@@ -188,7 +188,7 @@ const CategoryTabs: React.FC = () => {
                   <ul className="mega-menu-list">
                     {col.items.map((item, itemIdx) => (
                       <li key={itemIdx}>
-                        <Link to={`/category/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link to={`/products?search=${encodeURIComponent(item)}`}>
                           {item}
                         </Link>
                       </li>
@@ -202,7 +202,7 @@ const CategoryTabs: React.FC = () => {
 
         {/* Rocking Chairs as mini Mega Menu (same design as All) */}
         <li className="nav-item dropdown">
-          <Link className="nav-link" to="/category/rocking-chairs">Rocking Chairs</Link>
+          <Link className="nav-link" to="/products?search=Rocking Chairs">Rocking Chairs</Link>
           <div className="dropdown-menu mega-menu">
             <div className="mega-menu-grid">
               {rockingChairsMega.map((col, idx) => (
@@ -211,7 +211,7 @@ const CategoryTabs: React.FC = () => {
                   <ul className="mega-menu-list">
                     {col.items.map((item, itemIdx) => (
                       <li key={itemIdx}>
-                        <Link to={`/category/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link to={`/products?search=${encodeURIComponent(item)}`}>
                           {item}
                         </Link>
                       </li>
@@ -225,7 +225,7 @@ const CategoryTabs: React.FC = () => {
 
         {/* Ottomans as mini Mega Menu (same design as All) */}
         <li className="nav-item dropdown">
-          <Link className="nav-link" to="/category/ottomans">Ottomans</Link>
+          <Link className="nav-link" to="/products?search=Ottomans">Ottomans</Link>
           <div className="dropdown-menu mega-menu">
             <div className="mega-menu-grid">
               {ottomansMega.map((col, idx) => (
@@ -234,7 +234,7 @@ const CategoryTabs: React.FC = () => {
                   <ul className="mega-menu-list">
                     {col.items.map((item, itemIdx) => (
                       <li key={itemIdx}>
-                        <Link to={`/category/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link to={`/products?search=${encodeURIComponent(item)}`}>
                           {item}
                         </Link>
                       </li>
@@ -248,7 +248,7 @@ const CategoryTabs: React.FC = () => {
 
         {/* Beds & Sofa Cum Beds as mega-menu (two columns) */}
         <li className="nav-item dropdown">
-          <Link className="nav-link" to="/category/beds-sofa-cum-beds">Beds & Sofa Cum Beds</Link>
+          <Link className="nav-link" to="/products?search=Beds">Beds & Sofa Cum Beds</Link>
           <div className="dropdown-menu mega-menu">
             <div className="mega-menu-grid">
               {bedsMega.map((col, idx) => (
@@ -257,7 +257,7 @@ const CategoryTabs: React.FC = () => {
                   <ul className="mega-menu-list">
                     {col.items.map((item, itemIdx) => (
                       <li key={itemIdx}>
-                        <Link to={`/category/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link to={`/products?search=${encodeURIComponent(item)}`}>
                           {item}
                         </Link>
                       </li>
@@ -271,7 +271,7 @@ const CategoryTabs: React.FC = () => {
 
         {/* Luxury as mini Mega Menu (matching design) */}
         <li className="nav-item dropdown">
-          <Link className="nav-link" to="/category/luxury">Luxury</Link>
+          <Link className="nav-link" to="/products?search=Luxury">Luxury</Link>
           <div className="dropdown-menu mega-menu">
             <div className="mega-menu-grid">
               {luxuryMega.map((col, idx) => (
@@ -280,7 +280,7 @@ const CategoryTabs: React.FC = () => {
                   <ul className="mega-menu-list">
                     {col.items.map((item, itemIdx) => (
                       <li key={itemIdx}>
-                        <Link to={`/category/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link to={`/products?search=${encodeURIComponent(item)}`}>
                           {item}
                         </Link>
                       </li>
@@ -296,12 +296,12 @@ const CategoryTabs: React.FC = () => {
       {/* Mobile/Tablet Scrollable Tabs */}
       <div className="scroll-tabs d-flex d-md-none">
         <Link to="/">All</Link>
-        <Link to="/category/sofa-couches">Sofa & Couches</Link>
-        <Link to="/category/sofa-chairs">Sofa Chairs</Link>
-        <Link to="/category/rocking-chairs">Rocking Chairs</Link>
-        <Link to="/category/ottomans">Ottomans</Link>
-        <Link to="/category/beds-sofa-cum-beds">Beds & Sofa Cum Beds</Link>
-        <Link to="/category/luxury">Luxury</Link>
+        <Link to="/products?search=Sofa">Sofa & Couches</Link>
+        <Link to="/products?search=Sofa Chairs">Sofa Chairs</Link>
+        <Link to="/products?search=Rocking Chairs">Rocking Chairs</Link>
+        <Link to="/products?search=Ottomans">Ottomans</Link>
+        <Link to="/products?search=Beds">Beds & Sofa Cum Beds</Link>
+        <Link to="/products?search=Luxury">Luxury</Link>
       </div>
     </div>
   );
