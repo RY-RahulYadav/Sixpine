@@ -153,8 +153,8 @@
 /* Special styling for "All" mega menu - wider to show all categories */
 .tab-categories .mega-menu-all {
     width: auto;
-    min-width: 1200px;
-    max-width: min(1400px, 95vw);
+    min-width: 1150px;
+    max-width: min(1350px, 92vw);
     left: 0;
     transform: none;
 }
