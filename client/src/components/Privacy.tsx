@@ -1,4 +1,4 @@
-import styles from '../styles/global_selling.module.css'
+import styles from '../styles/Privacy.module.css'
 
 const PrivacyPolicy = () => {
   return (

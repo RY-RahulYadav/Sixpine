@@ -1,72 +1,122 @@
+
+
 .main {
-  padding: 40px 16px;
-  background: #fff;
-}
-
-.privacySection {
-  max-width: 980px;
-  margin: 0 auto;
-  background: #fff;
-  border-radius: 8px;
-  padding: 28px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.06);
-}
-
-.container {
-  width: 100%;
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-.colLg10 {
-  max-width: 900px;
-}
-
-.title {
-  font-size: 28px;
-  margin-bottom: 10px;
-  color: #222;
-}
-
-.disclaimer {
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.updated {
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 16px;
-}
-
-.paragraph {
-  font-size: 15px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.7;
   color: #333;
-  line-height: 1.6;
-  margin-bottom: 14px;
+  padding: 30px 20px;
+  max-width: 100%;
+  margin: 0 auto;   
+  /* text-align: center; */
+}
+
+.careerSection {
+  
+  margin: 0 auto;
+}
+
+.heading {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #222;
 }
 
 .subheading {
-  font-size: 18px;
-  margin-top: 8px;
-  margin-bottom: 8px;
-  color: #222;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 30px;
+  margin-bottom: 10px;
+  color: black; /* highlight with theme color */
+}
+
+.text {
+  font-size: 1rem;
+  font-weight: 400;
+  margin-bottom: 15px;
+  color: #444;
 }
 
 .list {
-  margin-left: 18px;
-  margin-bottom: 14px;
+  margin: 15px 0 25px 20px;
+  padding-left: 20px;
 }
 
 .list li {
+  font-size: 1rem;
+  font-weight: 400;
   margin-bottom: 8px;
 }
 
-a {
-  color: #ff6b35;
-  text-decoration: underline;
+.signature {
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-top: 15px;
+  color: #111;
+}
+
+/* ------------------ Responsive ------------------ */
+
+/* Laptops / medium screens */
+@media (max-width: 1024px) {
+  .main {
+    padding: 30px 20px;
+  }
+  .heading {
+    font-size: 2rem;
+  }
+  .subheading {
+    font-size: 1.4rem;
+  }
+  .text, .list li {
+    font-size: 0.98rem;
+  }
+  .signature {
+    font-size: 1rem;
+  }
+}
+
+/* Tablets / small screens */
+@media (max-width: 768px) {
+  .main {
+    padding:20px ;
+  }
+  .heading {
+    font-size: 1.8rem;
+  }
+  .subheading {
+    font-size: 1.3rem;
+  }
+  .text, .list li {
+    font-size: 0.95rem;
+  }
+  .signature {
+    font-size: 0.98rem;
+  }
+}
+
+/* Mobile / extra small screens */
+@media (max-width: 480px) {
+  .main {
+    padding:20px ;
+  }
+  .heading {
+    font-size: 1.3rem;
+  }
+  .subheading {
+    font-size: 1.2rem;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+  .text, .list li {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  .list {
+    margin-left: 15px;
+  }
+  .signature {
+    font-size: 0.95rem;
+    margin-top: 10px;
+  }
 }
