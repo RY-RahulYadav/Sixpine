@@ -10,10 +10,17 @@ import {
   FaHeadset,
 } from "react-icons/fa";
 
-const YourAccount = () => {
+interface YourAccountProps {
+  logoutButton?: React.ReactNode;
+}
+
+const YourAccount: React.FC<YourAccountProps> = ({ logoutButton }) => {
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>Your Account</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 className={styles.heading} style={{ margin: 0 }}>Your Account</h2>
+        {logoutButton}
+      </div>
 
       {/* FIRST SECTION */}
       <div className={styles.grid}>

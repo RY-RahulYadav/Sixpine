@@ -1,4 +1,6 @@
 import React from "react";
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import Navbar from "../components/Navbar.jsx";  
 import Footer from "../components/Footer";
 import Account  from "../components/yourAccount";
@@ -13,6 +15,13 @@ import {
 
 
 const AccountPage: React.FC = () => {
+  const { logout } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   return (
     <div>
@@ -25,7 +34,9 @@ const AccountPage: React.FC = () => {
        
       </div>
           <div className="accountpage_container">
-      <Account />
+      <Account logoutButton={
+        <button className="btn btn-outline-danger" onClick={handleLogout}>Logout</button>
+      } />
        <Productdetails_Slider1  title="Buy with it"
                 products={frequentlyViewedProducts}/>
 

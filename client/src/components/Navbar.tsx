@@ -127,7 +127,7 @@ const Navbar: React.FC = () => {
         {/* Right Icons for mobile */}
         <ul className="navbar-nav align-items-center d-lg-none order-lg-2 mb-2 mb-lg-0">
           <li className="nav-item">
-            <Link className="nav-link text-light" to={state.isAuthenticated ? "/profile" : "/login"}>
+            <Link className="nav-link text-light" to={state.isAuthenticated ? "/your-account" : "/login"}>
               <i className="bi bi-person"></i>
               <span className="d-none d-md-inline ms-1">
                 {state.isAuthenticated ? 
@@ -204,7 +204,7 @@ const Navbar: React.FC = () => {
         {/* Right Icons for desktop */}
         <ul className="navbar-nav align-items-center d-none d-lg-flex order-lg-3">
           <li className="nav-item mx-2">
-            <Link className="nav-link text-light" to={state.isAuthenticated ? "/profile" : "/login"}>
+            <Link className="nav-link text-light" to={state.isAuthenticated ? "/your-account" : "/login"}>
               <i className="bi bi-person"></i> {state.isAuthenticated ? 
                 (state.user?.first_name ? `${state.user.first_name} ${state.user.last_name}`.trim() : state.user?.username) 
                 : "Login"
