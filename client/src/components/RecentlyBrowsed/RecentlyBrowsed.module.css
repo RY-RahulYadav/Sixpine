@@ -339,12 +339,14 @@
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 5px;
+  color: white !important;
 }
 
 .productCount {
   font-size: 14px;
   opacity: 0.8;
   margin-bottom: 10px;
+  color: white;
 }
 
 .exploreBtn {

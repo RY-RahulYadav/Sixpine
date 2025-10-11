@@ -39,7 +39,7 @@ const RelatedCategories = () => {
             <div className={styles.categoryImageContainer}>
               <img src={category.image} alt={category.name} className={styles.categoryImage} />
               <div className={styles.categoryOverlay}>
-                <h3 style={{color:"white !important"}} className={styles.categoryName}>{category.name}</h3>
+                <h3 className={styles.categoryName}>{category.name}</h3>
                 <div className={styles.productCount}>{category.productCount} products</div>
                 <button className={styles.exploreBtn}>Explore</button>
               </div>
