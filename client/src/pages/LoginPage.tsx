@@ -63,7 +63,7 @@ const LoginPage: React.FC = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="sixpine-form">
             <div className="sixpine-form-group">
-              <label>Email or Mobile</label>
+              <label>Email or Username</label>
               <input
                 type="text"
                 name="username"
