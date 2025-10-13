@@ -4,12 +4,18 @@ import SubNav from '../components/SubNav';
 import Footer from '../components/Footer';
 import CategoryTabs from '../components/CategoryTabs';
 import '../styles/Pages.css';
-import '../components/BulkOrder/BulkOrder.module.css';
+import '../styles/BulkOrderPage.css';
 
-import BulkOrderForm from '../components/BulkOrder/BulkOrderForm';
-import BulkOrderFAQ from '../components/BulkOrder/BulkOrderFAQ';
-import BulkOrderSteps from '../components/BulkOrder/BulkOrderSteps';
+// Import new bulk order components
+import BulkOrderHero from '../components/BulkOrder/BulkOrderHero';
+import BulkOrderCategories from '../components/BulkOrder/BulkOrderCategories';
+import BulkOrderProcess from '../components/BulkOrder/BulkOrderProcess';
 import BulkOrderBenefits from '../components/BulkOrder/BulkOrderBenefits';
+import BulkOrderForm from '../components/BulkOrder/BulkOrderForm';
+// import BulkOrderFAQ from '../components/BulkOrder/BulkOrderFAQ';
+
+
+
 
 const BulkOrderPage: React.FC = () => {
   return (
@@ -21,25 +27,29 @@ const BulkOrderPage: React.FC = () => {
       </div>
 
       <div className="bulkorder_container">
-        {/* Hero Section */}
-        <div className="hero-section">
-          <h1>Bulk Orders & Corporate Purchasing</h1>
-          <p>Special pricing and dedicated support for bulk orders</p>
-        </div>
+        {/* Hero Section with modern design */}
+        <BulkOrderHero />
 
-        {/* Order Process Steps */}
-        <BulkOrderSteps />
+        {/* Industries We Serve */}
+        <BulkOrderCategories />
 
-        {/* Bulk Order Form */}
+        {/* 6-Step Order Process */}
+        <BulkOrderProcess />
         <BulkOrderForm />
-
-        {/* Benefits Section */}
+       
+        {/* Benefits Section with Testimonials */}
         <BulkOrderBenefits />
 
+        {/* Bulk Order Quote Form */}
+
+
         {/* FAQs Section */}
-        <BulkOrderFAQ />
-      </div>
+        {/* <BulkOrderFAQ /> */}
       
+
+        
+      </div>
+
       <div className="footer-wrapper">
         <Footer />
       </div>

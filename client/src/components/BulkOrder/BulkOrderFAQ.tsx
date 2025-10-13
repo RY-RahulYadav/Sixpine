@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styles from './BulkOrder.module.css';
+import styles from './BulkOrderFAQ.module.css';
 
 const BulkOrderFAQ = () => {
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
@@ -65,7 +65,7 @@ const BulkOrderFAQ = () => {
         ))}
       </div>
       
-      <div className={styles.contactBox}>
+      {/* <div className={styles.contactBox}>
         <h3>Still have questions?</h3>
         <p>Contact our bulk orders team directly.</p>
         <div className={styles.contactDetails}>
@@ -84,7 +84,7 @@ const BulkOrderFAQ = () => {
             <span>bulk@sixpine.com</span>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

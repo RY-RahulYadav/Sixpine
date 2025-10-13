@@ -35,6 +35,10 @@ import ContactPage from './pages/ContactPage';
 import TrendingPage from './pages/TrendingPage';
 import BestDealsPage from './pages/BestDealsPage';
 import RecentlyBrowsedPage from './pages/RecentlyBrowsedPage';
+import BulkOrderPage from './pages/BulkOrderPage';
+import TermsPage from './pages/terms';
+import WarrantyPage from './pages/warranty';
+import FAQsPage from './pages/faqs';
 
 function App() {
   return (
@@ -70,7 +74,10 @@ function App() {
             <Route path="/trending" element={<TrendingPage />} />
             <Route path="/best-deals" element={<BestDealsPage />} />
             <Route path="/recently-browsed" element={<RecentlyBrowsedPage />} />
-            {/* <Route path="/bulk-order" element={<BulkOrderPage />} /> */}
+            <Route path="/bulk-order" element={<BulkOrderPage />} />
+            <Route path="/terms-and-conditions" element={<TermsPage />} />
+            <Route path="/warranty-policy" element={<WarrantyPage />} />
+            <Route path="/faqs" element={<FAQsPage />} />
             {/* <Route path="/help" element={<HelpPage />} /> */}
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={

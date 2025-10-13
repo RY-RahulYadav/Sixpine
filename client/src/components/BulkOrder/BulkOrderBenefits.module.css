@@ -1,0 +1,262 @@
+/* Bulk Order Benefits Section */
+.benefitsSection {
+  padding: 80px 20px;
+  background: #fff;
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.sectionTitle {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.sectionDescription {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 60px;
+  color: #666;
+  font-size: clamp(16px, 1.2vw, 18px);
+  line-height: 1.6;
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+  max-width: 1460px;
+  margin: 0 auto 80px;
+}
+
+.benefitCard {
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 35px 25px;
+  transition: all 0.4s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 2px solid transparent;
+}
+
+.benefitCard:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  border-color: #e0e0e0;
+  background: #fff;
+}
+
+.benefitIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f3f3f3;
+  color: #666;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.benefitCard:hover .benefitIcon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.benefitTitle {
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.benefitDescription {
+  color: #666;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.testimonialsSection {
+  max-width: 1460px;
+  margin: 0 auto;
+}
+
+.testimonialsTitle {
+  font-size: clamp(1.75rem, 3.5vw, 2rem);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 50px;
+  color: #333;
+}
+
+.testimonialCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 30px;
+}
+
+.testimonialCard {
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 35px;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.testimonialCard::before {
+  content: '"';
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 100px;
+  color: #e0e0e0;
+  opacity: 0.5;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+
+.testimonialCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.testimonialContent {
+  font-style: italic;
+  color: #555;
+  margin-bottom: 25px;
+  font-size: 16px;
+  line-height: 1.8;
+  position: relative;
+  z-index: 1;
+}
+
+.testimonialAuthor {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.authorAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #f3f3f3;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.authorInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.authorName {
+  font-weight: 700;
+  color: #333;
+  font-size: 16px;
+}
+
+.authorPosition {
+  font-size: 14px;
+  color: #777;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .benefitsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+  }
+
+  .testimonialCards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .benefitsSection {
+    padding: 60px 15px;
+  }
+
+  .sectionDescription {
+    margin-bottom: 40px;
+  }
+
+  .benefitsGrid {
+    gap: 20px;
+    margin-bottom: 60px;
+  }
+
+  .benefitCard {
+    padding: 30px 20px;
+  }
+
+  .benefitIcon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .benefitIcon svg {
+    width: 35px;
+    height: 35px;
+  }
+
+  .testimonialCards {
+    gap: 20px;
+  }
+
+  .testimonialCard {
+    padding: 30px 25px;
+  }
+
+  .testimonialsTitle {
+    margin-bottom: 35px;
+  }
+}
+
+@media (max-width: 575px) {
+  .benefitsSection {
+    padding: 40px 10px;
+  }
+
+  .benefitsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .benefitCard {
+    max-width: 100%;
+  }
+
+  .testimonialCards {
+    grid-template-columns: 1fr;
+  }
+
+  .testimonialCard {
+    padding: 25px 20px;
+  }
+
+  .testimonialContent {
+    font-size: 15px;
+  }
+
+  .authorAvatar {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+  }
+}

@@ -110,19 +110,19 @@ export default function Footer() {
         <div>
           <h3>Customer Support</h3>
           <ul>
-            <li>FAQs</li>
+            <li><Link to="/faqs">FAQs</Link></li>
             <li><Link to="/products-details">Products Details</Link></li>
-            <li>Warranty Policy</li>
+            <li><Link to="/warranty-policy">Warranty Policy</Link></li>
             <li>Payment Options</li>
-            <li> <Link to="/privacy-policy">Privacy Policy</Link></li>
-            <li>Terms & Conditions</li>
+            <li><Link to="/privacy-policy">Privacy Policy</Link></li>
+            <li><Link to="/terms-and-conditions">Terms & Conditions</Link></li>
           </ul>
         </div>
 
         <div>
           <h3>Customer Service</h3>
           <ul>
-            <li>FAQ</li>
+            <li><Link to="/faqs">FAQ</Link></li>
             <li>Shipping</li>
             <li>Returns Centre</li>
             <li>Support Link to WhatsApp</li>

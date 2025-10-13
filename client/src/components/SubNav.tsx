@@ -10,7 +10,7 @@ const SubNav: React.FC = () => {
     { to: '/products', label: 'Continue Shopping', isActive: true },
     { to: '/best-deals', label: 'Best Deals', isActive: true },
     { to: '/recently-browsed', label: 'Recently Browsed', isActive: true },
-    { to: '/buy-in-bulk', label: 'Buy in Bulk', isActive: false },
+    { to: '/bulk-order', label: 'Buy in Bulk', isActive: true },
     { to: '/orders', label: 'Track Order', isActive: true },
     { to: '/contact', label: 'Contact Us', isActive: true },
     { to: '/help', label: 'Help', isActive: false },

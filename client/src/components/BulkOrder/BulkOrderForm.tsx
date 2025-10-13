@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styles from './BulkOrder.module.css';
+import styles from './BulkOrderForm.module.css';
 
 const BulkOrderForm = () => {
   const [formData, setFormData] = useState({
