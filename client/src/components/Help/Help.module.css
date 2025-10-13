@@ -1,7 +1,7 @@
 .helpHeader {
   background-color: #f8f9fa;
   padding: 4rem 1rem;
-  background-image: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
+  /* background-image: linear-gradient(135deg, #e91e63 0%, #f06292 100%); */
   color: white;
 }
 
@@ -44,7 +44,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #e91e63;
+  color: #ff6f00;
   font-size: 1.5rem;
   cursor: pointer;
 }
@@ -54,6 +54,7 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 1rem;
+  
 }
 
 .quickLink {
@@ -61,9 +62,11 @@
   align-items: center;
   background-color: rgba(255, 255, 255, 0.2);
   padding: 0.5rem 1rem;
+  border: 1px solid #000;
   border-radius: 50px;
   transition: background-color 0.3s;
   cursor: pointer;
+  color: black;
 }
 
 .quickLink:hover {
@@ -133,8 +136,8 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background-color: rgba(233, 30, 99, 0.1);
-  color: #e91e63;
+  background-color: rgba(255, 111, 0, 0.1);
+  color: #ff6f00;
   margin-bottom: 1.5rem;
 }
 
@@ -163,14 +166,14 @@
 }
 
 .categoryLink:hover {
-  color: #e91e63;
+  color: #ff6f00;
 }
 
 .viewAllLink {
   display: flex;
   align-items: center;
   text-decoration: none;
-  color: #e91e63;
+  color: #ff6f00;
   font-weight: 500;
   font-size: 0.95rem;
   transition: color 0.3s;
@@ -213,14 +216,14 @@
 }
 
 .faqQuestion:hover {
-  background-color: rgba(233, 30, 99, 0.05);
+  background-color: rgba(255, 111, 0, 0.05);
 }
 
 .faqToggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e91e63;
+  color: #ff6f00;
 }
 
 .faqAnswer {
@@ -246,8 +249,8 @@
 
 .viewMoreButton {
   background-color: transparent;
-  color: #e91e63;
-  border: 1px solid #e91e63;
+  color: #ff6f00;
+  border: 1px solid #ff6f00;
   padding: 0.75rem 2rem;
   border-radius: 50px;
   font-weight: 500;
@@ -256,7 +259,7 @@
 }
 
 .viewMoreButton:hover {
-  background-color: #e91e63;
+  background-color: #ff6f00;
   color: white;
 }
 
@@ -291,8 +294,8 @@
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background-color: rgba(233, 30, 99, 0.1);
-  color: #e91e63;
+  background-color: rgba(255, 111, 0, 0.1);
+  color: #ff6f00;
   margin: 0 auto 1.5rem;
 }
 
@@ -323,7 +326,7 @@
 }
 
 .contactButton {
-  background-color: #e91e63;
+  background-color: #ff6f00;
   color: white;
   border: none;
   border-radius: 50px;
@@ -335,7 +338,7 @@
 }
 
 .contactButton:hover {
-  background-color: #d81b60;
+  background-color: #c43e00;
 }
 
 .contactFormSection {
@@ -386,8 +389,8 @@
 
 .formControl:focus {
   outline: none;
-  border-color: #e91e63;
-  box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.2);
+  border-color: #ff6f00;
+  box-shadow: 0 0 0 2px rgba(255, 111, 0, 0.2);
 }
 
 .formSubmit {
@@ -396,7 +399,7 @@
 }
 
 .submitButton {
-  background-color: #e91e63;
+  background-color: #ff6f00;
   color: white;
   border: none;
   border-radius: 50px;
@@ -407,7 +410,7 @@
 }
 
 .submitButton:hover {
-  background-color: #d81b60;
+  background-color: #c43e00;
 }
 
 .resourcesSection {
@@ -445,8 +448,8 @@
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background-color: rgba(233, 30, 99, 0.1);
-  color: #e91e63;
+  background-color: rgba(255, 111, 0, 0.1);
+  color: #ff6f00;
   margin: 0 auto 1.5rem;
 }
 
@@ -469,7 +472,7 @@
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-  color: #e91e63;
+  color: #ff6f00;
   font-weight: 500;
   font-size: 0.95rem;
   transition: color 0.3s;
@@ -571,7 +574,7 @@
 .feedbackButton {
   display: inline-flex;
   align-items: center;
-  background-color: #e91e63;
+  background-color: #ff6f00;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -582,7 +585,7 @@
 }
 
 .feedbackButton:hover {
-  background-color: #d81b60;
+  background-color: #c43e00;
 }
 
 .feedbackButton svg {

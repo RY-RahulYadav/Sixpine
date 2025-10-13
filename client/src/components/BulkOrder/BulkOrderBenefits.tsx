@@ -35,21 +35,7 @@ const BulkOrderBenefits = () => {
       title: "Flexible Scheduling",
       description: "Plan deliveries according to your project timeline and needs."
     },
-    {
-      icon: (
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <path d="M12 14C12.5523 14 13 13.5523 13 13C13 12.4477 12.5523 12 12 12C11.4477 12 11 12.4477 11 13C11 13.5523 11.4477 14 12 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M19 14C19.5523 14 20 13.5523 20 13C20 12.4477 19.5523 12 19 12C18.4477 12 18 12.4477 18 13C18 13.5523 18.4477 14 19 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M5 14C5.55228 14 6 13.5523 6 13C6 12.4477 5.55228 12 5 12C4.44772 12 4 12.4477 4 13C4 13.5523 4.44772 14 5 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 7C12.5523 7 13 6.55228 13 6C13 5.44772 12.5523 5 12 5C11.4477 5 11 5.44772 11 6C11 6.55228 11.4477 7 12 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 21C12.5523 21 13 20.5523 13 20C13 19.4477 12.5523 19 12 19C11.4477 19 11 19.4477 11 20C11 20.5523 11.4477 21 12 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M7.40002 17.4C7.95231 17.4 8.40002 16.9523 8.40002 16.4C8.40002 15.8477 7.95231 15.4 7.40002 15.4C6.84774 15.4 6.40002 15.8477 6.40002 16.4C6.40002 16.9523 6.84774 17.4 7.40002 17.4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M16.6 10.6C17.1523 10.6 17.6 10.1523 17.6 9.60001C17.6 9.04773 17.1523 8.60001 16.6 8.60001C16.0477 8.60001 15.6 9.04773 15.6 9.60001C15.6 10.1523 16.0477 10.6 16.6 10.6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-      title: "Custom Solutions",
-      description: "Tailored furniture solutions to match your specific requirements."
-    }
+    
    
   ];
 

@@ -39,6 +39,7 @@ import BulkOrderPage from './pages/BulkOrderPage';
 import TermsPage from './pages/terms';
 import WarrantyPage from './pages/warranty';
 import FAQsPage from './pages/faqs';
+import HelpPage from './pages/HelpPage';
 
 function App() {
   return (
@@ -78,7 +79,7 @@ function App() {
             <Route path="/terms-and-conditions" element={<TermsPage />} />
             <Route path="/warranty-policy" element={<WarrantyPage />} />
             <Route path="/faqs" element={<FAQsPage />} />
-            {/* <Route path="/help" element={<HelpPage />} /> */}
+            <Route path="/help" element={<HelpPage />} />
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>

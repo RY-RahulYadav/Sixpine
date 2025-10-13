@@ -6,26 +6,28 @@ import Footer from '../components/Footer';
 import BackToTop from '../components/BackToTop';
 import HelpHeader from '../components/Help/HelpHeader';
 import HelpCategories from '../components/Help/HelpCategories';
-import FrequentQuestions from '../components/Help/FrequentQuestions';
-import ContactOptions from '../components/Help/ContactOptions';
+
 import SupportResources from '../components/Help/SupportResources';
+import '../styles/Pages.css';
 
 const HelpPage: React.FC = () => {
   return (
-    <div>
+    <>
       <Navbar />
-      <SubNav />
-      <CategoryTabs />
+      <div className="page-content">
+        <SubNav />
+        <CategoryTabs />
+        
+        <HelpHeader />
+        <HelpCategories />
+        <SupportResources />
+      </div>
       
-      <HelpHeader />
-      <HelpCategories />
-      <FrequentQuestions />
-      <ContactOptions />
-      <SupportResources />
-      
-      <Footer />
+      <div className="footer-wrapper">
+        <Footer />
+      </div>
       <BackToTop />
-    </div>
+    </>
   );
 };
 

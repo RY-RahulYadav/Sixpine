@@ -138,7 +138,7 @@ export default function Footer() {
             <li> <Link to ="/purchaseProtection">100% Purchase Protection </Link></li>
             <li> <Link to ="/your-app">Download  Sixpine App 📱</Link></li>
           
-            <li>Help</li>
+            <li><Link to ="/help">Help</Link></li>
           </ul>
         </div>
       </div>
