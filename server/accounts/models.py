@@ -10,17 +10,24 @@ import string
 
 class OTPVerification(models.Model):
     """Model to store OTP for email verification during registration"""
+    OTP_METHOD_CHOICES = [
+        ('email', 'Email'),
+        ('whatsapp', 'WhatsApp'),
+    ]
+    
     email = models.EmailField(unique=True)
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_verified = models.BooleanField(default=False)
     attempts = models.IntegerField(default=0)
+    otp_method = models.CharField(max_length=10, choices=OTP_METHOD_CHOICES, default='email')
     
     # Store registration data temporarily
     username = models.CharField(max_length=150)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
+    mobile = models.CharField(max_length=15, blank=True)
     password_hash = models.CharField(max_length=255)
     
     def save(self, *args, **kwargs):

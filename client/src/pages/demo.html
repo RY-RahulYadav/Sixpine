@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Profile - Shopping Preferences</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f8fa;
+      margin: 0;
+      padding: 0;
+      color: #111;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 800px;
+      margin: 40px auto;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      color: #555;
+      font-size: 14px;
+      margin-bottom: 25px;
+    }
+
+    section {
+      margin-bottom: 35px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 5px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .row {
+      display: flex;
+      gap: 20px;
+    }
+
+    .col {
+      flex: 1;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+      transform: scale(1.1);
+    }
+
+    .interests input[type="text"] {
+      margin-bottom: 10px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .tag {
+      background-color: #f2f2f2;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 13px;
+      border: 1px solid #ddd;
+      cursor: pointer;
+    }
+
+    .footer {
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    @media (max-width: 600px) {
+      .row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Your Profile</h2>
+    <p class="subtitle">Your profile preferences help us personalize recommendations for you.</p>
+
+    <section>
+      <div class="section-title">Clothing and Shoes</div>
+      <label>Preferred department</label>
+      <select>
+        <option>Men</option>
+        <option>Women</option>
+        <option>Kids</option>
+      </select>
+
+      <div class="row">
+        <div class="col">
+          <label>Height</label>
+          <input type="text" placeholder="e.g. 170 cm">
+        </div>
+        <div class="col">
+          <label>Weight</label>
+          <input type="text" placeholder="e.g. 65 kg">
+        </div>
+      </div>
+
+      <label>Age group</label>
+      <select>
+        <option>18-24</option>
+        <option>25-34</option>
+        <option>35-44</option>
+        <option>45+</option>
+      </select>
+    </section>
+
+    <section>
+      <div class="section-title">Department preferences</div>
+
+      <label>Women's</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox"> Tops</label>
+        <label><input type="checkbox"> Jeans</label>
+        <label><input type="checkbox"> Dresses</label>
+        <label><input type="checkbox"> Kurtas</label>
+      </div>
+
+      <label>Men's</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox"> Shirts</label>
+        <label><input type="checkbox"> Trousers</label>
+        <label><input type="checkbox"> Jackets</label>
+      </div>
+
+      <label>Shoes</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox"> Sneakers</label>
+        <label><input type="checkbox"> Formal</label>
+        <label><input type="checkbox"> Sandals</label>
+      </div>
+    </section>
+
+    <section class="interests">
+      <div class="section-title">Interests</div>
+      <label>Suggested interests</label>
+      <input type="text" placeholder="Type to add interests...">
+      <div class="tags">
+        <div class="tag">Women's Fashion</div>
+        <div class="tag">Men's Fashion</div>
+        <div class="tag">Baby and Toddler</div>
+        <div class="tag">Home & Garden</div>
+        <div class="tag">Makeup</div>
+        <div class="tag">Pet Supplies</div>
+        <div class="tag">Jewelry</div>
+        <div class="tag">Accessories</div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <strong>Who You Follow</strong><br>
+      Authors, brands, and content creators you follow.<br><br>
+      <a href="#" style="color: #0073e6; text-decoration: none;">View your followers</a>
+    </div>
+  </div>
+</body>
+</html>

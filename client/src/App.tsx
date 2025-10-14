@@ -40,6 +40,13 @@ import TermsPage from './pages/terms';
 import WarrantyPage from './pages/warranty';
 import FAQsPage from './pages/faqs';
 import HelpPage from './pages/HelpPage';
+import ShoppingListPage from './pages/ShoppingListPage';
+import MembershipPage from './pages/MembershipPage';
+import LeavePackagingFeedbackPage from './pages/LeavePackagingFeedbackPage';
+import SubscribeSavePage from './pages/SubscribeSavePage';
+import MembershipsSubscriptionsPage from './pages/MembershipsSubscriptionsPage';
+// import MessageCentrePage from './pages/MessageCentrePage';
+// import AddressesPage from './pages/AddressesPage';
 
 function App() {
   return (
@@ -80,6 +87,13 @@ function App() {
             <Route path="/warranty-policy" element={<WarrantyPage />} />
             <Route path="/faqs" element={<FAQsPage />} />
             <Route path="/help" element={<HelpPage />} />
+            <Route path="/shopping-list" element={<ShoppingListPage />} />
+            <Route path="/membership" element={<MembershipPage />} />
+            <Route path="/packaging-feedback" element={<LeavePackagingFeedbackPage />} />
+            <Route path="/subscribe-save" element={<SubscribeSavePage />} />
+            <Route path="/memberships-subscriptions" element={<MembershipsSubscriptionsPage />} />
+            {/* <Route path="/message-centre" element={<MessageCentrePage />} />
+            <Route path="/your-addresses" element={<AddressesPage />} /> */}
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>

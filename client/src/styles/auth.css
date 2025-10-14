@@ -43,11 +43,9 @@ html, body, #root {
   background: white;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
-  /* Ensure the card never gets cut off vertically */
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
+  /* Remove fixed height constraints to allow content to flow naturally */
   margin: 6px auto;
 }
 
@@ -266,6 +264,68 @@ html, body, #root {
 /* OTP Verification Styles */
 .sixpine-otp-section {
   text-align: center;
+}
+
+/* OTP Method Selection */
+.sixpine-otp-selection {
+  padding: 0;
+}
+
+.otp-method-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.otp-method-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.otp-method-btn:hover:not(:disabled) {
+  border-color: #333;
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.otp-method-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.otp-method-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.otp-method-content {
+  flex: 1;
+  text-align: left;
+}
+
+.otp-method-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.otp-method-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
 }
 
 /* Row helpers for placing fields side-by-side */

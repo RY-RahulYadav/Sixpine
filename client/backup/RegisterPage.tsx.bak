@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import '../styles/auth.css';
+import '../styles/otpModal.css';
 import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import Footer from '../components/Footer';
+import OtpDeliveryModal from '../components/OtpDeliveryModal';
 
 const RegisterPage: React.FC = () => {
-  const [step, setStep] = useState<'register' | 'selectOTP' | 'verify'>('register');
+  const [step, setStep] = useState<'register' | 'verify'>('register');
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -18,13 +20,14 @@ const RegisterPage: React.FC = () => {
     password_confirm: ''
   });
   const [otp, setOtp] = useState('');
-  const [otpMethod, setOtpMethod] = useState<'email' | 'whatsapp' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpMethod, setOtpMethod] = useState<'email' | 'whatsapp' | null>(null);
 
   // Timer effect for resend OTP
   React.useEffect(() => {
@@ -35,25 +38,13 @@ const RegisterPage: React.FC = () => {
   }, [resendTimer]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    // Auto-generate username from email if email is changed
-    if (name === 'email') {
-      const username = value.split('@')[0];
-      setFormData({
-        ...formData,
-        email: value,
-        username: username
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const handleRequestOTP = async (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -65,61 +56,47 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-    // Move to OTP selection step instead of directly requesting OTP
-    setLoading(false);
-    setStep('selectOTP');
-  };
-
-  const handleSendOTP = async (method: 'email' | 'whatsapp') => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    setOtpMethod(method);
-
-    // Validate mobile number if WhatsApp is selected
-    if (method === 'whatsapp' && !formData.mobile) {
-      setError('Please provide a mobile number to receive OTP via WhatsApp');
+    // Basic form validation
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all required fields");
+      setLoading(false);
+      return;
+    }
+    
+    // Password validation
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
 
+    // Form is valid, show OTP delivery method selection modal
+    setLoading(false);
+    setShowOtpModal(true);
+  };
+
+  const handleOtpMethodSelect = async (method: 'email' | 'whatsapp') => {
+    setOtpMethod(method);
+    setShowOtpModal(false);
+    setLoading(true);
+
     try {
-      const destination = method === 'whatsapp' ? formData.mobile : formData.email;
-      let otpCode = '';
-      
-      // Only call API for WhatsApp, bypass for email (prototype mode)
-      if (method === 'whatsapp') {
-        const response = await authAPI.requestOTP({
-          ...formData,
-          otp_method: method
-        } as any);
-        
-        // Extract OTP from response if available
-        otpCode = response.data?.otp || response.data?.debug_otp || '';
-      } else {
-        // For email, generate a mock OTP for prototype (bypass API)
-        otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      }
-      
-      const successMessage = otpCode 
-        ? `OTP sent to your ${method === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}. Code: ${otpCode}`
-        : `OTP sent to your ${method === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}`;
-      
-      setSuccess(successMessage);
-      
-      // Auto-hide success message after 2 seconds
-      setTimeout(() => {
-        setSuccess(null);
-      }, 2000);
-      
+      // Call API to request OTP with selected method
+      const response = await authAPI.requestOTP({
+        ...formData,
+        delivery_method: method
+      });
+      setSuccess(method === 'email' 
+        ? `Verification code sent to ${formData.email}` 
+        : `Verification code sent to your WhatsApp number`);
       setStep('verify');
       setResendTimer(60); // 60 seconds cooldown for resend
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.username?.[0] ||
-                          error.response?.data?.email?.[0] ||
-                          error.response?.data?.password?.[0] ||
-                          'Failed to send OTP. Please try again.';
+                        error.response?.data?.username?.[0] ||
+                        error.response?.data?.email?.[0] ||
+                        error.response?.data?.password?.[0] ||
+                        'Failed to send OTP. Please try again.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -171,34 +148,8 @@ const RegisterPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      const destination = otpMethod === 'whatsapp' ? formData.mobile : formData.email;
-      let otpCode = '';
-      
-      // Only call API for WhatsApp, bypass for email (prototype mode)
-      if (otpMethod === 'whatsapp') {
-        const response = await authAPI.resendOTP({ 
-          email: formData.email,
-          otp_method: otpMethod 
-        } as any);
-        
-        // Extract OTP from response if available
-        otpCode = response.data?.otp || response.data?.debug_otp || '';
-      } else {
-        // For email, generate a mock OTP for prototype (bypass API)
-        otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      }
-      
-      const successMessage = otpCode 
-        ? `OTP resent to your ${otpMethod === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}. Code: ${otpCode}`
-        : `OTP resent to your ${otpMethod === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}`;
-      
-      setSuccess(successMessage);
-      
-      // Auto-hide success message after 2 seconds
-      setTimeout(() => {
-        setSuccess(null);
-      }, 2000);
-      
+      const response = await authAPI.resendOTP({ email: formData.email });
+      setSuccess(response.data.message);
       setResendTimer(60);
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Failed to resend OTP';
@@ -210,14 +161,6 @@ const RegisterPage: React.FC = () => {
 
   const handleBackToRegister = () => {
     setStep('register');
-    setOtp('');
-    setOtpMethod(null);
-    setError(null);
-    setSuccess(null);
-  };
-
-  const handleBackToOTPSelection = () => {
-    setStep('selectOTP');
     setOtp('');
     setError(null);
     setSuccess(null);
@@ -232,6 +175,15 @@ const RegisterPage: React.FC = () => {
     <div className="sixpine-auth-page">
       <div className="sixpine-auth-container">
         <div className="sixpine-auth-card">
+          
+          {/* OTP Delivery Method Modal */}
+          <OtpDeliveryModal 
+            email={formData.email}
+            mobile={formData.mobile}
+            isOpen={showOtpModal}
+            onSelect={handleOtpMethodSelect}
+            onClose={() => setShowOtpModal(false)}
+          />
           {/* Header with brand name */}
           <div className="sixpine-brand">
             <h1 style={{marginBottom:12}}>Sixpine</h1>
@@ -257,8 +209,8 @@ const RegisterPage: React.FC = () => {
           )}
 
           {step === 'register' ? (
-            /* Registration Form */
-            <form onSubmit={handleRequestOTP} className="sixpine-form">
+            {/* Registration Form */}
+            <form onSubmit={handleFormSubmit} className="sixpine-form">
               {/* First row: name and email side-by-side */}
               <div className="sixpine-row" style={{marginBottom:16}}>
                 <div className="sixpine-col">
@@ -347,79 +299,15 @@ const RegisterPage: React.FC = () => {
                 className="sixpine-submit-btn"
                 disabled={loading}
               >
-                {loading ? 'Processing...' : 'Create account'}
+                {loading ? 'Creating account...' : 'Create account'}
               </button>
             </form>
-          ) : step === 'selectOTP' ? (
-            /* OTP Method Selection */
-            <div className="sixpine-form">
-              <div className="sixpine-otp-selection">
-                <h3 style={{ textAlign: 'center', marginBottom: '10px', fontSize: '18px', color: '#333' }}>
-                  Choose verification method
-                </h3>
-                <p style={{ textAlign: 'center', marginBottom: '24px', fontSize: '14px', color: '#666' }}>
-                  Select how you'd like to receive your OTP
-                </p>
-
-                <div className="otp-method-options">
-                  <button
-                    type="button"
-                    className="otp-method-btn"
-                    onClick={() => handleSendOTP('email')}
-                    disabled={loading}
-                  >
-                    <div className="otp-method-icon">📧</div>
-                    <div className="otp-method-content">
-                      <h4>Email</h4>
-                      <p>{formData.email}</p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="otp-method-btn"
-                    onClick={() => handleSendOTP('whatsapp')}
-                    disabled={loading || !formData.mobile}
-                  >
-                    <div className="otp-method-icon">💬</div>
-                    <div className="otp-method-content">
-                      <h4>WhatsApp</h4>
-                      <p>{formData.mobile || 'No mobile number provided'}</p>
-                    </div>
-                  </button>
-                </div>
-
-                {!formData.mobile && (
-                  <p style={{ 
-                    textAlign: 'center', 
-                    fontSize: '12px', 
-                    color: '#ff9800', 
-                    marginTop: '16px',
-                    fontStyle: 'italic'
-                  }}>
-                    Add a mobile number to enable WhatsApp verification
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  className="sixpine-link-btn"
-                  onClick={handleBackToRegister}
-                  disabled={loading}
-                  style={{ marginTop: '20px', width: '100%' }}
-                >
-                  ← Back to registration
-                </button>
-              </div>
-            </div>
           ) : (
             /* OTP Verification Form */
             <form onSubmit={handleVerifyOTP} className="sixpine-form">
               <div className="sixpine-otp-section">
                 <p>We've sent a 6-digit verification code to</p>
-                <p><strong>
-                  {otpMethod === 'whatsapp' ? formData.mobile : formData.email}
-                </strong></p>
+                <p><strong>{formData.email}</strong></p>
                 
                 <div className="sixpine-form-group">
                   <label>Enter Verification Code</label>
@@ -459,10 +347,10 @@ const RegisterPage: React.FC = () => {
                   <button
                     type="button"
                     className="sixpine-link-btn"
-                    onClick={handleBackToOTPSelection}
+                    onClick={handleBackToRegister}
                     disabled={loading}
                   >
-                    Change Method
+                    Change Email
                   </button>
                 </div>
               </div>

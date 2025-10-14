@@ -41,6 +41,38 @@ def get_gmail_service():
         return None
 
 
+def send_whatsapp_otp(mobile_number, otp_code, first_name=''):
+    """
+    Send OTP via WhatsApp using Twilio or similar service
+    Note: This requires Twilio credentials to be configured
+    """
+    try:
+        # TODO: Integrate with Twilio WhatsApp API
+        # For now, we'll just log it and return success for demo purposes
+        
+        # Example Twilio integration (commented out):
+        # from twilio.rest import Client
+        # account_sid = settings.TWILIO_ACCOUNT_SID
+        # auth_token = settings.TWILIO_AUTH_TOKEN
+        # client = Client(account_sid, auth_token)
+        # 
+        # message = client.messages.create(
+        #     from_='whatsapp:+14155238886',  # Twilio WhatsApp number
+        #     body=f'Hello {first_name}! Your Sixpine verification code is: {otp_code}. This code expires in 10 minutes.',
+        #     to=f'whatsapp:{mobile_number}'
+        # )
+        # return True, f"Sent via WhatsApp (ID: {message.sid})"
+        
+        # For demo purposes, we'll simulate success
+        print(f"📱 WhatsApp OTP to {mobile_number}: {otp_code}")
+        print(f"Message: Hello {first_name}! Your Sixpine verification code is: {otp_code}")
+        
+        return True, "WhatsApp OTP sent (demo mode - check console)"
+        
+    except Exception as e:
+        return False, f"WhatsApp error: {str(e)}"
+
+
 def send_email_via_gmail_api(service, to_email, subject, html_content, text_content):
     """Send email using Gmail API"""
     try:
@@ -173,7 +205,7 @@ E-Commerce Team
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def request_otp(request):
-    """Send OTP to email for registration verification"""
+    """Send OTP to email or WhatsApp for registration verification"""
     serializer = OTPRequestSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -182,7 +214,9 @@ def request_otp(request):
     username = serializer.validated_data['username']
     first_name = serializer.validated_data.get('first_name', '')
     last_name = serializer.validated_data.get('last_name', '')
+    mobile = serializer.validated_data.get('mobile', '')
     password = serializer.validated_data['password']
+    otp_method = serializer.validated_data.get('otp_method', 'email')
     
     # Delete any existing OTP for this email
     OTPVerification.objects.filter(email=email).delete()
@@ -200,39 +234,49 @@ def request_otp(request):
         username=username,
         first_name=first_name,
         last_name=last_name,
+        mobile=mobile,
         password_hash=password_hash,
-        otp=otp_code
+        otp=otp_code,
+        otp_method=otp_method
     )
     
-    # Send OTP email
-    success, message = send_otp_email(email, otp_code, first_name, username)
+    # Send OTP based on selected method
+    if otp_method == 'whatsapp':
+        success, message = send_whatsapp_otp(mobile, otp_code, first_name)
+    else:
+        success, message = send_otp_email(email, otp_code, first_name, username)
     
     if not success:
-        # Delete the OTP record if email fails
+        # Delete the OTP record if sending fails
         otp_record.delete()
         
         # Provide helpful error message based on the failure reason
-        if "EMAIL_HOST_PASSWORD" in message or "SMTP" in message:
-            error_detail = "Gmail OAuth is not configured and SMTP fallback requires App Password. Please run: python setup_oauth_gmail.py"
-        elif "Gmail API" in message:
-            error_detail = "Gmail API authentication failed. Please run: python setup_oauth_gmail.py to re-authenticate"
+        if otp_method == 'email':
+            if "EMAIL_HOST_PASSWORD" in message or "SMTP" in message:
+                error_detail = "Gmail OAuth is not configured and SMTP fallback requires App Password. Please run: python setup_oauth_gmail.py"
+            elif "Gmail API" in message:
+                error_detail = "Gmail API authentication failed. Please run: python setup_oauth_gmail.py to re-authenticate"
+            else:
+                error_detail = f"Email service error: {message}"
         else:
-            error_detail = f"Email service error: {message}"
+            error_detail = f"WhatsApp service error: {message}. Note: WhatsApp OTP requires Twilio integration."
         
         return Response({
-            'error': 'Failed to send verification email',
+            'error': f'Failed to send verification {otp_method.upper()}',
             'detail': error_detail,
-            'setup_command': 'python setup_oauth_gmail.py',
             'debug_info': message if settings.DEBUG else None
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    print(f"✓ OTP sent to {email}: {otp_code} ({message})")
+    destination = mobile if otp_method == 'whatsapp' else email
+    print(f"✓ OTP sent via {otp_method} to {destination}: {otp_code} ({message})")
     
     return Response({
-        'message': 'OTP sent successfully to your email',
-        'email': email,
+        'message': f'OTP sent successfully via {otp_method}',
+        'destination': destination,
+        'method': otp_method,
         'expires_in_minutes': 10,
-        'method': message
+        'debug_message': message,
+        'otp': otp_code if settings.DEBUG else None  # Only send OTP in debug mode for development
     }, status=status.HTTP_200_OK)
 
 
@@ -312,8 +356,9 @@ def verify_otp(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def resend_otp(request):
-    """Resend OTP to email"""
+    """Resend OTP to email or WhatsApp"""
     email = request.data.get('email')
+    otp_method = request.data.get('otp_method')
     
     if not email:
         return Response({
@@ -327,6 +372,10 @@ def resend_otp(request):
             'error': 'No pending registration found for this email'
         }, status=status.HTTP_400_BAD_REQUEST)
     
+    # Use provided method or fallback to stored method
+    if otp_method:
+        otp_record.otp_method = otp_method
+    
     # Generate new OTP
     otp_code = OTPVerification.generate_otp()
     otp_record.otp = otp_code
@@ -335,30 +384,39 @@ def resend_otp(request):
     otp_record.attempts = 0
     otp_record.save()
     
-    # Send OTP email
-    success, message = send_otp_email(
-        email, 
-        otp_code, 
-        otp_record.first_name, 
-        otp_record.username
-    )
+    # Send OTP based on method
+    if otp_record.otp_method == 'whatsapp':
+        success, message = send_whatsapp_otp(
+            otp_record.mobile, 
+            otp_code, 
+            otp_record.first_name
+        )
+    else:
+        success, message = send_otp_email(
+            email, 
+            otp_code, 
+            otp_record.first_name, 
+            otp_record.username
+        )
     
     if not success:
-        error_detail = "Email service error. Please ensure OAuth is configured: python setup_oauth_gmail.py"
+        error_detail = f"{otp_record.otp_method.title()} service error. Please try again."
         return Response({
-            'error': 'Failed to resend verification email',
+            'error': f'Failed to resend verification {otp_record.otp_method.upper()}',
             'detail': error_detail,
-            'setup_command': 'python setup_oauth_gmail.py',
             'debug_info': message if settings.DEBUG else None
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    print(f"✓ OTP resent to {email}: {otp_code} ({message})")
+    destination = otp_record.mobile if otp_record.otp_method == 'whatsapp' else email
+    print(f"✓ OTP resent via {otp_record.otp_method} to {destination}: {otp_code} ({message})")
     
     return Response({
-        'message': 'OTP resent successfully to your email',
-        'email': email,
+        'message': f'OTP resent successfully via {otp_record.otp_method}',
+        'destination': destination,
+        'method': otp_record.otp_method,
         'expires_in_minutes': 10,
-        'method': message
+        'debug_message': message,
+        'otp': otp_code if settings.DEBUG else None  # Only send OTP in debug mode for development
     }, status=status.HTTP_200_OK)
 
 

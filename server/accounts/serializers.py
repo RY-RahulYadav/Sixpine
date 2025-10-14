@@ -9,8 +9,10 @@ class OTPRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
     first_name = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
+    mobile = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
+    otp_method = serializers.ChoiceField(choices=['email', 'whatsapp'], default='email')
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
@@ -23,6 +25,10 @@ class OTPRequestSerializer(serializers.Serializer):
         # Check if email already exists
         if User.objects.filter(email=attrs['email']).exists():
             raise serializers.ValidationError({"email": "Email already registered"})
+        
+        # Validate mobile if WhatsApp is selected
+        if attrs.get('otp_method') == 'whatsapp' and not attrs.get('mobile'):
+            raise serializers.ValidationError({"mobile": "Mobile number is required for WhatsApp OTP"})
         
         return attrs
 

@@ -62,12 +62,14 @@ export const authAPI = {
     last_name: string;
     password: string;
     password_confirm: string;
+    mobile?: string;
+    otp_method?: 'email' | 'whatsapp';
   }) => API.post('/auth/register/request-otp/', userData),
   
   verifyOTP: (data: { email: string; otp: string }) =>
     API.post('/auth/register/verify-otp/', data),
   
-  resendOTP: (data: { email: string }) =>
+  resendOTP: (data: { email: string; otp_method?: 'email' | 'whatsapp' }) =>
     API.post('/auth/register/resend-otp/', data),
   
   logout: () => API.post('/auth/logout/'),

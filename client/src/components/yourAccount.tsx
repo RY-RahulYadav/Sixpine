@@ -86,7 +86,7 @@ const YourAccount: React.FC<YourAccountProps> = ({ logoutButton }) => {
           <p>
             <a href="#">Leave packaging feedback</a>
             <br />
-            <a href="#">Shopping Lists</a>
+            <a href="/shopping-list">Shopping Lists</a>
             <br />
             <a href="#">Shopping Preferences</a>
             <br />

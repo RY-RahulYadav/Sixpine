@@ -1,0 +1,293 @@
+/* AddressesPage.module.css */
+
+.container {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  background-color: #ffffff;
+}
+
+.breadcrumb {
+  color: #555;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 400;
+  margin-bottom: 30px;
+  color: #111;
+}
+
+/* Address Cards */
+.addressGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.addressCard {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 30px;
+  position: relative;
+  background-color: white;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.addressCardAdd {
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  background-color: white;
+}
+
+.addressCardAdd:hover {
+  background-color: #f7f7f7;
+}
+
+.addIcon {
+  font-size: 36px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.addText {
+  font-size: 14px;
+  color: #444;
+}
+
+.defaultLabel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #f0f2f2;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #555;
+}
+
+.addressContent {
+  flex-grow: 1;
+  padding-top: 10px;
+}
+
+.addressLine {
+  margin: 10px 0;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.addressActions {
+  margin-top: auto;
+}
+
+.actionLink {
+  color: #007185;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.actionLink:hover {
+  color: #c45500;
+  text-decoration: underline;
+}
+
+.actionLinks {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+/* Pagination */
+.pagination {
+  text-align: right;
+  font-size: 13px;
+  color: #565959;
+  margin: 20px 0;
+}
+
+.pageCounter {
+  text-align: right;
+  font-size: 13px;
+  color: #565959;
+  margin: 10px 0;
+}
+
+/* Carousel Styles */
+.carouselSection {
+  margin: 30px 0;
+  position: relative;
+}
+
+.carouselTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #111;
+}
+
+.carouselContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.carouselItems {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 5px 0;
+  -ms-overflow-style: none;  /* Hide scrollbar IE and Edge */
+  scrollbar-width: none;  /* Hide scrollbar Firefox */
+}
+
+.carouselItems::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome, Safari, Opera */
+}
+
+.carouselArrow {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  font-size: 18px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.carouselArrowLeft {
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.carouselArrowRight {
+  right: 0;
+  transform: translateX(50%);
+}
+
+/* Product Card Styles */
+.productCard {
+  min-width: 200px;
+  max-width: 200px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: white;
+  transition: transform 0.3s;
+}
+
+.productCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.productImage {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.productInfo {
+  padding: 12px;
+}
+
+.productName {
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  color: #0F1111;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.productRating {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.stars {
+  display: flex;
+  color: #FFA41C;
+}
+
+.full-star, .half-star, .empty-star {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.reviewCount {
+  font-size: 12px;
+  color: #007185;
+  margin-left: 5px;
+}
+
+.productPrices {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.price {
+  font-weight: 600;
+  color: #B12704;
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.originalPrice {
+  text-decoration: line-through;
+  color: #565959;
+  font-size: 14px;
+}
+
+.addToCartBtn {
+  width: 100%;
+  padding: 6px 0;
+  background-color: #FFD814;
+  border: 1px solid #FCD200;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.addToCartBtn:hover {
+  background-color: #F7CA00;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .addressGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .carouselItems {
+    gap: 10px;
+  }
+  
+  .productCard {
+    min-width: 160px;
+  }
+}
