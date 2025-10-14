@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
@@ -9,7 +8,6 @@ import Productdetails_Slider1 from "../components/Products_Details/productdetail
 import { recommendedProducts } from "../data/productSliderData";
 
 const MembershipsSubscriptionsPage: React.FC = () => {
-  const navigate = useNavigate();
   const [viewFilter, setViewFilter] = useState('Current Subscriptions');
   const [sortBy, setSortBy] = useState('Featured');
 

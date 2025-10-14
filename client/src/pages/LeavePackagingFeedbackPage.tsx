@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
@@ -12,55 +11,8 @@ import {
   recommendedProducts,
 } from "../data/productSliderData";
 const LeavePackagingFeedbackPage: React.FC = () => {
-  const navigate = useNavigate();
   const [showYesInfo, setShowYesInfo] = useState(false);
   const [showNoInfo, setShowNoInfo] = useState(false);
-
-  // Sample products data
-  const recentProducts = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300',
-      name: 'Sofa',
-      price: '₹12,999',
-      rating: 4,
-      reviews: 120,
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=300',
-      name: 'Bed Frame',
-      price: '₹15,999',
-      rating: 4,
-      reviews: 89,
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=300',
-      name: 'Dining Chair',
-      price: '₹4,999',
-      rating: 4,
-      reviews: 156,
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=300',
-      name: 'Dining Table',
-      price: '₹18,999',
-      rating: 5,
-      reviews: 203,
-    },
-  ];
-
-  const renderStars = (rating: number) => {
-    const stars = [];
-    for (let i = 0; i < 5; i++) {
-      stars.push(
-        <span key={i} className={`lpf-star ${i < rating ? 'filled' : 'empty'}`}>★</span>
-      );
-    }
-    return stars;
-  };
 
   return (
     <>

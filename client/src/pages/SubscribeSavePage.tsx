@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
@@ -12,7 +11,6 @@ import {
   recommendedProducts,
 } from "../data/productSliderData";
 const SubscribeSavePage: React.FC = () => {
-  const navigate = useNavigate();
 
 
 

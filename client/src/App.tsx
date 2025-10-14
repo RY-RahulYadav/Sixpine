@@ -45,8 +45,8 @@ import MembershipPage from './pages/MembershipPage';
 import LeavePackagingFeedbackPage from './pages/LeavePackagingFeedbackPage';
 import SubscribeSavePage from './pages/SubscribeSavePage';
 import MembershipsSubscriptionsPage from './pages/MembershipsSubscriptionsPage';
-// import MessageCentrePage from './pages/MessageCentrePage';
-// import AddressesPage from './pages/AddressesPage';
+import MessageCentrePage from './pages/MessageCentrePage';
+import AddressesPage from './pages/AddressesPage';
 
 function App() {
   return (
@@ -92,8 +92,8 @@ function App() {
             <Route path="/packaging-feedback" element={<LeavePackagingFeedbackPage />} />
             <Route path="/subscribe-save" element={<SubscribeSavePage />} />
             <Route path="/memberships-subscriptions" element={<MembershipsSubscriptionsPage />} />
-            {/* <Route path="/message-centre" element={<MessageCentrePage />} />
-            <Route path="/your-addresses" element={<AddressesPage />} /> */}
+            <Route path="/message-centre" element={<MessageCentrePage />} />
+            <Route path="/your-addresses" element={<AddressesPage />} />
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>

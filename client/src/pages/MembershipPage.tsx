@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
@@ -17,7 +16,6 @@ interface MembershipPlan {
 }
 
 const MembershipPage: React.FC = () => {
-  const navigate = useNavigate();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
 
   const plans: MembershipPlan[] = [
