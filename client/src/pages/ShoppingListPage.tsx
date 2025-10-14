@@ -4,7 +4,12 @@ import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
 import Footer from '../components/Footer';
 import '../styles/shoppingList.css';
+import Productdetails_Slider1 from "../components/Products_Details/productdetails_slider1";
 
+import {
+
+  recommendedProducts,
+} from "../data/productSliderData";
 interface ShoppingListItem {
   id: number;
   title: string;
@@ -216,8 +221,24 @@ const ShoppingListPage: React.FC = () => {
             </div>
           </section>
         </div>
-      </div>
+          <Productdetails_Slider1 
+          title="Inspired by your browsing history"
+          products={recommendedProducts}
+        />
+        <Productdetails_Slider1 
+          title="Inspired by your browsing history"
+          products={recommendedProducts}
+        />
 
+      </div>
+          
+         
+
+             
+  
+         
+
+           
       <div className="sl-footer-wrapper">
         <Footer />
       </div>
