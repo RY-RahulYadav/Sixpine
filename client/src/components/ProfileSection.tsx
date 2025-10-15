@@ -195,6 +195,9 @@ const ProfileSection: React.FC = () => {
                               <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}>
                                 <span>--</span>
                               </div>
+                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
+                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
+                              </svg>
                             </button>
                           </h3>
                         </div>
@@ -214,6 +217,9 @@ const ProfileSection: React.FC = () => {
                               <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}>
                                 <span>--</span>
                               </div>
+                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
+                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
+                              </svg>
                             </button>
                           </h3>
                         </div>
@@ -222,6 +228,7 @@ const ProfileSection: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
 
                 <div className={`${styles['sx-section-header']} ${styles['sx-desktop']}`} id="sl_preferences-section-header">
                   <div aria-label="Department preferences" aria-level={3} className={`${styles['sx-primary']} ${styles['sx-desktop']}`} role="heading">
@@ -236,15 +243,18 @@ const ProfileSection: React.FC = () => {
                   <div className={styles['sx-profile-hub-attributes-data-list']}>
                     <div id="preferences">
                       <div className={styles['sx-filters-container']} role="tablist">
-                        <button aria-selected="true" className={`${styles['sx-filter-pill']} ${styles['sx-selected']}`} role="tab">Women's</button>
-                        <button aria-selected="false" className={styles['sx-filter-pill']} role="tab">Men's</button>
+                        <button aria-selected="false" className={styles['sx-filter-pill']} role="tab">Women's</button>
+                        <button aria-selected="true" className={`${styles['sx-filter-pill']} ${styles['sx-selected']}`} role="tab">Men's</button>
                       </div>
-                      <div aria-labelledby="cpp-view-filter-department-womens-tab" className={styles['sx-accordion']} data-orientation="vertical" role="tabpanel">
+                      <div aria-labelledby="cpp-view-filter-department-mens-tab" className={styles['sx-accordion']} data-orientation="vertical" role="tabpanel">
                         <div className={styles['sx-accordion-item']} data-orientation="vertical" data-state="closed">
                           <h3 className={styles['sx-accordion-header']}>
                             <button className={`${styles['sx-accordion-trigger']} ${styles['sx-desktop']}`} type="button">
                               <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Fit attributes</div>
                               <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}><span>--</span></div>
+                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
+                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
+                              </svg>
                             </button>
                           </h3>
                         </div>
@@ -253,11 +263,22 @@ const ProfileSection: React.FC = () => {
                             <button className={`${styles['sx-accordion-trigger']} ${styles['sx-desktop']}`} type="button">
                               <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Shoes</div>
                               <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}><span>--</span></div>
+                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
+                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
+                              </svg>
                             </button>
                           </h3>
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Interests Section */}
+                <div style={{ margin: '24px 0 0 0' }}>
+                  <div style={{ border: '1px solid #d5d9d9', borderRadius: 4, display: 'flex', alignItems: 'center', padding: '16px', marginBottom: 8, background: '#f7fafa' }}>
+                    <span style={{ fontWeight: 700, fontSize: 20, marginRight: 16 }}>Interests</span>
+                    <input style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, background: 'transparent' }} placeholder="Activities and hobbies" />
                   </div>
                 </div>
 
@@ -269,15 +290,21 @@ const ProfileSection: React.FC = () => {
                     </div>
                   </div>
                   <ul className={styles['sx-pill-drawer-content']}>
-                    <li><button className={styles['sx-pill-container']}><img alt="" className={styles['sx-pill-icon']} src="https://m.media-amazon.com/images/G/01/x-locale/personalization/profiles/plus_24.png" /><div className={styles['sx-pill-content']}>Skin Care</div></button></li>
-                    <li><button className={styles['sx-pill-container']}><img alt="" className={styles['sx-pill-icon']} src="https://m.media-amazon.com/images/G/01/x-locale/personalization/profiles/plus_24.png" /><div className={styles['sx-pill-content']}>Interior Design</div></button></li>
-                    <li><button className={styles['sx-pill-container']}><img alt="" className={styles['sx-pill-icon']} src="https://m.media-amazon.com/images/G/01/x-locale/personalization/profiles/plus_24.png" /><div className={styles['sx-pill-content']}>Storage & Organization</div></button></li>
-                    <li><button className={styles['sx-pill-container']}><img alt="" className={styles['sx-pill-icon']} src="https://m.media-amazon.com/images/G/01/x-locale/personalization/profiles/plus_24.png" /><div className={styles['sx-pill-content']}>Dorm Essentials</div></button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Skin Care</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Interior Design</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Storage & Organization</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Dorm Essentials</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Hair Care and Styling</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Babies and Toddlers</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Women's Attire</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Men's Attire</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Baking</button></li>
+                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Makeup</button></li>
                   </ul>
                 </div>
 
-                <div className={`${styles['sx-inline-button-container']} ${styles['sx-desktop']}`}>
-                  <button className={`${styles['sx-button']} ${styles['sx-button-disabled']} ${styles['sx-button-primary']}`} disabled>Save</button>
+                <div style={{marginTop:12}}>
+                  <button style={{background:'#ffd814',border:'1px solid #ffd814',borderRadius:100,padding:'2px 18px',fontWeight:400,fontSize:15,color:'#0f1111',boxShadow:'0 2px 5px 0 rgba(213,217,217,0.5)'}}>Save</button>
                 </div>
 
               </div>

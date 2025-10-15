@@ -445,6 +445,7 @@
 /* ------------------------------ */
 
 .sub-nav {
+    background: #37475a;
     overflow-x: auto;
     /* horizontal scroll */
     -webkit-overflow-scrolling: touch;
@@ -475,7 +476,7 @@
 .sub-nav-list .nav-link {
     white-space: nowrap;
     text-decoration: none;
-    color: #333;
+    color:white;
     font-weight: 500;
 }
 

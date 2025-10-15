@@ -5,15 +5,25 @@
    ====================== */
 .sx-profile-hub-container {
   display: flex;
-  justify-content: center;
-  gap: 70px;
-  margin-top: 24px;
+  justify-content: flex-start;
+  gap: 48px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 40px;
+  margin-bottom: 24px;
+  max-width: 1500px;
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 32px;
+  box-sizing: border-box;
+  align-items: flex-start;
 }
 
 .sx-profile-hub-content {
   display: flex;
   flex-direction: column;
-  width: 800px;
+  width: calc(100% - 260px); /* leave room for avatar column (200px + gap) */
+  max-width: calc(1500px - 260px);
 }
 
 /* ======================

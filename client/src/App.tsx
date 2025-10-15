@@ -97,7 +97,7 @@ function App() {
             <Route path="/your-addresses" element={<AddressesPage />} />
             <Route path='/email-subscribe' element={<EmailSubscriptionsPage/>}  />
             <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/shopping-preferences" element={<ProfilePage />} />
             <Route path ='/manage-payment' element={<ManagePaymentPage/>} />
           
             {/* Protected routes - require authentication */}
