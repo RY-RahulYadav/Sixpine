@@ -4,7 +4,6 @@ import Navbar from "../components/Navbar";
 import Productdetails from "../components/Products_Details/productdetails";
 import ProductInformation from "../components/Products_Details/productInformation";
 import CustomerReview from "../components/Products_Details/customerReview";
-import Productdetails_Slider1 from "../components/Products_Details/productdetails_slider1";
 
 import "../styles/Pages.css";
 import SubNav from "../components/SubNav";
@@ -12,6 +11,7 @@ import CategoryTabs from "../components/CategoryTabs";
 import AdBanner from "../components/ProductDetail/AdBanner";
 
 // Import product data
+import Productdetails_Slider1 from "../components/Products_Details/productdetails_slider1";
 import {
   frequentlyViewedProducts,
   browsingHistoryProducts,

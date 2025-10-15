@@ -1,0 +1,37 @@
+.container {
+    font-family: "Amazon Ember", Arial, sans-serif;
+    padding: 16px 20px;
+    border-top: 1px solid #d5d9d9;
+    border-bottom: 1px solid #d5d9d9;
+    background-color: #ffffff;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #0f1111;
+}
+
+.address {
+    font-size: 14px;
+    color: #565959;
+    margin: 0 0 4px 0;
+}
+
+.link {
+    color: #007185;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.link:hover {
+    text-decoration: underline;
+    color: #C7511F;
+}

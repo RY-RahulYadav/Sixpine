@@ -1,0 +1,13 @@
+.reviewContainer {
+    font-family: "Amazon Ember", Arial, sans-serif;
+    /* border: 1px solid #d5d9d9; */
+    border-radius: 0px;
+    padding: 20px;
+    background-color: #fff;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 0;
+}

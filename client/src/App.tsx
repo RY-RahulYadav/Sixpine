@@ -6,7 +6,6 @@ import ProductListPage from './pages/ProductListPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
 import OrdersPage from './pages/OrdersPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminRouter from './components/Admin/AdminRouter';
@@ -19,7 +18,6 @@ import AdvertisePage from './pages/AdvertisePage';
 import CareerPage from './pages/CareerPage';
 import Global_SellingPage from './pages/global_selling';
 import PressReleasePage from './pages/press_release';
-import EmailSubscriptionsPage from './pages/EmailSubscriptionsPage';
 import CloseYourSixpineAccountPage from './pages/CloseYourSixpineAccountPage';
 import CommunicationPreferencesPage from './pages/CommunicationPreferencesPage';
 import DataRequestPage from './pages/DataRequestPage';
@@ -47,6 +45,9 @@ import SubscribeSavePage from './pages/SubscribeSavePage';
 import MembershipsSubscriptionsPage from './pages/MembershipsSubscriptionsPage';
 import MessageCentrePage from './pages/MessageCentrePage';
 import AddressesPage from './pages/AddressesPage';
+import EmailSubscriptionsPage from './pages/EmailSubscriptionsPage';
+import CheckoutPage from './pages/checkout';
+import ManagePaymentPage from './pages/ManagePayment';
 
 function App() {
   return (
@@ -94,23 +95,24 @@ function App() {
             <Route path="/memberships-subscriptions" element={<MembershipsSubscriptionsPage />} />
             <Route path="/message-centre" element={<MessageCentrePage />} />
             <Route path="/your-addresses" element={<AddressesPage />} />
+            <Route path='/email-subscribe' element={<EmailSubscriptionsPage/>}  />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path ='/manage-payment' element={<ManagePaymentPage/>} />
+          
             {/* Protected routes - require authentication */}
             <Route path="/cart" element={
               <ProtectedRoute>
                 <CartPage />
               </ProtectedRoute>
             } />
-            <Route path="/checkout" element={
-              <ProtectedRoute>
-                <CheckoutPage />
-              </ProtectedRoute>
-            } />
+           
             <Route path="/orders" element={
               <ProtectedRoute>
                 <OrdersPage />
               </ProtectedRoute>
             } />
-            <Route path="/profile" element={
+            <Route path="/profile-protected" element={
               <ProtectedRoute>
                 <ProfilePage />
               </ProtectedRoute>

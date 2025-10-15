@@ -1,5 +1,4 @@
 
-
 import { useState } from 'react';
 import styles from '../styles/EmailSubscriptions.module.css';
 
@@ -34,10 +33,12 @@ const EmailSubscriptions = () => {
     console.log(`Subscribing to: ${subscriptionName}`);
    
     alert(`You've subscribed to the ${subscriptionName}!`);
-  };  return (
+  };
+
+  return (
     <div className={styles.emailSubscriptionsContainer}>
       <div className={styles.breadcrumbs}>
-        <a href="#">Your Account</a> &gt; Your Email Subscriptions
+        <a href="/your-account">Your Account</a> <span className={styles.separator}>›</span> <span className={styles.currentPage}>Your Email Subscriptions</span>
       </div>
 
       <div className={styles.header}>
@@ -66,6 +67,10 @@ const EmailSubscriptions = () => {
         >
           Browse All Subscriptions
         </button>
+        <div className={styles.tableHeaders}>
+          <span className={styles.frequencyHeader}>Frequency</span>
+          <span className={styles.subscriptionHeader}>Subscription</span>
+        </div>
       </div>
 
       <div className={styles.tabContent}>
@@ -77,40 +82,41 @@ const EmailSubscriptions = () => {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Subscription</th>
                     <th>Frequency</th>
+                    <th>Subscription</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentSubscriptions.map((sub, index) => (
                     <tr key={index}>
-                      <td>{sub.name}</td>
                       <td>{sub.frequency}</td>
+                      <td>{sub.name}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
-            <a href="#" className={styles.browseAllLink} onClick={() => setActiveTab('browseAll')}>
-              Browse all E-mail subscriptions
-            </a>
+            <div className={styles.browseAllWrap}>
+              <a href="#" className={styles.browseAllLink} onClick={(e) => { e.preventDefault(); setActiveTab('browseAll'); }}>
+                Browse all E-mail subscriptions
+              </a>
+            </div>
           </div>
         ) : (
           <div>
-            <p>Here you can browse all available subscriptions.</p>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Name</th>
                   <th>Frequency</th>
-                  <th>Subscribe</th>
+                  <th>Subscription</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {allSubscriptions.map((sub, index) => (
                   <tr key={index}>
-                    <td>{sub.name}</td>
                     <td>{sub.frequency}</td>
+                    <td>{sub.name}</td>
                     <td>
                       <button
                         className={styles.subscribeButton}
