@@ -6,8 +6,6 @@ import Navbar from "../components/Navbar";
 import Productdetails_Slider1 from "../components/Products_Details/productdetails_slider1";
 import {
   frequentlyViewedProducts,
-  browsingHistoryProducts,
-  similarProducts,
   recommendedProducts,
 } from "../data/productSliderData";
 
