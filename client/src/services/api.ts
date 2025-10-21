@@ -76,13 +76,23 @@ export const authAPI = {
   
   getProfile: () => API.get('/auth/profile/'),
   
-  updateProfile: (data: any) => API.put('/auth/profile/', data),
+  updateProfile: (data: any) => API.put('/auth/profile/update/', data),
   
   changePassword: (data: {
     old_password: string;
     new_password: string;
     new_password_confirm: string;
   }) => API.post('/auth/change-password/', data),
+  
+  // Password reset functionality
+  requestPasswordReset: (data: { email: string }) =>
+    API.post('/auth/password-reset/request/', data),
+  
+  confirmPasswordReset: (data: {
+    token: string;
+    new_password: string;
+    new_password_confirm: string;
+  }) => API.post('/auth/password-reset/confirm/', data),
 };
 
 // Product API calls

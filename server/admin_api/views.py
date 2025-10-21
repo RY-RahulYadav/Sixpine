@@ -2,7 +2,6 @@ from rest_framework import viewsets, permissions, generics, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.contrib.auth.models import User
 from django.db.models import Sum, Count, F, Q
 from django.utils import timezone
 from datetime import timedelta
@@ -10,7 +9,7 @@ import ipaddress
 
 from products.models import Product, Category, Brand, ProductImage, ProductVariant
 from orders.models import Order, OrderItem, OrderStatusHistory
-from accounts.models import UserProfile
+from accounts.models import User
 from .models import AdminLog, AdminDashboardSetting
 from .serializers import (
     AdminUserSerializer, AdminUserDetailSerializer,

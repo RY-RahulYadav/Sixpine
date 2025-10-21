@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 
 class AdminLog(models.Model):
@@ -15,7 +15,7 @@ class AdminLog(models.Model):
         ('other', 'Other'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_logs')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='admin_logs')
     action = models.CharField(max_length=20, choices=ACTIONS)
     model_name = models.CharField(max_length=100, blank=True, null=True)
     object_id = models.CharField(max_length=100, blank=True, null=True)
@@ -35,7 +35,7 @@ class AdminDashboardSetting(models.Model):
     """
     Model to store admin dashboard settings and customizations
     """
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='dashboard_settings')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dashboard_settings')
     layout_preference = models.CharField(max_length=50, default='default')
     widgets_order = models.JSONField(default=dict)
     theme_preference = models.CharField(max_length=50, default='light')

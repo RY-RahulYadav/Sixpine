@@ -1,40 +1,46 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
-from .models import UserProfile, OTPVerification
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from .models import User, OTPVerification, PasswordResetToken
 
 
-class UserProfileInline(admin.StackedInline):
-    model = UserProfile
-    can_delete = False
-    verbose_name_plural = 'Profile'
-    fields = ['phone', 'date_of_birth', 'gender', 'avatar', 'newsletter_subscription', 'sms_notifications', 'email_notifications']
-
-
-class CustomUserAdmin(UserAdmin):
-    inlines = [UserProfileInline]
-
-
-# Unregister the default User admin and register our custom one
-admin.site.unregister(User)
-admin.site.register(User, CustomUserAdmin)
-
-
-@admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'phone', 'date_of_birth', 'gender', 'created_at']
-    list_filter = ['gender', 'newsletter_subscription', 'created_at']
-    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'phone']
-    readonly_fields = ['created_at', 'updated_at']
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    """Custom User admin"""
+    list_display = ('email', 'username', 'first_name', 'last_name', 'is_verified', 'is_active', 'date_joined')
+    list_filter = ('is_verified', 'is_active', 'is_staff', 'is_superuser', 'date_joined')
+    search_fields = ('email', 'username', 'first_name', 'last_name')
+    ordering = ('-date_joined',)
+    
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Personal info', {'fields': ('username', 'first_name', 'last_name', 'mobile')}),
+        ('Permissions', {'fields': ('is_active', 'is_verified', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'username', 'password1', 'password2'),
+        }),
+    )
 
 
 @admin.register(OTPVerification)
 class OTPVerificationAdmin(admin.ModelAdmin):
-    list_display = ['email', 'username', 'otp', 'created_at', 'expires_at', 'is_verified', 'attempts']
-    search_fields = ['email', 'username']
-    list_filter = ['is_verified', 'created_at']
-    readonly_fields = ['created_at', 'expires_at']
-    
-    def has_add_permission(self, request):
-        # Prevent manual creation through admin
-        return False
+    """OTP Verification admin"""
+    list_display = ('email', 'mobile', 'otp_method', 'is_verified', 'is_used', 'created_at', 'expires_at')
+    list_filter = ('otp_method', 'is_verified', 'is_used', 'created_at')
+    search_fields = ('email', 'mobile', 'otp_code')
+    readonly_fields = ('otp_code', 'created_at', 'expires_at')
+    ordering = ('-created_at',)
+
+
+@admin.register(PasswordResetToken)
+class PasswordResetTokenAdmin(admin.ModelAdmin):
+    """Password Reset Token admin"""
+    list_display = ('user', 'is_used', 'created_at', 'expires_at')
+    list_filter = ('is_used', 'created_at')
+    search_fields = ('user__email', 'user__username', 'token')
+    readonly_fields = ('token', 'created_at', 'expires_at')
+    ordering = ('-created_at',)

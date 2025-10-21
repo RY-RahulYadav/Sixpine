@@ -87,19 +87,14 @@ const RegisterPage: React.FC = () => {
       const destination = method === 'whatsapp' ? formData.mobile : formData.email;
       let otpCode = '';
       
-      // Only call API for WhatsApp, bypass for email (prototype mode)
-      if (method === 'whatsapp') {
-        const response = await authAPI.requestOTP({
-          ...formData,
-          otp_method: method
-        } as any);
-        
-        // Extract OTP from response if available
-        otpCode = response.data?.otp || response.data?.debug_otp || '';
-      } else {
-        // For email, generate a mock OTP for prototype (bypass API)
-        otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      }
+      // Call API for both email and WhatsApp
+      const response = await authAPI.requestOTP({
+        ...formData,
+        otp_method: method
+      } as any);
+      
+      // Extract OTP from response if available
+      otpCode = response.data?.otp || response.data?.debug_otp || '';
       
       const successMessage = otpCode 
         ? `OTP sent to your ${method === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}. Code: ${otpCode}`
@@ -174,19 +169,14 @@ const RegisterPage: React.FC = () => {
       const destination = otpMethod === 'whatsapp' ? formData.mobile : formData.email;
       let otpCode = '';
       
-      // Only call API for WhatsApp, bypass for email (prototype mode)
-      if (otpMethod === 'whatsapp') {
-        const response = await authAPI.resendOTP({ 
-          email: formData.email,
-          otp_method: otpMethod 
-        } as any);
-        
-        // Extract OTP from response if available
-        otpCode = response.data?.otp || response.data?.debug_otp || '';
-      } else {
-        // For email, generate a mock OTP for prototype (bypass API)
-        otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      }
+      // Call API for both email and WhatsApp
+      const response = await authAPI.resendOTP({ 
+        email: formData.email,
+        otp_method: otpMethod 
+      } as any);
+      
+      // Extract OTP from response if available
+      otpCode = response.data?.otp || response.data?.debug_otp || '';
       
       const successMessage = otpCode 
         ? `OTP resent to your ${otpMethod === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}. Code: ${otpCode}`

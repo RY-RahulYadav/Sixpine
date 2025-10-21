@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 from products.models import Product
 from django.core.validators import MinValueValidator
 import uuid
@@ -12,7 +12,7 @@ class Address(models.Model):
         ('other', 'Other'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='addresses')
     type = models.CharField(max_length=10, choices=ADDRESS_TYPES, default='home')
     full_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
@@ -57,7 +57,7 @@ class Order(models.Model):
     ]
 
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
     
     # Order details
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -115,7 +115,7 @@ class OrderStatusHistory(models.Model):
     status = models.CharField(max_length=20, choices=Order.STATUS_CHOICES)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -129,7 +129,7 @@ class OrderNote(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='notes')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']

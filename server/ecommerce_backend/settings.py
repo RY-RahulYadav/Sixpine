@@ -164,24 +164,36 @@ CORS_ALLOW_CREDENTIALS = True
 # Only allow all origins in development
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
-# Email Configuration
-# Use Gmail OAuth2 backend for sending emails securely
-EMAIL_BACKEND = 'accounts.gmail_oauth_backend.GmailOAuth2Backend'
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.User'
 
-# Fallback SMTP configuration (used if OAuth fails)
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='your-email@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='your-app-password')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-# Google OAuth2 Configuration
+# Google OAuth2 Configuration for Gmail API
 GOOGLE_OAUTH2_CLIENT_ID = config('GOOGLE_OAUTH2_CLIENT_ID', default='')
 GOOGLE_OAUTH2_CLIENT_SECRET = config('GOOGLE_OAUTH2_CLIENT_SECRET', default='')
+GOOGLE_OAUTH2_REFRESH_TOKEN = config('GOOGLE_OAUTH2_REFRESH_TOKEN', default='')
 
-# Gmail OAuth Token (stored as base64 encoded JSON in environment variable)
-GMAIL_OAUTH_TOKEN = config('GMAIL_OAUTH_TOKEN', default='')
+# Frontend URL for password reset links
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+
+# Twilio Configuration for WhatsApp
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
+TWILIO_WHATSAPP_FROM = config('TWILIO_WHATSAPP_FROM', default='whatsapp:+14155238886')
 
 # Production Security Settings
 if not DEBUG:

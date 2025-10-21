@@ -1,14 +1,24 @@
 from django.urls import path
 from . import views
 
+app_name = 'accounts'
+
 urlpatterns = [
-    path('register/', views.UserRegistrationView.as_view(), name='user-register'),
-    path('register/request-otp/', views.request_otp, name='request-otp'),
-    path('register/verify-otp/', views.verify_otp, name='verify-otp'),
-    path('register/resend-otp/', views.resend_otp, name='resend-otp'),
-    path('login/', views.login_view, name='user-login'),
-    path('logout/', views.logout_view, name='user-logout'),
-    path('profile/', views.UserProfileView.as_view(), name='user-profile'),
-    path('profile/details/', views.UserProfileDetailView.as_view(), name='user-profile-details'),
-    path('change-password/', views.change_password, name='change-password'),
+    # Authentication endpoints
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    
+    # Registration with OTP
+    path('register/request-otp/', views.request_otp_view, name='request_otp'),
+    path('register/verify-otp/', views.verify_otp_view, name='verify_otp'),
+    path('register/resend-otp/', views.resend_otp_view, name='resend_otp'),
+    
+    # Password reset
+    path('password-reset/request/', views.password_reset_request_view, name='password_reset_request'),
+    path('password-reset/confirm/', views.password_reset_confirm_view, name='password_reset_confirm'),
+    
+    # Profile management
+    path('profile/', views.profile_view, name='profile'),
+    path('profile/update/', views.update_profile_view, name='update_profile'),
+    path('change-password/', views.change_password_view, name='change_password'),
 ]

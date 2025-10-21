@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 import ProductListPage from './pages/ProductListPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import CartPage from './pages/CartPage';
 import OrdersPage from './pages/OrdersPage';
 import ProfilePage from './pages/ProfilePage';
@@ -59,6 +60,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/products" element={<ProductListPage />} />
             <Route path="/products-details" element={<NewProductDetails />} />
             <Route path="/about" element={<AboutPage />} />

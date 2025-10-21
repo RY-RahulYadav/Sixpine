@@ -1,9 +1,8 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
 from products.models import Product, Category, Brand, ProductImage, ProductVariant
 from orders.models import Order, OrderItem, OrderStatusHistory, Address
 from cart.models import Cart, CartItem
-from accounts.models import UserProfile
+from accounts.models import User
 from .models import AdminLog, AdminDashboardSetting
 
 
