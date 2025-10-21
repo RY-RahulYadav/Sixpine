@@ -1,20 +1,23 @@
 .helpHeader {
-  background-color: #f8f9fa;
-  padding: 4rem 1rem;
-  /* background-image: linear-gradient(135deg, #e91e63 0%, #f06292 100%); */
   color: white;
+ 
 }
 
 .headerContainer {
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
   text-align: center;
+padding-left: 1.5rem;
+padding-right: 1.5rem;
+padding-top: 3.7rem;
+padding-bottom: 5rem;
+  background-color: #f8f9fa;
+
 }
 
 .headerTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  margin-bottom: 2rem;
 }
 
 .searchContainer {
@@ -84,7 +87,7 @@
 }
 
 .containerFluid {
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
 }
 
@@ -414,6 +417,8 @@
 }
 
 .resourcesSection {
+  width: 1500px;
+  margin: 0 auto;
   padding: 4rem 1.5rem;
   background-color: #f8f9fa;
 }

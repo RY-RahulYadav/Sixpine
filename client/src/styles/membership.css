@@ -1,9 +1,9 @@
 /* Membership Page Styles - All classes prefixed with mp- to avoid clashes */
 
 .mp-container {
-  max-width: 1460px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding: 20px 40px;
+  padding: 20px 0px;
   font-family: Arial, sans-serif;
   background-color: #fff;
 }
@@ -331,6 +331,4 @@
 }
 
 /* Footer Wrapper */
-.footer-wrapper {
-  margin-top: 40px;
-}
+

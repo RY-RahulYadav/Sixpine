@@ -1,9 +1,9 @@
 /* Shopping List Page Styles - All classes prefixed with sl- to avoid clashes */
 
 .sl-container {
-  max-width: 1484px;
-  margin: 0;
-  padding: 20px 32px;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 20px 0px;
   font-family: 'Amazon Ember', Arial, sans-serif;
 }
 

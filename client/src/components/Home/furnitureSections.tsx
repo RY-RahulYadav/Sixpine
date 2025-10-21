@@ -307,7 +307,7 @@ const FurnitureSections = () => {
         products={data.discover}
         extraClass={styles.discoverSection}
       />
-      <div style={{ marginTop: "60px" }}>
+      <div style={{ marginTop: "40px" }}>
       <Section
         title="Top-Rated by Indian Homes"
         subtitle="Crafted to complement Indian lifestyles"

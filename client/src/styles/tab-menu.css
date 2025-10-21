@@ -122,7 +122,8 @@
     text-decoration: none;
     font-size: 13px;
     display: block;
-    padding: 4px 0;
+    padding-top: 0px;
+    padding-bottom: 0px;
     transition: all 0.2s;
 }
 

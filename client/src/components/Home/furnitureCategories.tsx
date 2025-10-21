@@ -2,18 +2,18 @@ import { useState } from "react";
 import styles from "./furnitureCategories.module.css";
 
 const categories = [
-  { id: 1, title: "SOFAS", category: "Living", img: "/images/Home/sofa1.jpg" },
-  { id: 2, title: "BEDS", category: "Bedroom", img: "/images/Home/bedroom.jpg" },
-  { id: 3, title: "DINING", category: "Dining", img: "/images/Home/dining.jpg" },
-  { id: 4, title: "TV UNITS", category: "Living", img: "/images/Home/tv.jpg" },
-  { id: 5, title: "COFFEE TABLES", category: "Living", img: "/images/Home/coffee.jpg" },
-  { id: 6, title: "CABINETS", category: "Living", img: "/images/Home/cabinet.jpg" },
-  { id: 7, title: "MATTRESSES", category: "Mattress", img: "/images/Home/mattress.jpg" },
-  { id: 8, title: "WARDROBES", category: "Bedroom", img: "/images/Home/wardrobe.jpg" },
-  { id: 9, title: "SOFA CUM BED", category: "Bedroom", img: "/images/Home/sofacumbed.jpg" },
-  { id: 10, title: "BOOKSHELVES", category: "Decor", img: "/images/Home/bookshelf.jpg" },
-  { id: 11, title: "ALL STUDY TABLES", category: "Study", img: "/images/Home/studytable.jpg" },
-  { id: 12, title: "HOME FURNISHING", category: "Decor", img: "/images/Home/furnishing.jpg" }
+  { id: 1, title: "Sofas", category: "Living", img: "/images/Home/sofa1.jpg" },
+  { id: 2, title: "Beds", category: "Bedroom", img: "/images/Home/bedroom.jpg" },
+  { id: 3, title: "Dining", category: "Dining", img: "/images/Home/dining.jpg" },
+  { id: 4, title: "Tv units", category: "Living", img: "/images/Home/tv.jpg" },
+  { id: 5, title: "Coffee tables", category: "Living", img: "/images/Home/coffee.jpg" },
+  { id: 6, title: "Cabinets", category: "Living", img: "/images/Home/cabinet.jpg" },
+  { id: 7, title: "Mattresses", category: "Mattress", img: "/images/Home/mattress.jpg" },
+  { id: 8, title: "Wardrobes", category: "Bedroom", img: "/images/Home/wardrobe.jpg" },
+  { id: 9, title: "Sofa cum bed", category: "Bedroom", img: "/images/Home/sofacumbed.jpg" },
+  { id: 10, title: "Bookshelves", category: "Decor", img: "/images/Home/bookshelf.jpg" },
+  { id: 11, title: "All study tables", category: "Study", img: "/images/Home/studytable.jpg" },
+  { id: 12, title: "Home furnishing", category: "Decor", img: "/images/Home/furnishing.jpg" }
 ];
 
 const sliderItems = [
@@ -77,10 +77,7 @@ export default function FurnitureCategories() {
         )}
       </div>
 
-      {/* show current selected category as text */}
-      <div className={styles.currentFilter} aria-live="polite">
-        Showing: {filter}
-      </div>
+     
 
       <div className={styles.gridContainer}>
         {filteredCategories.map((item) => (

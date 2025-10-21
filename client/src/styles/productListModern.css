@@ -43,7 +43,9 @@
 /* Main Container */
 .product-list-modern-container {
   background-color: var(--sixpine-bg-light);
-  padding: 20px 0 40px;
+  max-width: 1500px !important;
+  padding: 20px 0 !important;
+  margin: 0 auto !important;
   min-height: 70vh;
 }
 
@@ -675,9 +677,11 @@
 /* Info Section */
 .plp-info-section {
   background: var(--sixpine-white);
-  padding: 40px 0;
-  margin-top: 40px;
+ 
   border-top: 1px solid var(--sixpine-border);
+  max-width: 1500px !important;
+  padding: 40px 0;
+  margin: 0 auto !important;
 }
 
 .info-card {

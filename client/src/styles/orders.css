@@ -3,7 +3,9 @@
 .orders-page {
   background-color: #ffffff;
   min-height: 100vh;
-  padding: 0px 20px;
+max-width: 1500px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
 }
 
 /* Breadcrumb */

@@ -4,7 +4,7 @@
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
   font-family: Arial, sans-serif;
-  margin: 30px auto 0; /* top 30px, bottom 0 */
+  margin: 0px auto 0; /* top 30px, bottom 0 */
 }
 
 .special {

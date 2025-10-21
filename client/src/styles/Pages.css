@@ -1,29 +1,41 @@
 /* Homepage.css */
-.homepage_container, .productdetails_container, .aboutpage_container, .advertisepage_container, .advertisingpreferece_container, .career_container,
+.homepage_container, .productdetails_container, .aboutpage_container,  .career_container,
 .accountpage_container,
 .closeyoursixpineaccount_container,
 .communicationpreferences_container,
 .datarequest_container,
 .emailsubscriptions_container,
 .feedback_container,
-.global_selling_container,
 .login_container,
 .loginsecurity_container,
 .pressrelease_container,
-.purchaseprotection_container,
-.recalls_product_container,
-.sixpineapp_container,
-.supply_container,
 .bestdeals_container,
 .trending_container,
 .recentlybrowsed_container{
-  max-width: 100vw; 
-  margin: 0 20px;
-  
-  padding-bottom: 60px;
+  margin: 0 auto;
+  width: 100%;
+
+  max-width: 1500px; 
+  padding: 0px 20px 40px 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+
+
+
+
+.global_selling_container,
+.supply_container,
+.advertisepage_container,
+.advertisingpreferece_container,
+.purchaseprotection_container,
+.recalls_product_container,
+.sixpineapp_container {
+   max-width: 1500px; 
+  margin: 0 auto;
+  padding-bottom: 60px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 /* Ensure all direct children align properly */
 .homepage_container > * {
   width: 100%;
@@ -45,8 +57,8 @@
 .homepage_container > *:not(.heroContainer) {
   margin-top: 40px;
   margin-bottom: 0;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding-top: 0px;
+  padding-bottom: 0px;
   
 }
 

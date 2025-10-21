@@ -160,10 +160,9 @@
 
 /* ---------- BOTTOM SLIDER ---------- */
 .bottomSection {
-  margin-top: 10px;
+  margin-top: 40px;
   position: relative;
   
-  padding: 10px 0;
 }
 
 :global(.slick-list) {

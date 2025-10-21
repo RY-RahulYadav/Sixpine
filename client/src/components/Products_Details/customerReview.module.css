@@ -1,7 +1,7 @@
 .Reviewcontainer {
   width: 100%;
   /* margin: auto; */
-  padding: 0 20px;
+  padding: 0 0px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin-top: 60px; /* Match home page section spacing */
   margin-bottom: 30px;
@@ -16,7 +16,7 @@
   display: flex;
   gap: 10%;
  
-  padding:0 15px;
+  padding:0 1px;
 }
 
 /* Left Side */
