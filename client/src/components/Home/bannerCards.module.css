@@ -170,6 +170,30 @@
   color: #444;
 }
 
+/* Color swatches/mini badges next to rating */
+.colorSwatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.colorSwatches .swatch {
+  width: 14px;
+  height: 14px;
+  /* border-radius: 50%; */
+  display: inline-block;
+  /* box-shadow: 0 1px 2px rgba(0,0,0,0.15); */
+  /* border: 2px solid #fff; */
+}
+.colorSwatches .moreCount {
+  font-size: 0.85rem;
+  color: #fd9935;
+  background: #fff;
+  padding: 2px 6px;
+
+}
+
 .productPrices {
   margin-bottom: 10px;
   display: flex;

@@ -184,6 +184,12 @@ const BannerCards = () => {
     {"★".repeat(Math.floor(p.rating))}
     {"☆".repeat(5 - Math.floor(p.rating))}
     <span> ({p.reviews} reviews)</span>
+    {/* small color swatches to the right of rating (like the screenshot) */}
+    <div className={styles.colorSwatches} aria-hidden>
+      
+
+      <span className={styles.moreCount}>+3 color</span>
+    </div>
   </div>
   
   <div className={styles.productPrices}>
