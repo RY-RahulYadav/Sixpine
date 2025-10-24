@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+import urllib.parse as urlparse
 from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -85,12 +86,41 @@ WSGI_APPLICATION = 'ecommerce_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database configuration: use PostgreSQL when a DATABASE_URL is provided in
+# production (DEBUG is False). Fall back to SQLite for local development.
+DATABASE_URL = config('DATABASE_URL', default='')
+
+if DATABASE_URL:
+    # Parse the URL and map it to Django DATABASES format
+    url = urlparse.urlparse(DATABASE_URL)
+    # Example: postgres://user:password@host:port/dbname
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:],  # strip leading '/'
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port or '',
+        }
     }
-}
+    # Convert query string params (e.g. sslmode=require) into OPTIONS
+    if url.query:
+        from urllib.parse import parse_qs
+        qs = parse_qs(url.query)
+        options = {}
+        # Common option: sslmode
+        if 'sslmode' in qs:
+            options['sslmode'] = qs['sslmode'][0]
+        if options:
+            DATABASES['default']['OPTIONS'] = options
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
