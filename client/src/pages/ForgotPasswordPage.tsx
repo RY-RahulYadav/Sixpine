@@ -11,7 +11,7 @@ const ForgotPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   
-  const [step, setStep] = useState<'request' | 'reset'>(token ? 'reset' : 'request');
+  const [step] = useState<'request' | 'reset'>(token ? 'reset' : 'request');
   const [formData, setFormData] = useState({
     email: '',
     new_password: '',

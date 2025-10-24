@@ -86,16 +86,13 @@ const RegisterPage: React.FC = () => {
     try {
       const destination = method === 'whatsapp' ? formData.mobile : formData.email;
       
-      // Call API for both email and WhatsApp
-      const response = await authAPI.requestOTP({
+      // Call API for both email and WhatsApp (response not needed here)
+      await authAPI.requestOTP({
         ...formData,
         otp_method: method
       } as any);
-      
-      // Extract OTP from response if available
-      
+
       const successMessage = `OTP sent to your ${method === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}`
-      
       setSuccess(successMessage);
       
       // Auto-hide success message after 2 seconds
