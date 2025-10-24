@@ -102,6 +102,7 @@ if DATABASE_URL:
             'PASSWORD': url.password,
             'HOST': url.hostname,
             'PORT': url.port or '',
+            'CONN_MAX_AGE': 600,
         }
     }
     # Convert query string params (e.g. sslmode=require) into OPTIONS

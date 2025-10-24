@@ -1,3 +1,4 @@
+psycopg[binary]
 Django>=5.1.2
 djangorestframework>=3.14.0
 django-cors-headers>=4.3.0
