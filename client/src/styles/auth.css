@@ -206,7 +206,31 @@ html, body, #root {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  margin-top: 8px;
+  margin-top: 12px;
+}
+
+/* Footer line inside forms (e.g., "Remember your password? Sign in") */
+.sixpine-form-footer {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.sixpine-form-footer p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+}
+
+.sixpine-form-footer p a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.sixpine-form-footer p a:hover {
+  text-decoration: underline;
 }
 
 .sixpine-submit-btn:hover:not(:disabled) {

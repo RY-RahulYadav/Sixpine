@@ -486,12 +486,10 @@
 }
 
 .product-name {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--sixpine-text);
-  margin-bottom: 8px;
   line-height: 1.4;
-  height: 2.8em;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;

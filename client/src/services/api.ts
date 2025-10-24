@@ -99,7 +99,12 @@ export const authAPI = {
 export const productAPI = {
   getCategories: () => API.get('/categories/'),
   
-  getBrands: () => API.get('/brands/'),
+  getSubcategories: (categorySlug?: string) => 
+    categorySlug ? API.get(`/categories/${categorySlug}/subcategories/`) : API.get('/subcategories/'),
+  
+  getColors: () => API.get('/colors/'),
+  
+  getMaterials: () => API.get('/materials/'),
   
   getProducts: (params?: any) => API.get('/products/', { params }),
   
@@ -125,6 +130,11 @@ export const productAPI = {
   
   addReview: (slug: string, reviewData: any) =>
     API.post(`/products/${slug}/reviews/`, reviewData),
+  
+  getProductRecommendations: (slug: string) => 
+    API.get(`/products/${slug}/recommendations/`),
+  
+  getFilterOptions: (params?: any) => API.get('/filter-options/', { params }),
 };
 
 // Cart API calls

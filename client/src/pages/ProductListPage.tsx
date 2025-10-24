@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
@@ -8,6 +8,7 @@ import { productAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import '../styles/productList.css';
 import '../styles/productListModern.css';
+import '../styles/filterDropdowns.css';
 
 interface Product {
   id: number;
@@ -21,31 +22,107 @@ interface Product {
   slug: string;
   is_on_sale: boolean;
   discount_percentage: number;
-  category?: string;
-  brand?: string;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  subcategory?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  brand: string;
+  material: string;
+  images: Array<{
+    id: number;
+    image: string;
+    alt_text: string;
+  }>;
+  variants: Array<{
+    id: number;
+    color: {
+      id: number;
+      name: string;
+      hex_code: string;
+    };
+    size: string;
+    pattern: string;
+    price: number;
+    old_price: number;
+    stock_quantity: number;
+    is_in_stock: boolean;
+  }>;
+  available_colors: string[];
 }
 
 const ProductListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { addToCart } = useApp();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({
-    brands: [] as string[],
+    category: '' as string,
+    subcategory: '' as string,
+    colors: [] as string[],
+    materials: [] as string[],
     priceRange: [135, 25000],
-    storage: [] as string[],
     rating: null as number | null,
-    deliveryDay: [] as string[],
-    categories: [] as string[],
+    discount: null as number | null,
   });
+  
+  const [filterOptions, setFilterOptions] = useState({
+    categories: [] as any[],
+    subcategories: [] as any[],
+    colors: [] as any[],
+    materials: [] as any[],
+    priceRange: { min_price: 135, max_price: 25000 },
+    discounts: [] as any[],
+  });
+  
+  const [availableSubcategories, setAvailableSubcategories] = useState([] as any[]);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
 
   const [sortBy, setSortBy] = useState('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  // Fetch filter options only once on component mount
+  useEffect(() => {
+    fetchFilterOptions();
+  }, []);
+
+  // Fetch products when filters, search, or sort changes
   useEffect(() => {
     fetchProducts();
   }, [searchParams, sortBy, selectedFilters]);
+
+  const fetchFilterOptions = async () => {
+    try {
+      const response = await productAPI.getFilterOptions();
+      setFilterOptions(response.data || {});
+    } catch (error) {
+      console.error('Fetch filter options error:', error);
+    }
+  };
+
+  const fetchSubcategories = async (categorySlug: string) => {
+    try {
+      if (categorySlug) {
+        setLoadingSubcategories(true);
+        const response = await productAPI.getSubcategories(categorySlug);
+        setAvailableSubcategories(response.data.results || response.data || []);
+      } else {
+        setAvailableSubcategories([]);
+      }
+    } catch (error) {
+      console.error('Fetch subcategories error:', error);
+      setAvailableSubcategories([]);
+    } finally {
+      setLoadingSubcategories(false);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -64,24 +141,46 @@ const ProductListPage: React.FC = () => {
         params.category = categoryParam;
       }
 
-      // Add other filters
-      if (selectedFilters.brands.length > 0) {
-        params.brand = selectedFilters.brands.join(',');
+      // Add category filter
+      if (selectedFilters.category) {
+        params.category = selectedFilters.category;
       }
 
-      if (selectedFilters.priceRange[0] > 135) {
+      // Add subcategory filter
+      if (selectedFilters.subcategory) {
+        params.subcategory = selectedFilters.subcategory;
+      }
+
+      // Add color filter
+      if (selectedFilters.colors.length > 0) {
+        params.color = selectedFilters.colors.join(',');
+      }
+
+      // Add material filter
+      if (selectedFilters.materials.length > 0) {
+        params.material = selectedFilters.materials.join(',');
+      }
+
+      // Add price range filter
+      if (selectedFilters.priceRange[0] > 135) { // Use default min price instead of filterOptions
         params.min_price = selectedFilters.priceRange[0];
       }
       
-      if (selectedFilters.priceRange[1] < 25000) {
+      if (selectedFilters.priceRange[1] < 25000) { // Use default max price instead of filterOptions
         params.max_price = selectedFilters.priceRange[1];
       }
 
+      // Add rating filter
       if (selectedFilters.rating) {
         params.min_rating = selectedFilters.rating;
       }
 
-      // Add sorting (updated to match new API)
+      // Add discount filter (minimum discount percentage)
+      if (selectedFilters.discount) {
+        params.min_discount = selectedFilters.discount;
+      }
+
+      // Add sorting
       switch (sortBy) {
         case 'price_low':
           params.sort = 'price_low_to_high';
@@ -104,18 +203,8 @@ const ProductListPage: React.FC = () => {
           break;
       }
 
-      let response;
-      
-      // Use advanced search if we have query or filters
-      if (searchQuery || categoryParam || selectedFilters.brands.length > 0 || 
-          selectedFilters.priceRange[0] > 135 || selectedFilters.priceRange[1] < 25000 || 
-          selectedFilters.rating) {
-        response = await productAPI.advancedSearch(params);
-      } else {
-        // Use regular product list for browsing
-        response = await productAPI.getProducts(params);
-      }
-      
+      console.log('Fetching products with params:', params);
+      const response = await productAPI.getProducts(params);
       setProducts(response.data.results || response.data);
     } catch (error) {
       console.error('Fetch products error:', error);
@@ -133,11 +222,35 @@ const ProductListPage: React.FC = () => {
     }
   };
 
+  const handleBuyNow = async (productId: number) => {
+    try {
+      // Add to cart then navigate to cart/checkout
+      await addToCart(productId, 1);
+      // Navigate user to cart page so they can checkout immediately
+      navigate('/cart');
+    } catch (error: any) {
+      alert(error.message || 'Failed to add to cart');
+    }
+  };
+
   const handleFilterChange = (filterType: string, value: any) => {
+    console.log('Filter changed:', filterType, value);
     setSelectedFilters((prev) => ({
       ...prev,
       [filterType]: value,
     }));
+  };
+
+  const handleCategoryChange = (categorySlug: string) => {
+    console.log('Category changed:', categorySlug);
+    setSelectedFilters((prev) => ({
+      ...prev,
+      category: categorySlug,
+      subcategory: '', // Reset subcategory when category changes
+    }));
+    
+    // Fetch subcategories for the selected category
+    fetchSubcategories(categorySlug);
   };
 
   const renderStars = (rating: number) => {
@@ -258,22 +371,44 @@ const ProductListPage: React.FC = () => {
                         <i className="bi bi-tag me-2"></i>
                         Category
                       </h6>
-                      <div className="filter-options">
-                        {['Living Room', 'Bedroom', 'Dining Room', 'Office', 'Outdoor'].map((cat) => (
-                          <label key={cat} className="filter-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={selectedFilters.categories.includes(cat)}
-                              onChange={(e) => {
-                                const updated = e.target.checked
-                                  ? [...selectedFilters.categories, cat]
-                                  : selectedFilters.categories.filter(c => c !== cat);
-                                handleFilterChange('categories', updated);
-                              }}
-                            />
-                            <span>{cat}</span>
-                          </label>
-                        ))}
+                        <div className="select-with-icon">
+                          <select
+                            className="form-select filter-select"
+                            value={selectedFilters.category}
+                            onChange={(e) => handleCategoryChange(e.target.value)}
+                          >
+                            <option value="">Select Category</option>
+                            {filterOptions.categories && filterOptions.categories.map((category) => (
+                              <option key={category.id} value={category.slug}>
+                                {category.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                    </div>
+
+                    {/* Subcategory Filter */}
+                    <div className="filter-section">
+                      <h6 className="filter-title">
+                        <i className="bi bi-tags me-2"></i>
+                        Subcategory
+                      </h6>
+                      <div className="select-with-icon">
+                        <select
+                          className="form-select filter-select"
+                          value={selectedFilters.subcategory}
+                          onChange={(e) => handleFilterChange('subcategory', e.target.value)}
+                          disabled={!selectedFilters.category || loadingSubcategories}
+                        >
+                          <option value="">
+                            {loadingSubcategories ? 'Loading...' : 'Select Subcategory'}
+                          </option>
+                          {availableSubcategories.map((subcategory) => (
+                            <option key={subcategory.id} value={subcategory.slug}>
+                              {subcategory.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
@@ -324,6 +459,44 @@ const ProductListPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Color Filter */}
+                    <div className="filter-section">
+                      <h6 className="filter-title">
+                        <i className="bi bi-palette me-2"></i>
+                        Color
+                      </h6>
+                      <div className="filter-options">
+                        {filterOptions.colors && filterOptions.colors.map((color) => (
+                          <label key={color.id} className="filter-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={selectedFilters.colors.includes(color.name)}
+                              onChange={(e) => {
+                                const updated = e.target.checked
+                                  ? [...selectedFilters.colors, color.name]
+                                  : selectedFilters.colors.filter(c => c !== color.name);
+                                handleFilterChange('colors', updated);
+                              }}
+                            />
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {color.hex_code && (
+                                <div 
+                                  style={{ 
+                                    width: '16px', 
+                                    height: '16px', 
+                                    backgroundColor: color.hex_code, 
+                                    border: '1px solid #ccc',
+                                    borderRadius: '2px'
+                                  }}
+                                />
+                              )}
+                              {color.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Material Filter */}
                     <div className="filter-section">
                       <h6 className="filter-title">
@@ -331,19 +504,19 @@ const ProductListPage: React.FC = () => {
                         Material
                       </h6>
                       <div className="filter-options">
-                        {['Sheesham Wood', 'Mango Wood', 'Teak Wood', 'Engineered Wood', 'Ash Wood'].map((material) => (
-                          <label key={material} className="filter-checkbox">
+                        {filterOptions.materials && filterOptions.materials.map((material) => (
+                          <label key={material.id} className="filter-checkbox">
                             <input
                               type="checkbox"
-                              checked={selectedFilters.brands.includes(material)}
+                              checked={selectedFilters.materials.includes(material.name)}
                               onChange={(e) => {
                                 const updated = e.target.checked
-                                  ? [...selectedFilters.brands, material]
-                                  : selectedFilters.brands.filter(b => b !== material);
-                                handleFilterChange('brands', updated);
+                                  ? [...selectedFilters.materials, material.name]
+                                  : selectedFilters.materials.filter(m => m !== material.name);
+                                handleFilterChange('materials', updated);
                               }}
                             />
-                            <span>{material}</span>
+                            <span>{material.name}</span>
                           </label>
                         ))}
                       </div>
@@ -384,18 +557,56 @@ const ProductListPage: React.FC = () => {
                       </div>
                     </div>
 
+                      {/* Discount Filter */}
+                      <div className="filter-section">
+                        <h6 className="filter-title">
+                          <i className="bi bi-tag me-2"></i>
+                          Discount
+                        </h6>
+                        <div className="discount-options">
+                          {((filterOptions.discounts && filterOptions.discounts.length) ? filterOptions.discounts : [{ percentage: 10, label: '10%' }, { percentage: 20, label: '20%' }, { percentage: 30, label: '30%' }, { percentage: 50, label: '50%' }]).map((opt: any) => {
+                            const pct = typeof opt === 'number' ? opt : opt.percentage;
+                            const label = typeof opt === 'number' ? `${opt}%` : (opt.label || `${pct}%`);
+                            return (
+                              <label key={pct} className="rating-option">
+                                <input
+                                  type="radio"
+                                  name="discount"
+                                  checked={selectedFilters.discount === pct}
+                                  onChange={() => handleFilterChange('discount', pct)}
+                                />
+                                <span className="ms-2">{label} & above</span>
+                              </label>
+                            );
+                          })}
+                          <label className="rating-option">
+                            <input
+                              type="radio"
+                              name="discount"
+                              checked={selectedFilters.discount === null}
+                              onChange={() => handleFilterChange('discount', null)}
+                            />
+                            <span className="ms-2">All Discounts</span>
+                          </label>
+                        </div>
+                      </div>
+
                     {/* Clear Filters */}
                     <div className="filter-actions">
                       <button 
                         className="btn-clear-filters"
-                        onClick={() => setSelectedFilters({
-                          brands: [],
-                          priceRange: [135, 25000],
-                          storage: [],
-                          rating: null,
-                          deliveryDay: [],
-                          categories: [],
-                        })}
+                        onClick={() => {
+                          setSelectedFilters({
+                            category: '',
+                            subcategory: '',
+                            colors: [],
+                            materials: [],
+                            priceRange: [135, 25000],
+                            rating: null,
+                            discount: null,
+                          });
+                          setAvailableSubcategories([]);
+                        }}
                       >
                         <i className="bi bi-arrow-counterclockwise me-2"></i>
                         Clear All Filters
@@ -417,13 +628,15 @@ const ProductListPage: React.FC = () => {
                         className="btn-reset"
                         onClick={() => {
                           setSelectedFilters({
-                            brands: [],
+                            category: '',
+                            subcategory: '',
+                            colors: [],
+                            materials: [],
                             priceRange: [135, 25000],
-                            storage: [],
                             rating: null,
-                            deliveryDay: [],
-                            categories: [],
+                            discount: null,
                           });
+                          setAvailableSubcategories([]);
                         }}
                       >
                         Reset Filters
@@ -439,7 +652,7 @@ const ProductListPage: React.FC = () => {
                                 {product.discount_percentage}% OFF
                               </span>
                             )}
-                            <Link to={`/products-details`}>
+                            <Link to={`/products-details/${product.slug}`}>
                               <img
                                 src={product.main_image || '/placeholder-image.jpg'}
                                 alt={product.title}
@@ -455,7 +668,7 @@ const ProductListPage: React.FC = () => {
                           </div>
                           
                           <div className="product-info">
-                            <Link to={`/products-details`} className="product-link">
+                            <Link to={`/products-details/${product.slug}`} className="product-link">
                               <h3 className="product-name">{product.title}</h3>
                             </Link>
                             
@@ -482,14 +695,24 @@ const ProductListPage: React.FC = () => {
                               </div>
                             </div>
 
-                            <button
-                              className="btn-add-to-cart"
-                              onClick={() => handleAddToCart(product.id)}
-                              disabled={loading}
-                            >
-                              <i className="bi bi-cart-plus me-2"></i>
-                              Add to Cart
-                            </button>
+                            <div className="product-action-row">
+                              <button
+                                className="btn-add-to-cart btn-buy-now"
+                                onClick={() => handleBuyNow(product.id)}
+                                disabled={loading}
+                              >
+                                Buy Now
+                              </button>
+
+                              <button
+                                className="btn-cart-icon"
+                                onClick={() => handleAddToCart(product.id)}
+                                title="Add to cart"
+                                disabled={loading}
+                              >
+                                <i className="bi bi-cart-plus"></i>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}

@@ -85,7 +85,6 @@ const RegisterPage: React.FC = () => {
 
     try {
       const destination = method === 'whatsapp' ? formData.mobile : formData.email;
-      let otpCode = '';
       
       // Call API for both email and WhatsApp
       const response = await authAPI.requestOTP({
@@ -94,11 +93,8 @@ const RegisterPage: React.FC = () => {
       } as any);
       
       // Extract OTP from response if available
-      otpCode = response.data?.otp || response.data?.debug_otp || '';
       
-      const successMessage = otpCode 
-        ? `OTP sent to your ${method === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}. Code: ${otpCode}`
-        : `OTP sent to your ${method === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}`;
+      const successMessage = `OTP sent to your ${method === 'whatsapp' ? 'WhatsApp' : 'email'}: ${destination}`
       
       setSuccess(successMessage);
       

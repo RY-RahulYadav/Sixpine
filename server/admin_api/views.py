@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import timedelta
 import ipaddress
 
-from products.models import Product, Category, Brand, ProductImage, ProductVariant
+from products.models import Product, Category, ProductImage, ProductVariant
 from orders.models import Order, OrderItem, OrderStatusHistory
 from accounts.models import User
 from .models import AdminLog, AdminDashboardSetting

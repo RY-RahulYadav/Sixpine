@@ -1,42 +1,76 @@
 from django.db import models
-from django.conf import settings
+from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.urls import reverse
+from django.conf import settings
 
 
 class Category(models.Model):
+    """Main product categories like Sofas, Recliners, etc."""
     name = models.CharField(max_length=100, unique=True)
-    slug = models.SlugField(max_length=100, unique=True, blank=True, null=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to='categories/', blank=True, null=True)
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories')
+    # store an external or CDN URL to the category image instead of uploading files
+    image = models.URLField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name_plural = 'Categories'
+        verbose_name_plural = "Categories"
         ordering = ['sort_order', 'name']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
 
-    @property
-    def is_parent(self):
-        return self.parent is None
 
-    def get_all_subcategories(self):
-        """Get all subcategories recursively"""
-        subcategories = list(self.subcategories.all())
-        for subcategory in list(subcategories):
-            subcategories.extend(subcategory.get_all_subcategories())
-        return subcategories
+class Subcategory(models.Model):
+    """Subcategories like 3-Seater, 2-Seater for Sofas"""
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='subcategories')
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Subcategories"
+        unique_together = ['name', 'category']
+        ordering = ['sort_order', 'name']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.category.name} - {self.name}"
 
 
-class Brand(models.Model):
+class Color(models.Model):
+    """Product colors for filtering"""
+    name = models.CharField(max_length=50, unique=True)
+    hex_code = models.CharField(max_length=7, blank=True)  # For color display
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Material(models.Model):
+    """Product materials for filtering"""
     name = models.CharField(max_length=100, unique=True)
-    logo = models.ImageField(upload_to='brands/', blank=True, null=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -49,211 +83,144 @@ class Brand(models.Model):
 
 
 class Product(models.Model):
-    AVAILABILITY_CHOICES = [
-        ('in_stock', 'In Stock'),
-        ('out_of_stock', 'Out of Stock'),
-        ('limited_stock', 'Limited Stock'),
-    ]
-
+    """Main product model"""
+    # Basic Information
     title = models.CharField(max_length=200)
-    description = models.TextField()
-    short_description = models.TextField(max_length=500, blank=True)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    short_description = models.TextField(max_length=500)
+    long_description = models.TextField(blank=True)
+    
+    # Categorization
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
-    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, related_name='products', null=True, blank=True)
     
     # Pricing
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    discount_percentage = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
-    )
+    price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
+    is_on_sale = models.BooleanField(default=False)
+    discount_percentage = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
     
-    # Inventory
-    stock_quantity = models.PositiveIntegerField(default=0)
-    availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, default='in_stock')
+    # Images
+    # store an external or CDN URL to the product's main image
+    main_image = models.URLField(max_length=500, blank=True, null=True)
     
-    # Product details
-    sku = models.CharField(max_length=100, unique=True)
-    weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
-    dimensions = models.CharField(max_length=100, blank=True)
+    # Ratings and Reviews
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    review_count = models.PositiveIntegerField(default=0)
     
-    # SEO and display
-    slug = models.SlugField(max_length=200, unique=True)
+    # Product Details
+    brand = models.CharField(max_length=100, default='Sixpine')  # Single brand as per requirements
+    material = models.ForeignKey(Material, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    dimensions = models.CharField(max_length=100, blank=True)  # e.g., "L x W x H"
+    weight = models.CharField(max_length=50, blank=True)
+    warranty = models.CharField(max_length=100, blank=True)
+    assembly_required = models.BooleanField(default=False)
+    
+    # SEO and Display
     meta_title = models.CharField(max_length=200, blank=True)
-    meta_description = models.TextField(max_length=160, blank=True)
-    
-    # Status and timestamps
-    is_active = models.BooleanField(default=True)
+    meta_description = models.TextField(blank=True)
     is_featured = models.BooleanField(default=False)
-    is_new_arrival = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['category']),
-            models.Index(fields=['brand']),
-            models.Index(fields=['is_active']),
-            models.Index(fields=['is_featured']),
-        ]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        
+        # Calculate discount percentage
+        if self.old_price and self.old_price > self.price:
+            self.discount_percentage = int(((self.old_price - self.price) / self.old_price) * 100)
+            self.is_on_sale = True
+        else:
+            self.discount_percentage = 0
+            self.is_on_sale = False
+            
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
 
-    def get_absolute_url(self):
-        return reverse('product_detail', kwargs={'slug': self.slug})
-
-    @property
-    def average_rating(self):
-        reviews = self.reviews.filter(is_approved=True)
-        if reviews.exists():
-            return round(sum(review.rating for review in reviews) / reviews.count(), 1)
-        return 0
-
-    @property
-    def review_count(self):
-        return self.reviews.filter(is_approved=True).count()
-
-    @property
-    def discount_amount(self):
-        if self.old_price and self.old_price > self.price:
-            return self.old_price - self.price
-        return 0
-
-    @property
-    def is_on_sale(self):
-        return self.old_price and self.old_price > self.price
-
-    @property
-    def main_image(self):
-        main_img = self.images.filter(is_main=True).first()
-        return main_img.image if main_img else None
-
 
 class ProductImage(models.Model):
+    """Additional product images"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.URLField(max_length=500)  # Support external image URLs
+    # store an external or CDN URL to the gallery image
+    image = models.URLField(max_length=500, blank=True)
     alt_text = models.CharField(max_length=200, blank=True)
-    is_main = models.BooleanField(default=False)
-    order = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['order', 'created_at']
-
-    def __str__(self):
-        return f"{self.product.title} - Image {self.order}"
-
-    def save(self, *args, **kwargs):
-        # Ensure only one main image per product
-        if self.is_main:
-            ProductImage.objects.filter(product=self.product, is_main=True).update(is_main=False)
-        super().save(*args, **kwargs)
-
-
-class FilterAttribute(models.Model):
-    """Defines filterable attributes for categories"""
-    FIELD_TYPES = [
-        ('select', 'Select (Dropdown)'),
-        ('multiselect', 'Multi-select'),
-        ('range', 'Range (Min-Max)'),
-        ('checkbox', 'Checkbox'),
-        ('color', 'Color Picker'),
-    ]
-
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='filter_attributes')
-    name = models.CharField(max_length=100)  # e.g., "RAM", "Storage", "Screen Size"
-    slug = models.SlugField(max_length=100)
-    field_type = models.CharField(max_length=20, choices=FIELD_TYPES)
-    is_required = models.BooleanField(default=False)
-    is_filterable = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ['category', 'slug']
-        ordering = ['sort_order', 'name']
+        ordering = ['sort_order', 'created_at']
 
     def __str__(self):
-        return f"{self.category.name} - {self.name}"
-
-
-class FilterAttributeOption(models.Model):
-    """Options for filterable attributes"""
-    attribute = models.ForeignKey(FilterAttribute, on_delete=models.CASCADE, related_name='options')
-    value = models.CharField(max_length=200)
-    color_code = models.CharField(max_length=7, blank=True)  # For color attributes
-    sort_order = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ['attribute', 'value']
-        ordering = ['sort_order', 'value']
-
-    def __str__(self):
-        return f"{self.attribute.name}: {self.value}"
-
-
-class ProductAttribute(models.Model):
-    """Product-specific attribute values"""
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='attributes')
-    filter_attribute = models.ForeignKey(FilterAttribute, on_delete=models.CASCADE, null=True, blank=True)
-    value = models.TextField()  # Can store single value or JSON for multiple values
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ['product', 'filter_attribute']
-
-    def __str__(self):
-        return f"{self.product.title} - {self.filter_attribute.name}: {self.value}"
+        return f"{self.product.title} - Image {self.sort_order}"
 
 
 class ProductVariant(models.Model):
-    """Product variants for different sizes, colors, etc."""
+    """Product variants for different colors, sizes, etc."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
-    sku = models.CharField(max_length=100, unique=True)
-    name = models.CharField(max_length=200)  # e.g., "iPhone 15 - 128GB - Blue"
+    color = models.ForeignKey(Color, on_delete=models.CASCADE, related_name='variants')
+    size = models.CharField(max_length=50, blank=True)  # e.g., "S", "M", "L" or "3-Seater", "2-Seater"
+    pattern = models.CharField(max_length=100, blank=True)  # e.g., "Classic", "Modern"
     
-    # Pricing can override product price
+    # Variant-specific pricing (optional, inherits from product if not set)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
-    # Inventory specific to variant
+    # Stock management
     stock_quantity = models.PositiveIntegerField(default=0)
+    is_in_stock = models.BooleanField(default=True)
     
-    # Variant attributes (size, color, storage, etc.)
-    attributes = models.JSONField(default=dict)  # {"color": "Blue", "size": "M", "storage": "128GB"}
+    # Variant-specific image
+    # store an external or CDN URL to the variant image
+    image = models.URLField(max_length=500, blank=True, null=True)
     
+    # Display
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['name']
+        unique_together = ['product', 'color', 'size', 'pattern']
+        ordering = ['color__name', 'size', 'pattern']
+
+    def save(self, *args, **kwargs):
+        # Inherit pricing from product if not set
+        if not self.price:
+            self.price = self.product.price
+        if not self.old_price:
+            self.old_price = self.product.old_price
+            
+        # Update stock status
+        self.is_in_stock = self.stock_quantity > 0
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.product.title} - {self.name}"
-
-    @property
-    def effective_price(self):
-        return self.price if self.price else self.product.price
-
-    @property
-    def effective_old_price(self):
-        return self.old_price if self.old_price else self.product.old_price
+        variant_parts = [self.color.name]
+        if self.size:
+            variant_parts.append(self.size)
+        if self.pattern:
+            variant_parts.append(self.pattern)
+        return f"{self.product.title} - {' '.join(variant_parts)}"
 
 
-class Review(models.Model):
+class ProductReview(models.Model):
+    """Product reviews and ratings"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
-    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
-    title = models.CharField(max_length=200)
-    comment = models.TextField()
-    is_approved = models.BooleanField(default=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='product_reviews')
+    rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    title = models.CharField(max_length=200, blank=True)
+    comment = models.TextField(blank=True)
     is_verified_purchase = models.BooleanField(default=False)
-    helpful_votes = models.PositiveIntegerField(default=0)
+    is_approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -262,16 +229,98 @@ class Review(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.product.title} - {self.rating} stars by {self.user.username}"
+        return f"{self.user.username} - {self.product.title} - {self.rating} stars"
 
 
-class Wishlist(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='wishlist')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='wishlisted_by')
+class ProductRecommendation(models.Model):
+    """Product recommendations for 'Buy with it' and 'Inspired by' sections"""
+    RECOMMENDATION_TYPES = [
+        ('buy_with', 'Buy with it'),
+        ('inspired_by', 'Inspired by browsing history'),
+        ('frequently_viewed', 'Frequently viewed'),
+        ('similar', 'Similar products'),
+        ('recommended', 'Recommended for you'),
+    ]
+    
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='recommendations')
+    recommended_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='recommended_by')
+    recommendation_type = models.CharField(max_length=20, choices=RECOMMENDATION_TYPES)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ['user', 'product']
+        unique_together = ['product', 'recommended_product', 'recommendation_type']
+        ordering = ['sort_order', '-created_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.product.title}"
+        return f"{self.product.title} -> {self.recommended_product.title} ({self.recommendation_type})"
+
+
+class ProductSpecification(models.Model):
+    """Product specifications and key details"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='specifications')
+    name = models.CharField(max_length=100)  # e.g., "Brand", "Depth", "Style"
+    value = models.CharField(max_length=200)  # e.g., "Atomberg", "12 inch", "Modern"
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+
+    def __str__(self):
+        return f"{self.product.title} - {self.name}: {self.value}"
+
+
+class ProductFeature(models.Model):
+    """Product features for 'About This Item' section"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='features')
+    feature = models.TextField()
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'created_at']
+
+    def __str__(self):
+        return f"{self.product.title} - {self.feature[:50]}..."
+
+
+class ProductOffer(models.Model):
+    """Product offers and promotions"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='offers')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    discount_percentage = models.PositiveIntegerField(null=True, blank=True, validators=[MaxValueValidator(100)])
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    valid_from = models.DateTimeField(null=True, blank=True)
+    valid_until = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.product.title} - {self.title}"
+
+
+class Discount(models.Model):
+    """Predefined discount options (e.g., 10%, 20%, 30%, 50%)"""
+    percentage = models.PositiveIntegerField(unique=True, validators=[MaxValueValidator(100)])
+    label = models.CharField(max_length=50, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['percentage']
+
+    def save(self, *args, **kwargs):
+        if not self.label:
+            self.label = f"{self.percentage}%"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.percentage}%"

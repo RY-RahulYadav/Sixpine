@@ -125,14 +125,12 @@ def request_otp_view(request):
         return Response({
             'success': True,
             'message': f'OTP sent to your {otp_method}',
-            'debug_otp': otp_code  # Only for development
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
         return Response({
             'success': False,
             'error': f'Failed to send OTP: {str(e)}',
-            'debug_otp': otp_code  # Still return OTP for development
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -259,14 +257,12 @@ def resend_otp_view(request):
         return Response({
             'success': True,
             'message': f'OTP resent to your {otp_method}',
-            'debug_otp': otp_code  # Only for development
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
         return Response({
             'success': False,
             'error': f'Failed to resend OTP: {str(e)}',
-            'debug_otp': otp_code  # Still return OTP for development
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

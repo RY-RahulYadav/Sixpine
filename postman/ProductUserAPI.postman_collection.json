@@ -1,0 +1,227 @@
+{
+  "info": {
+    "name": "Sixpine - Product & User API",
+    "_postman_id": "6e3b0f6a-0000-4000-8000-000000000000",
+    "description": "Collection for Product and User (Auth) APIs - example requests with realistic data. Base URL variable: {{base_url}} (default http://localhost:8000)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "debug_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth & Users",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo@sixpine.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request OTP (Register)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demouser\",\n  \"email\": \"demo.user@example.com\",\n  \"first_name\": \"Demo\",\n  \"last_name\": \"User\",\n  \"mobile\": \"+919876543210\",\n  \"password\": \"Password123!\",\n  \"password_confirm\": \"Password123!\",\n  \"otp_method\": \"email\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register/request-otp/", "host":["{{base_url}}"], "path":["api","auth","register","request-otp",""] }
+          }
+        },
+        {
+          "name": "Verify OTP (Complete Registration)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo.user@example.com\",\n  \"otp\": \"123456\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/register/verify-otp/", "host":["{{base_url}}"], "path":["api","auth","register","verify-otp",""] }
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo.user@example.com\",\n  \"otp_method\": \"email\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/register/resend-otp/", "host":["{{base_url}}"], "path":["api","auth","register","resend-otp",""] }
+          }
+        },
+        {
+          "name": "Password Reset - Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo.user@example.com\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/password-reset/request/", "host":["{{base_url}}"], "path":["api","auth","password-reset","request",""] }
+          }
+        },
+        {
+          "name": "Password Reset - Confirm",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{debug_token}}\",\n  \"new_password\": \"NewPassw0rd!\",\n  \"new_password_confirm\": \"NewPassw0rd!\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/password-reset/confirm/", "host":["{{base_url}}"], "path":["api","auth","password-reset","confirm",""] }
+          }
+        },
+        {
+          "name": "Get Profile (requires Token)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/auth/profile/", "host":["{{base_url}}"], "path":["api","auth","profile",""] }
+          }
+        },
+        {
+          "name": "Update Profile (PUT) - requires Token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"first_name\": \"Demo\",\n  \"last_name\": \"User\",\n  \"mobile\": \"+919876543210\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/profile/update/", "host":["{{base_url}}"], "path":["api","auth","profile","update",""] }
+          }
+        },
+        {
+          "name": "Change Password - requires Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"old_password\": \"Password123!\",\n  \"new_password\": \"NewPassw0rd!\",\n  \"new_password_confirm\": \"NewPassw0rd!\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/change-password/", "host":["{{base_url}}"], "path":["api","auth","change-password",""] }
+          }
+        },
+        {
+          "name": "Logout - requires Token",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Token {{token}}" } ],
+            "url": { "raw": "{{base_url}}/api/auth/logout/", "host":["{{base_url}}"], "path":["api","auth","logout",""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products (paginated)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products/?page=1&page_size=10", "host":["{{base_url}}"], "path":["api","products",""], "query":[ {"key":"page","value":"1"}, {"key":"page_size","value":"10"} ] }
+          }
+        },
+        {
+          "name": "Product Detail (by slug)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products/sample-product-slug/", "host":["{{base_url}}"], "path":["api","products","sample-product-slug",""] }
+          }
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products/search/?q=lamp&page=1", "host":["{{base_url}}"], "path":["api","products","search",""], "query":[{"key":"q","value":"lamp"},{"key":"page","value":"1"}] }
+          }
+        },
+        {
+          "name": "Featured Products",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/products/featured/", "host":["{{base_url}}"], "path":["api","products","featured",""] } }
+        },
+        {
+          "name": "New Arrivals",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/products/new-arrivals/", "host":["{{base_url}}"], "path":["api","products","new-arrivals",""] } }
+        },
+        {
+          "name": "Home Data (featured, new arrivals, categories)",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/home-data/", "host":["{{base_url}}"], "path":["api","home-data",""] } }
+        },
+        {
+          "name": "Categories",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/categories/", "host":["{{base_url}}"], "path":["api","categories",""] } }
+        },
+        {
+          "name": "Subcategories for a Category",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/categories/home-decor/subcategories/", "host":["{{base_url}}"], "path":["api","categories","home-decor","subcategories",""] } }
+        },
+        {
+          "name": "Colors",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/colors/", "host":["{{base_url}}"], "path":["api","colors",""] } }
+        },
+        {
+          "name": "Materials",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/materials/", "host":["{{base_url}}"], "path":["api","materials",""] } }
+        },
+        {
+          "name": "Filter Options",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/filter-options/?category=home-decor", "host":["{{base_url}}"], "path":["api","filter-options",""], "query":[{"key":"category","value":"home-decor"}] } }
+        },
+        {
+          "name": "Get Product Reviews (list)",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/products/sample-product-slug/reviews/", "host":["{{base_url}}"], "path":["api","products","sample-product-slug","reviews",""] } }
+        },
+        {
+          "name": "Create Product Review (POST) - requires Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"title\": \"Excellent lamp\",\n  \"comment\": \"Great build quality and warm light. Highly recommended!\",\n  \"is_verified_purchase\": true\n}" },
+            "url": { "raw": "{{base_url}}/api/products/sample-product-slug/reviews/", "host":["{{base_url}}"], "path":["api","products","sample-product-slug","reviews",""] }
+          }
+        }
+      ]
+    }
+  ]
+}

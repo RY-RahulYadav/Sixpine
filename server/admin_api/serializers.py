@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from products.models import Product, Category, Brand, ProductImage, ProductVariant
+from products.models import Product, Category, ProductImage, ProductVariant
 from orders.models import Order, OrderItem, OrderStatusHistory, Address
 from cart.models import Cart, CartItem
 from accounts.models import User
