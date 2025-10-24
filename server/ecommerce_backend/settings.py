@@ -192,7 +192,7 @@ CORS_ALLOWED_ORIGINS = config(
 CORS_ALLOW_CREDENTIALS = True
 
 # Only allow all origins in development
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
