@@ -62,7 +62,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/products" element={<ProductListPage />} />
-            <Route path="/products-details" element={<NewProductDetails />} />
+            <Route path="/products-details/:slug" element={<NewProductDetails />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/career" element={<CareerPage />} />
             <Route path="/global-selling" element={<Global_SellingPage />} />
