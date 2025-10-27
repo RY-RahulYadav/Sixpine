@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppContext";
+import { offersAPI } from "../../services/api";
 import styles from "./productdetails.module.css";
 import {
   FaStar,
@@ -10,8 +13,21 @@ import {
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { BsTagFill } from "react-icons/bs";
 
-const ProductDetails = () => {
-  const images = [
+interface ProductDetailsProps {
+  product: any;
+}
+
+const ProductDetails = ({ product }: ProductDetailsProps) => {
+  const navigate = useNavigate();
+  const { addToCart, state } = useApp();
+  const [activeOffer, setActiveOffer] = useState<any>(null);
+
+  // Get images from product data or use fallback
+  const images = product?.images?.length > 0 
+    ? product.images.map((img: any) => img.image)
+    : product?.main_image 
+    ? [product.main_image]
+    : [
     "https://m.media-amazon.com/images/I/61zwcSVl3YL._SX679_.jpg",
     "https://m.media-amazon.com/images/I/614YRo2ONvL._SX679_.jpg",
    "https://m.media-amazon.com/images/I/81B1YNHqwCL._SL1500_.jpg",
@@ -21,6 +37,22 @@ const ProductDetails = () => {
 
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [mainImage, setMainImage] = useState(images[0]);
+
+  // Fetch all active offers
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        const response = await offersAPI.getActiveOffers();
+        if (response.data && response.data.results && response.data.results.length > 0) {
+          setActiveOffer(response.data.results[0]); // Get the first active offer
+        }
+      } catch (error) {
+        console.error('Error fetching offers:', error);
+      }
+    };
+
+    fetchOffers();
+  }, []);
 
   // Modal open/close with scroll control
   const openImageModal = () => {
@@ -38,13 +70,19 @@ const ProductDetails = () => {
   };
 
   // State for options
-  const [selectedColor, setSelectedColor] = useState("Red");
-  const [selectedSize, setSelectedSize] = useState("M");
-  const [selectedPattern, setSelectedPattern] = useState("Classic");
+  const [selectedColor, setSelectedColor] = useState(
+    product?.available_colors?.[0]?.color__name || product?.available_colors?.[0]?.name || "Red"
+  );
+  const [selectedSize, setSelectedSize] = useState(
+    product?.available_sizes?.[0] || "M"
+  );
+  const [selectedPattern, setSelectedPattern] = useState(
+    product?.available_patterns?.[0] || "Classic"
+  );
 
   // Cart Summary
   const [cartQty, setCartQty] = useState(1);
-  const cartPrice = 29999;
+  const cartPrice = product?.price || 29999;
 
   // Modal for info icons
   interface ModalContent {
@@ -81,6 +119,40 @@ const ProductDetails = () => {
     setModalContent(null);
   };
 
+  const handleAddToCart = async () => {
+    if (!state.isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (product?.id) {
+      try {
+        await addToCart(product.id, cartQty);
+        // Sidebar will open automatically via context
+      } catch (error: any) {
+        console.error('Error adding to cart:', error);
+        alert(error.message || 'Failed to add to cart');
+      }
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!state.isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (product?.id) {
+      try {
+        await addToCart(product.id, cartQty);
+        navigate('/cart');
+      } catch (error: any) {
+        console.error('Error adding to cart:', error);
+        alert(error.message || 'Failed to add to cart');
+      }
+    }
+  };
+
   return (
     <div className={styles.productPage}>
       {/* Image Modal - Fullscreen */}
@@ -105,7 +177,7 @@ const ProductDetails = () => {
 
               {/* Thumbnails on Right */}
               <div className={styles.modalThumbnailsContainer}>
-                {images.map((img, index) => (
+                {images.map((img: string, index: number) => (
                   <img
                     key={index}
                     src={img}
@@ -125,7 +197,7 @@ const ProductDetails = () => {
       {/* Breadcrumb */}
       <div className={styles.breadcrumb}>
         <a href="#">All</a> / <a href="#">New Arrivals</a> /{" "}
-        <a href="#">Category</a> / Product Name
+        <a href="#">{product?.category?.name || "Category"}</a> / {product?.title || "Product Name"}
       </div>
 
       <div className={styles.mainLayout}>
@@ -142,7 +214,7 @@ const ProductDetails = () => {
 
           {/* Thumbnails below the main image */}
           <div className={styles.thumbnails}>
-            {images.map((img, index) => (
+            {images.map((img: string, index: number) => (
               <img
                 key={index}
                 src={img}
@@ -158,23 +230,33 @@ const ProductDetails = () => {
 
         {/* PART 2 - MIDDLE DETAILS */}
         <div className={styles.details}>
-          <h2 className={styles.title}>PRODUCT TITLE GOES HERE</h2>
+          <h2 className={styles.title}>{product?.title || "PRODUCT TITLE GOES HERE"}</h2>
          <p className={styles.brand}>
-  <span className={styles.brandLabel}>Brand:</span> <span className={styles.brandName}>Staples</span>
+  <span className={styles.brandLabel}>Brand:</span> <span className={styles.brandName}>{product?.brand || "Sixpine"}</span>
 </p>
 
 
           {/* Ratings */}
           <div className={styles.ratings}>
-            <FaStar /> <FaStar /> <FaStar /> <FaStarHalfAlt /> <FaRegStar />
-            <span>(132 Ratings)</span>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <span key={star}>
+                {star <= Math.floor(product?.average_rating || 0) ? (
+                  <FaStar />
+                ) : star === Math.ceil(product?.average_rating || 0) && (product?.average_rating || 0) % 1 !== 0 ? (
+                  <FaStarHalfAlt />
+                ) : (
+                  <FaRegStar />
+                )}
+              </span>
+            ))}
+            <span>({product?.review_count || 0} Ratings)</span>
           </div>
 
           {/* Price */}
         <div className={styles.priceBox}>
   {/* EMI Price */}
   <p className={styles.emiPrice}>
-    ₹9,500 <span>/month (3 months)</span>
+    ₹{Math.round((product?.price || 0) / 3).toLocaleString()} <span>/month (3 months)</span>
   </p>
 
   {/* EMI Info */}
@@ -187,14 +269,18 @@ const ProductDetails = () => {
 
   {/* Discount & Final Price */}
   <div className={styles.priceRow}>
-    <span className={styles.discountBadge}>-41%</span>
-    <span className={styles.finalPrice}>₹28,499</span>
+    {product?.is_on_sale && product?.discount_percentage > 0 && (
+      <span className={styles.discountBadge}>-{product.discount_percentage}%</span>
+    )}
+    <span className={styles.finalPrice}>₹{(product?.price || 0).toLocaleString()}</span>
   </div>
 
   {/* MRP */}
+  {product?.old_price && product.old_price > product.price && (
   <p className={styles.mrp}>
-    M.R.P.: <span className={styles.strike}>₹48,599</span>
+      M.R.P.: <span className={styles.strike}>₹{product.old_price.toLocaleString()}</span>
   </p>
+  )}
 </div>
 
 
@@ -233,23 +319,29 @@ const ProductDetails = () => {
 
           {/* Options */}
           <div className={styles.options}>
+            {product?.available_colors && product.available_colors.length > 0 && (
             <div>
               <strong>Color: </strong>
-              {["Red", "Blue", "Black"].map((color) => (
+                {product.available_colors.map((color: any, index: number) => {
+                  const colorName = color.color__name || color.name;
+                  return (
                 <button
-                  key={color}
-                  className={selectedColor === color ? styles.active : ""}
-                  onClick={() => setSelectedColor(color)}
-                >
-                  {color}
+                      key={`color-${index}-${colorName}`}
+                      className={selectedColor === colorName ? styles.active : ""}
+                      onClick={() => setSelectedColor(colorName)}
+                    >
+                      {colorName}
                 </button>
-              ))}
+                  );
+                })}
             </div>
+            )}
+            {product?.available_sizes && product.available_sizes.length > 0 && (
             <div>
               <strong>Size: </strong>
-              {["S", "M", "L"].map((size) => (
+                {product.available_sizes.map((size: string, index: number) => (
                 <button
-                  key={size}
+                    key={`size-${index}-${size}`}
                   className={selectedSize === size ? styles.active : ""}
                   onClick={() => setSelectedSize(size)}
                 >
@@ -257,18 +349,21 @@ const ProductDetails = () => {
                 </button>
               ))}
             </div>
+            )}
+            {product?.available_patterns && product.available_patterns.length > 0 && (
             <div>
               <strong>Pattern: </strong>
-              {["Exact", "Classic"].map((pat) => (
+                {product.available_patterns.map((pattern: string, index: number) => (
                 <button
-                  key={pat}
-                  className={selectedPattern === pat ? styles.active : ""}
-                  onClick={() => setSelectedPattern(pat)}
-                >
-                  {pat}
+                    key={`pattern-${index}-${pattern}`}
+                    className={selectedPattern === pattern ? styles.active : ""}
+                    onClick={() => setSelectedPattern(pattern)}
+                  >
+                    {pattern}
                 </button>
               ))}
             </div>
+            )}
           </div>
 
           {/* Info Modal */}
@@ -295,36 +390,20 @@ const ProductDetails = () => {
             <h3>Key Details</h3>
             <div className={styles.keyDetailsGrid}>
               <div className={styles.detailCard}>
-                <strong>Brand:</strong> Atomberg
+                <strong>Brand:</strong> {product?.brand || "Sixpine"}
               </div>
-              <div className={styles.detailCard}>
-                <strong>Depth:</strong> 12 inch
+              {product?.specifications?.map((spec: any, index: number) => (
+                <div key={index} className={styles.detailCard}>
+                  <strong>{spec.name}:</strong> {spec.value}
               </div>
-              <div className={styles.detailCard}>
-                <strong>Style:</strong> Modern
-              </div>
-              <div className={styles.detailCard}>
-                <strong>Frame:</strong> Metal
-              </div>
-              <div className={styles.detailCard}>
-                <strong>Assembly:</strong> Required
-              </div>
-              <div className={styles.detailCard}>
-                <strong>Seating:</strong> 1 Person
-              </div>
-              <div className={styles.detailCard}>
-                <strong>Shape:</strong> Round
-              </div>
+              ))}
             </div>
 
             <h3>About This Item</h3>
             <ul className={styles.aboutItemList}>
-              <li>High performance and energy efficient.</li>
-              <li>Elegant design suitable for modern interiors.</li>
-              <li>Durable metal frame ensures long-lasting use.</li>
-              <li>Easy to assemble and maintain.</li>
-              <li>Lightweight and portable.</li>
-              <li>1-year warranty included.</li>
+              {product?.features?.map((feature: any, index: number) => (
+                <li key={index}>{feature.feature}</li>
+              ))}
             </ul>
 
             <button
@@ -369,21 +448,39 @@ const ProductDetails = () => {
               </button>
             </div>
 
-            <button className={styles.addCart}>Add to Cart</button>
-            <button className={styles.buyNow}>Buy Now</button>
+            <button className={styles.addCart} onClick={handleAddToCart}>Add to Cart</button>
+            <button className={styles.buyNow} onClick={handleBuyNow}>Buy Now</button>
           </div>
 
           {/* SPECIAL OFFER */}
-          <div className={styles.specialOffer}>
-            <img
-              src="https://ochaka.vercel.app/images/products/fashion/product-1.jpg"
-              alt="Offer"
-            />
-            <p>
-              <strong>Special Offer: 20% Off</strong>
-            </p>
-            <button className={styles.buyNow}>Check Now</button>
-          </div>
+          {activeOffer ? (
+            <div className={styles.specialOffer}>
+              <img
+                src={activeOffer.product?.main_image || "https://ochaka.vercel.app/images/products/fashion/product-1.jpg"}
+                alt="Special Offer"
+              />
+              <p>
+                <strong>{activeOffer.title}</strong>
+              </p>
+              <button 
+                className={styles.buyNow} 
+                onClick={() => navigate(`/products-details/${activeOffer.product?.slug}`)}
+              >
+                Check Now
+              </button>
+            </div>
+          ) : (
+            <div className={styles.specialOffer}>
+              <img
+                src="https://ochaka.vercel.app/images/products/fashion/product-1.jpg"
+                alt="Offer"
+              />
+              <p>
+                <strong>Special Offer: 20% Off</strong>
+              </p>
+              <button className={styles.buyNow}>Check Now</button>
+            </div>
+          )}
         </div>
 
        

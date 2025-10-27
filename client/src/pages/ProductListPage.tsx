@@ -216,7 +216,7 @@ const ProductListPage: React.FC = () => {
   const handleAddToCart = async (productId: number) => {
     try {
       await addToCart(productId, 1);
-      alert('Product added to cart!');
+      // Sidebar will open automatically via context
     } catch (error: any) {
       alert(error.message || 'Failed to add to cart');
     }

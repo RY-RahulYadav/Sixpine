@@ -31,10 +31,16 @@ def add_to_cart(request):
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
     
-    if quantity > product.stock_quantity:
-        return Response({
-            'error': f'Only {product.stock_quantity} items available in stock'
-        }, status=status.HTTP_400_BAD_REQUEST)
+    # Check if product has variants with stock tracking
+    has_variants = product.variants.exists()
+    
+    # Stock check - check variant stock if variants exist, otherwise skip
+    if has_variants and quantity > 0:
+        total_available = sum(variant.stock_quantity for variant in product.variants.all())
+        if total_available < quantity:
+            return Response({
+                'error': f'Only {total_available} items available in stock'
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     cart, created = Cart.objects.get_or_create(user=request.user)
     cart_item, created = CartItem.objects.get_or_create(
@@ -46,10 +52,15 @@ def add_to_cart(request):
     if not created:
         # Update existing item quantity
         new_quantity = cart_item.quantity + quantity
-        if new_quantity > product.stock_quantity:
-            return Response({
-                'error': f'Cannot add {quantity} more items. Only {product.stock_quantity - cart_item.quantity} more available'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Stock check for variants only
+        if has_variants:
+            total_available = sum(variant.stock_quantity for variant in product.variants.all())
+            if new_quantity > total_available:
+                return Response({
+                    'error': f'Cannot add {quantity} more items. Only {total_available - cart_item.quantity} more available'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
         cart_item.quantity = new_quantity
         cart_item.save()
     
@@ -71,10 +82,14 @@ def update_cart_item(request, item_id):
         cart_item.delete()
         return Response({'message': 'Item removed from cart'})
     
-    if quantity > cart_item.product.stock_quantity:
-        return Response({
-            'error': f'Only {cart_item.product.stock_quantity} items available in stock'
-        }, status=status.HTTP_400_BAD_REQUEST)
+    # Check stock only if product has variants
+    has_variants = cart_item.product.variants.exists()
+    if has_variants:
+        total_available = sum(variant.stock_quantity for variant in cart_item.product.variants.all())
+        if quantity > total_available:
+            return Response({
+                'error': f'Only {total_available} items available in stock'
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     cart_item.quantity = quantity
     cart_item.save()

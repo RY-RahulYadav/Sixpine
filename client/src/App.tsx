@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useApp } from './context/AppContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import ProductListPage from './pages/ProductListPage';
@@ -49,20 +49,23 @@ import AddressesPage from './pages/AddressesPage';
 import EmailSubscriptionsPage from './pages/EmailSubscriptionsPage';
 import CheckoutPage from './pages/checkout';
 import ManagePaymentPage from './pages/ManagePayment';
+import CartSidebar from './components/CartSidebar/CartSidebar';
 
-function App() {
+function AppContent() {
+  const { state, closeCartSidebar } = useApp();
+
   return (
-    <AppProvider>
-      <Router>
-        <div className="app-wrapper">
-          <Routes>
+    <Router>
+      <div className="app-wrapper">
+        <CartSidebar isOpen={state.cartSidebarOpen} onClose={closeCartSidebar} />
+        <Routes>
             {/* Public routes - accessible without login */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/products" element={<ProductListPage />} />
-            <Route path="/products-details" element={<NewProductDetails />} />
+            <Route path="/products-details/:slug" element={<NewProductDetails />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/career" element={<CareerPage />} />
             <Route path="/global-selling" element={<Global_SellingPage />} />
@@ -122,9 +125,16 @@ function App() {
 
             {/* Admin routes */}
             <Route path="/admin/*" element={<AdminRouter />} />
-          </Routes>
-        </div>
-      </Router>
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+function App() {
+  return (
+    <AppProvider>
+      <AppContent />
     </AppProvider>
   );
 }

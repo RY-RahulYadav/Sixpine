@@ -153,6 +153,14 @@ export const cartAPI = {
   clearCart: () => API.delete('/cart/clear/'),
 };
 
+// Offers API calls
+export const offersAPI = {
+  getActiveOffers: () => API.get('/offers/'),
+  
+  createOffer: (data: any) =>
+    API.post('/offers/create/', data),
+};
+
 // Wishlist API calls
 export const wishlistAPI = {
   getWishlist: () => API.get('/wishlist/'),

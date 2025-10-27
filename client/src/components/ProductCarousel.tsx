@@ -52,7 +52,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({ title, products, caro
     if (product.id) {
       try {
         await addToCart(product.id, 1);
-        alert('Item added to cart!');
+        // Sidebar will open automatically via context
       } catch (error) {
         console.error('Error adding to cart:', error);
         alert('Failed to add item to cart');

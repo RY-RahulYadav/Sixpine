@@ -30,4 +30,8 @@ urlpatterns = [
     
     # Product recommendations
     path('products/<slug:slug>/recommendations/', views.get_product_recommendations, name='product-recommendations'),
+    
+    # Product offers
+    path('offers/', views.get_active_offers, name='active-offers'),
+    path('offers/create/', views.create_offer, name='create-offer'),
 ]

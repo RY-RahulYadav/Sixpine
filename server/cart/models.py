@@ -43,7 +43,10 @@ class CartItem(models.Model):
         return self.quantity * self.product.price
 
     def save(self, *args, **kwargs):
-        # Ensure quantity doesn't exceed available stock
-        if self.quantity > self.product.stock_quantity:
-            self.quantity = self.product.stock_quantity
+        # Ensure quantity doesn't exceed available stock (only if product has variants)
+        has_variants = self.product.variants.exists()
+        if has_variants:
+            total_available = sum(variant.stock_quantity for variant in self.product.variants.all())
+            if self.quantity > total_available:
+                self.quantity = total_available
         super().save(*args, **kwargs)

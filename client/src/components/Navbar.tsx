@@ -13,7 +13,7 @@ interface SearchSuggestion {
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { state } = useApp();
+  const { state, openCartSidebar } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -143,9 +143,19 @@ const Navbar: React.FC = () => {
             </Link>
           </li>
           <li className="nav-item">
-            <Link className="nav-link text-light" to="/cart">
+            <button 
+              className="nav-link text-light" 
+              onClick={(e) => {
+                e.preventDefault();
+                openCartSidebar();
+              }}
+              style={{ background: 'none', border: 'none' }}
+            >
               <i className="bi bi-cart"></i>
-            </Link>
+              {state.cart && state.cart.items_count > 0 && (
+                <span className="cart-count">{state.cart.items_count}</span>
+              )}
+            </button>
           </li>
         </ul>
 
@@ -217,7 +227,14 @@ const Navbar: React.FC = () => {
             </Link>
           </li>
           <li className="nav-item mx-2 cart_top">
-            <Link className="nav-link text-light" to="/cart">
+            <button 
+              className="nav-link text-light" 
+              onClick={(e) => {
+                e.preventDefault();
+                openCartSidebar();
+              }}
+              style={{ background: 'none', border: 'none' }}
+            >
               <span>
                 <i className="bi bi-cart"></i> 
                 {state.cart && (
@@ -225,7 +242,7 @@ const Navbar: React.FC = () => {
                 )}
               </span> 
               Cart
-            </Link>
+            </button>
           </li>
         </ul>
       </div>

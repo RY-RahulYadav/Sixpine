@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Q
 from .models import (
     Category, Subcategory, Color, Material, Product, ProductImage, ProductVariant,
     ProductReview, ProductRecommendation, ProductSpecification, 
@@ -82,6 +83,10 @@ class ProductListSerializer(serializers.ModelSerializer):
     # Available colors for filtering
     available_colors = serializers.SerializerMethodField()
     
+    # Real review data
+    review_count = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    
     class Meta:
         model = Product
         fields = [
@@ -96,6 +101,18 @@ class ProductListSerializer(serializers.ModelSerializer):
         """Get unique colors available for this product"""
         colors = obj.variants.filter(is_active=True).values_list('color__name', flat=True).distinct()
         return list(colors)
+    
+    def get_review_count(self, obj):
+        """Get actual review count from database"""
+        return obj.reviews.filter(is_approved=True).count()
+    
+    def get_average_rating(self, obj):
+        """Get actual average rating from database"""
+        from django.db.models import Avg
+        avg_rating = obj.reviews.filter(is_approved=True).aggregate(
+            avg_rating=Avg('rating')
+        )['avg_rating']
+        return round(float(avg_rating), 1) if avg_rating else 0.0
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
@@ -121,12 +138,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     available_sizes = serializers.SerializerMethodField()
     available_patterns = serializers.SerializerMethodField()
     
+    # Real review data
+    review_count = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_percentages = serializers.SerializerMethodField()
+    
     class Meta:
         model = Product
         fields = [
             'id', 'title', 'slug', 'short_description', 'long_description',
             'main_image', 'price', 'old_price', 'is_on_sale', 'discount_percentage',
-            'average_rating', 'review_count', 'category', 'subcategory',
+            'average_rating', 'review_count', 'review_percentages', 'category', 'subcategory',
             'brand', 'material', 'dimensions', 'weight', 'warranty', 'assembly_required',
             'images', 'variants', 'specifications', 'features', 'offers',
             'buy_with_products', 'inspired_products', 'frequently_viewed_products',
@@ -199,6 +221,47 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         """Get available patterns for this product"""
         patterns = obj.variants.filter(is_active=True).values_list('pattern', flat=True).distinct()
         return [pattern for pattern in patterns if pattern]
+    
+    def get_review_count(self, obj):
+        """Get actual review count from database"""
+        return obj.reviews.filter(is_approved=True).count()
+    
+    def get_average_rating(self, obj):
+        """Get actual average rating from database"""
+        from django.db.models import Avg
+        avg_rating = obj.reviews.filter(is_approved=True).aggregate(
+            avg_rating=Avg('rating')
+        )['avg_rating']
+        return round(float(avg_rating), 1) if avg_rating else 0.0
+    
+    def get_review_percentages(self, obj):
+        """Get review percentage breakdown by star rating"""
+        from django.db.models import Count
+        from django.db.models import Case, When, IntegerField
+        
+        # Get review counts by rating
+        rating_counts = obj.reviews.filter(is_approved=True).aggregate(
+            five_star=Count('id', filter=Q(rating=5)),
+            four_star=Count('id', filter=Q(rating=4)),
+            three_star=Count('id', filter=Q(rating=3)),
+            two_star=Count('id', filter=Q(rating=2)),
+            one_star=Count('id', filter=Q(rating=1)),
+            total=Count('id')
+        )
+        
+        total_reviews = rating_counts['total']
+        if total_reviews == 0:
+            return {
+                '5': 0, '4': 0, '3': 0, '2': 0, '1': 0
+            }
+        
+        return {
+            '5': round((rating_counts['five_star'] / total_reviews) * 100, 1),
+            '4': round((rating_counts['four_star'] / total_reviews) * 100, 1),
+            '3': round((rating_counts['three_star'] / total_reviews) * 100, 1),
+            '2': round((rating_counts['two_star'] / total_reviews) * 100, 1),
+            '1': round((rating_counts['one_star'] / total_reviews) * 100, 1),
+        }
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):

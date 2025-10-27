@@ -15,7 +15,7 @@ from .models import (
 from .serializers import (
     ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer,
     CategorySerializer, SubcategorySerializer, ColorSerializer, MaterialSerializer,
-    ProductReviewSerializer, ProductFilterSerializer
+    ProductReviewSerializer, ProductFilterSerializer, ProductOfferSerializer
 )
 from .filters import ProductFilter, ProductSortFilter, ProductAggregationFilter
 
@@ -43,6 +43,7 @@ class ProductListView(generics.ListAPIView):
             'category', 'subcategory'
         ).prefetch_related(
             'images',
+            'reviews',
             Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True).select_related('color'))
         )
         
@@ -88,6 +89,7 @@ class ProductDetailView(generics.RetrieveAPIView):
             'specifications',
             'features',
             'offers',
+            'reviews',
             Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True).select_related('color')),
             Prefetch('recommendations__recommended_product', 
                     queryset=Product.objects.filter(is_active=True))
@@ -356,3 +358,112 @@ def get_filter_options(request):
     filter_options = ProductAggregationFilter.get_filter_options(queryset)
     
     return Response(filter_options)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_active_offers(request):
+    """Get all products with active offers for advertisement boxes"""
+    from django.utils import timezone
+    
+    now = timezone.now()
+    
+    # Get all products with active offers
+    offers = ProductOffer.objects.filter(
+        is_active=True
+    ).filter(
+        Q(valid_from__isnull=True) | Q(valid_from__lte=now),
+        Q(valid_until__isnull=True) | Q(valid_until__gte=now)
+    ).select_related('product').prefetch_related(
+        'product__images'
+    ).order_by('-created_at')
+    
+    # Serialize offers with product data
+    serialized_offers = []
+    for offer in offers:
+        serialized_offers.append({
+            'id': offer.id,
+            'title': offer.title,
+            'description': offer.description,
+            'discount_percentage': offer.discount_percentage,
+            'discount_amount': offer.discount_amount,
+            'valid_from': offer.valid_from,
+            'valid_until': offer.valid_until,
+            'product': {
+                'id': offer.product.id,
+                'title': offer.product.title,
+                'slug': offer.product.slug,
+                'main_image': offer.product.main_image,
+                'price': offer.product.price,
+                'old_price': offer.product.old_price,
+                'category': offer.product.category.name if offer.product.category else None
+            }
+        })
+    
+    return Response({
+        'count': len(serialized_offers),
+        'results': serialized_offers
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_offer(request):
+    """Create a new product offer"""
+    from rest_framework import status
+    
+    # Check if user is admin or staff
+    if not (request.user.is_staff or request.user.is_superuser):
+        return Response(
+            {'error': 'You do not have permission to create offers.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    product_id = request.data.get('product_id')
+    title = request.data.get('title')
+    description = request.data.get('description', '')
+    discount_percentage = request.data.get('discount_percentage')
+    discount_amount = request.data.get('discount_amount')
+    is_active = request.data.get('is_active', True)
+    valid_from = request.data.get('valid_from')
+    valid_until = request.data.get('valid_until')
+    
+    # Validation
+    if not product_id:
+        return Response(
+            {'error': 'product_id is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if not title:
+        return Response(
+            {'error': 'title is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        product = Product.objects.get(id=product_id, is_active=True)
+    except Product.DoesNotExist:
+        return Response(
+            {'error': 'Product not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Create the offer
+    offer = ProductOffer.objects.create(
+        product=product,
+        title=title,
+        description=description,
+        discount_percentage=discount_percentage,
+        discount_amount=discount_amount,
+        is_active=is_active,
+        valid_from=valid_from,
+        valid_until=valid_until
+    )
+    
+    # Serialize the created offer
+    serializer = ProductOfferSerializer(offer)
+    return Response({
+        'message': 'Offer created successfully',
+        'offer': serializer.data
+    }, status=status.HTTP_201_CREATED)

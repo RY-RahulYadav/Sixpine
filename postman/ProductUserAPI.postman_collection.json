@@ -42,15 +42,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/auth/login/",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login",
-                ""
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login", ""]
             }
           },
           "response": []
@@ -59,9 +52,7 @@
           "name": "Request OTP (Register)",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"demouser\",\n  \"email\": \"demo.user@example.com\",\n  \"first_name\": \"Demo\",\n  \"last_name\": \"User\",\n  \"mobile\": \"+919876543210\",\n  \"password\": \"Password123!\",\n  \"password_confirm\": \"Password123!\",\n  \"otp_method\": \"email\"\n}"
@@ -163,8 +154,38 @@
           "name": "Product Detail (by slug)",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/products/sample-product-slug/", "host":["{{base_url}}"], "path":["api","products","sample-product-slug",""] }
-          }
+            "url": { "raw": "{{base_url}}/api/products/comfortable-sofa-3-seater/", "host":["{{base_url}}"], "path":["api","products","comfortable-sofa-3-seater",""] }
+          },
+          "description": "Get detailed information about a specific product by its slug. Returns product details, variants, images, specifications, features, and reviews."
+        },
+        {
+          "name": "Product Recommendations",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products/comfortable-sofa-3-seater/recommendations/", "host":["{{base_url}}"], "path":["api","products","comfortable-sofa-3-seater","recommendations",""] }
+          },
+          "description": "Get product recommendations including: buy with it, inspired by, frequently viewed, similar, and recommended products."
+        },
+        {
+          "name": "Get Product Reviews",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products/comfortable-sofa-3-seater/reviews/", "host":["{{base_url}}"], "path":["api","products","comfortable-sofa-3-seater","reviews",""] }
+          },
+          "description": "Get all reviews for a specific product"
+        },
+        {
+          "name": "Create Product Review (POST) - requires Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"title\": \"Excellent product!\",\n  \"comment\": \"Great build quality and looks amazing. Highly recommended!\",\n  \"is_verified_purchase\": true\n}" },
+            "url": { "raw": "{{base_url}}/api/products/comfortable-sofa-3-seater/reviews/", "host":["{{base_url}}"], "path":["api","products","comfortable-sofa-3-seater","reviews",""] }
+          },
+          "description": "Create a new review for a product. Requires authentication."
         },
         {
           "name": "Search Products",
@@ -206,20 +227,95 @@
           "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/filter-options/?category=home-decor", "host":["{{base_url}}"], "path":["api","filter-options",""], "query":[{"key":"category","value":"home-decor"}] } }
         },
         {
-          "name": "Get Product Reviews (list)",
-          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/products/sample-product-slug/reviews/", "host":["{{base_url}}"], "path":["api","products","sample-product-slug","reviews",""] } }
+          "name": "Get Active Offers",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/offers/", "host":["{{base_url}}"], "path":["api","offers",""] } },
+          "description": "Get all products with active offers for advertisement boxes"
         },
         {
-          "name": "Create Product Review (POST) - requires Token",
+          "name": "Create Offer (Admin)",
           "request": {
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Token {{token}}" }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"title\": \"Excellent lamp\",\n  \"comment\": \"Great build quality and warm light. Highly recommended!\",\n  \"is_verified_purchase\": true\n}" },
-            "url": { "raw": "{{base_url}}/api/products/sample-product-slug/reviews/", "host":["{{base_url}}"], "path":["api","products","sample-product-slug","reviews",""] }
-          }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1,\n  \"title\": \"Special Offer: 20% Off\",\n  \"description\": \"Get amazing 20% off on this product! Limited time offer.\",\n  \"discount_percentage\": 20,\n  \"discount_amount\": null,\n  \"is_active\": true,\n  \"valid_from\": null,\n  \"valid_until\": null\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/offers/create/", "host":["{{base_url}}"], "path":["api","offers","create",""] }
+          },
+          "description": "Create a new product offer (requires admin/staff authentication)"
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/cart/", "host":["{{base_url}}"], "path":["api","cart",""] }
+          },
+          "description": "Get current user's cart with all items. Requires authentication."
+        },
+        {
+          "name": "Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/cart/add/", "host":["{{base_url}}"], "path":["api","cart","add",""] }
+          },
+          "description": "Add a product to cart or update quantity if item already exists. Requires authentication."
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/cart/items/1/", "host":["{{base_url}}"], "path":["api","cart","items","1",""] }
+          },
+          "description": "Update the quantity of a cart item. Set quantity to 0 to remove. Requires authentication."
+        },
+        {
+          "name": "Remove from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/cart/items/1/remove/", "host":["{{base_url}}"], "path":["api","cart","items","1","remove",""] }
+          },
+          "description": "Remove a specific item from cart. Requires authentication."
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/cart/clear/", "host":["{{base_url}}"], "path":["api","cart","clear",""] }
+          },
+          "description": "Clear all items from cart. Requires authentication."
         }
       ]
     }

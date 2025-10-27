@@ -37,6 +37,7 @@ interface AppState {
   cart: Cart | null;
   loading: boolean;
   error: string | null;
+  cartSidebarOpen: boolean;
 }
 
 type AppAction =
@@ -46,7 +47,9 @@ type AppAction =
   | { type: 'LOGOUT' }
   | { type: 'SET_CART'; payload: Cart }
   | { type: 'CLEAR_CART' }
-  | { type: 'INIT_COMPLETE' };
+  | { type: 'INIT_COMPLETE' }
+  | { type: 'OPEN_CART_SIDEBAR' }
+  | { type: 'CLOSE_CART_SIDEBAR' };
 
 const initialState: AppState = {
   user: null,
@@ -54,6 +57,7 @@ const initialState: AppState = {
   cart: null,
   loading: true, // Start with loading true to prevent premature redirects
   error: null,
+  cartSidebarOpen: false,
 };
 
 const AppContext = createContext<{
@@ -63,6 +67,8 @@ const AppContext = createContext<{
   logout: () => void;
   fetchCart: () => Promise<void>;
   addToCart: (productId: number, quantity?: number) => Promise<void>;
+  openCartSidebar: () => void;
+  closeCartSidebar: () => void;
 } | null>(null);
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -90,11 +96,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
         user: null,
         isAuthenticated: false,
         cart: null,
+        cartSidebarOpen: false,
       };
     case 'SET_CART':
       return { ...state, cart: action.payload };
     case 'CLEAR_CART':
       return { ...state, cart: null };
+    case 'OPEN_CART_SIDEBAR':
+      return { ...state, cartSidebarOpen: true };
+    case 'CLOSE_CART_SIDEBAR':
+      return { ...state, cartSidebarOpen: false };
     default:
       return state;
   }
@@ -174,11 +185,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await cartAPI.addToCart({ product_id: productId, quantity });
       await fetchCart(); // Refresh cart
+      dispatch({ type: 'OPEN_CART_SIDEBAR' }); // Open sidebar after adding to cart
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Failed to add to cart';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
+  };
+
+  const openCartSidebar = () => {
+    dispatch({ type: 'OPEN_CART_SIDEBAR' });
+  };
+
+  const closeCartSidebar = () => {
+    dispatch({ type: 'CLOSE_CART_SIDEBAR' });
   };
 
   const value = {
@@ -188,6 +208,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logout,
     fetchCart,
     addToCart,
+    openCartSidebar,
+    closeCartSidebar,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
