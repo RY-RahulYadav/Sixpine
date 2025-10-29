@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { cartAPI, orderAPI, addressAPI } from '../services/api';
+import { cartAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -13,6 +13,12 @@ interface CartItem {
     price: number;
     main_image: string;
     slug: string;
+  };
+  variant?: {
+    id: number;
+    color: { name: string };
+    size: string;
+    pattern: string;
   };
   quantity: number;
   total_price: number;
@@ -31,83 +37,14 @@ const CartPage: React.FC = () => {
     fetchCart();
   }, [state.isAuthenticated]);
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!state.cart || state.cart.items.length === 0) {
       alert('Your cart is empty!');
       return;
     }
 
-    setLoading(true);
-    try {
-      // First, check if user has any addresses
-      let addressId: number;
-      try {
-        const addressResponse = await addressAPI.getAddresses();
-        if (addressResponse.data && addressResponse.data.length > 0) {
-          // Use the first address or default address
-          const defaultAddress = addressResponse.data.find((addr: any) => addr.is_default);
-          addressId = defaultAddress ? defaultAddress.id : addressResponse.data[0].id;
-        } else {
-          // Create a dummy address
-          const dummyAddress = {
-            type: 'home',
-            full_name: state.user?.first_name && state.user?.last_name 
-              ? `${state.user.first_name} ${state.user.last_name}` 
-              : state.user?.username || 'Demo User',
-            phone: '+91 9876543210',
-            street_address: '123 Demo Street, Demo Colony',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            postal_code: '400001',
-            country: 'India',
-            is_default: true
-          };
-          const createAddressResponse = await addressAPI.addAddress(dummyAddress);
-          addressId = createAddressResponse.data.id;
-        }
-      } catch (addressError) {
-        console.error('Address error:', addressError);
-        // Create a dummy address if there's an error
-        const dummyAddress = {
-          type: 'home',
-          full_name: state.user?.first_name && state.user?.last_name 
-            ? `${state.user.first_name} ${state.user.last_name}` 
-            : state.user?.username || 'Demo User',
-          phone: '+91 9876543210',
-          street_address: '123 Demo Street, Demo Colony',
-          city: 'Mumbai',
-          state: 'Maharashtra',
-          postal_code: '400001',
-          country: 'India',
-          is_default: true
-        };
-        const createAddressResponse = await addressAPI.addAddress(dummyAddress);
-        addressId = createAddressResponse.data.id;
-      }
-
-      // Create order from cart
-      const checkoutData = {
-        shipping_address_id: addressId,
-        order_notes: 'Demo order created from cart'
-      };
-
-      const response = await orderAPI.checkoutFromCart(checkoutData);
-      
-      // Show success message
-      alert(`Order created successfully! Order ID: ${response.data.order.order_id}`);
-      
-      // Refresh cart (should be empty now)
-      await fetchCart();
-      
-      // Navigate to orders page
-      navigate('/orders');
-    } catch (error: any) {
-      console.error('Checkout error:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to create order. Please try again.';
-      alert(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    // Navigate to checkout page
+    navigate('/checkout');
   };
 
   const updateQuantity = async (itemId: number, quantity: number) => {
@@ -204,6 +141,15 @@ const CartPage: React.FC = () => {
                     </div>
                     <div className="col-md-4">
                       <h6 className="mb-1">{item.product.title}</h6>
+                      {item.variant && (
+                        <div className="mb-1">
+                          <small className="text-muted">
+                            {item.variant.color?.name && <span>Color: {item.variant.color.name} </span>}
+                            {item.variant.size && <span>| Size: {item.variant.size} </span>}
+                            {item.variant.pattern && <span>| Pattern: {item.variant.pattern}</span>}
+                          </small>
+                        </div>
+                      )}
                       <small className="text-muted">₹{item.product.price.toLocaleString()}</small>
                     </div>
                     <div className="col-md-3">

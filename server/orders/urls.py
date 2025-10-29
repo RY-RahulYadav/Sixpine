@@ -9,4 +9,8 @@ urlpatterns = [
     path('orders/create/', views.OrderCreateView.as_view(), name='order-create'),
     path('orders/checkout/', views.checkout_from_cart, name='checkout-from-cart'),
     path('orders/<uuid:order_id>/cancel/', views.cancel_order, name='cancel-order'),
+    path('orders/razorpay/create-order/', views.create_razorpay_order, name='create-razorpay-order'),
+    path('orders/razorpay/verify-payment/', views.verify_razorpay_payment, name='verify-razorpay-payment'),
+    path('orders/checkout/cod/', views.checkout_with_cod, name='checkout-cod'),
+    path('orders/complete-payment/', views.complete_payment, name='complete-payment'),
 ]

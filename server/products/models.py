@@ -164,12 +164,32 @@ class ProductImage(models.Model):
         return f"{self.product.title} - Image {self.sort_order}"
 
 
+class ProductVariantImage(models.Model):
+    """Additional images for product variants"""
+    variant = models.ForeignKey('ProductVariant', on_delete=models.CASCADE, related_name='images')
+    # store an external or CDN URL to the variant gallery image
+    image = models.URLField(max_length=500, blank=True)
+    alt_text = models.CharField(max_length=200, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'created_at']
+
+    def __str__(self):
+        return f"{self.variant.product.title} - {self.variant.title} - Image {self.sort_order}"
+
+
 class ProductVariant(models.Model):
     """Product variants for different colors, sizes, etc."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     color = models.ForeignKey(Color, on_delete=models.CASCADE, related_name='variants')
     size = models.CharField(max_length=50, blank=True)  # e.g., "S", "M", "L" or "3-Seater", "2-Seater"
     pattern = models.CharField(max_length=100, blank=True)  # e.g., "Classic", "Modern"
+    
+    # Variant title for display (e.g., "White 4-Door Modern")
+    title = models.CharField(max_length=200, blank=True)
     
     # Variant-specific pricing (optional, inherits from product if not set)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -193,6 +213,17 @@ class ProductVariant(models.Model):
         ordering = ['color__name', 'size', 'pattern']
 
     def save(self, *args, **kwargs):
+        # Generate title if not set
+        if not self.title:
+            variant_parts = []
+            if self.color:
+                variant_parts.append(self.color.name)
+            if self.size:
+                variant_parts.append(self.size)
+            if self.pattern:
+                variant_parts.append(self.pattern)
+            self.title = ' '.join(variant_parts) if variant_parts else ''
+        
         # Inherit pricing from product if not set
         if not self.price:
             self.price = self.product.price
@@ -204,12 +235,7 @@ class ProductVariant(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        variant_parts = [self.color.name]
-        if self.size:
-            variant_parts.append(self.size)
-        if self.pattern:
-            variant_parts.append(self.pattern)
-        return f"{self.product.title} - {' '.join(variant_parts)}"
+        return f"{self.product.title} - {self.title}" if self.title else f"{self.product.title} - Variant {self.id}"
 
 
 class ProductReview(models.Model):

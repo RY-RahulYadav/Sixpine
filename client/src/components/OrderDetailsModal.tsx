@@ -16,7 +16,12 @@ const normalizeItem = (item: any) => {
   // product serializer uses `title` and `main_image` (ProductListSerializer)
   const name = item.product_name ?? item.name ?? item.title ?? item.product?.title ?? item.product?.name ?? `Product #${item.product_id ?? item.id ?? ''}`;
   const image = item.product_image ?? item.image ?? item.product?.main_image ?? item.product?.image ?? (item.product?.images && item.product.images[0] && item.product.images[0].image) ?? '';
-  return { quantity, unitPrice, subtotal, name, image };
+  // Variant information
+  const variant = item.variant || null;
+  const variantColor = item.variant_color || variant?.color?.name || null;
+  const variantSize = item.variant_size || variant?.size || null;
+  const variantPattern = item.variant_pattern || variant?.pattern || null;
+  return { quantity, unitPrice, subtotal, name, image, variantColor, variantSize, variantPattern };
 };
 
 interface OrderItem {
@@ -60,7 +65,7 @@ interface OrderDetails {
   estimated_delivery?: string;
   shipping_address: Address;
   items: OrderItem[];
-  status_history: StatusHistory[];
+  status_history?: StatusHistory[];
   order_notes?: string;
 }
 
@@ -129,6 +134,69 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
       default:
         return 'bg-light text-dark';
     }
+  };
+
+  // Get order status flow with completion tracking
+  const getOrderStatusFlow = (order: OrderDetails) => {
+    const statusFlow = [
+      {
+        key: 'payment',
+        label: 'Payment Success',
+        completed: order.payment_status === 'paid',
+        current: order.payment_status === 'pending',
+        date: order.payment_status === 'paid' ? order.created_at : null
+      },
+      {
+        key: 'confirmed',
+        label: 'Order Confirmed',
+        completed: ['confirmed', 'processing', 'shipped', 'delivered'].includes(order.status),
+        current: order.status === 'confirmed',
+        date: order.status === 'confirmed' ? order.created_at : null
+      },
+      {
+        key: 'processing',
+        label: 'Processing',
+        completed: ['processing', 'shipped', 'delivered'].includes(order.status),
+        current: order.status === 'processing',
+        date: null
+      },
+      {
+        key: 'shipped',
+        label: 'Shipped',
+        completed: ['shipped', 'delivered'].includes(order.status),
+        current: order.status === 'shipped',
+        date: null
+      },
+      {
+        key: 'delivered',
+        label: 'Delivered',
+        completed: order.status === 'delivered',
+        current: false,
+        date: order.status === 'delivered' ? order.updated_at : null
+      }
+    ];
+
+    // If cancelled, show cancelled status
+    if (order.status === 'cancelled') {
+      return [
+        {
+          key: 'payment',
+          label: 'Payment Success',
+          completed: false,
+          current: false,
+          date: null
+        },
+        {
+          key: 'cancelled',
+          label: 'Cancelled',
+          completed: true,
+          current: false,
+          date: order.updated_at
+        }
+      ];
+    }
+
+    return statusFlow;
   };
 
   if (!show) return null;
@@ -202,42 +270,57 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
                   {/* Order Items */}
                   <div className="mb-4">
                     <h6 className="text-muted mb-3">Order Items</h6>
-                    <div className="table-responsive">
-                      <table className="table table-bordered">
-                        <thead className="table-light">
-                          <tr>
-                            <th>Product</th>
-                            <th>Price</th>
-                            <th>Quantity</th>
-                            <th>Subtotal</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {order.items.map((item, index) => {
-                            const it = normalizeItem(item);
-                            return (
-                              <tr key={index}>
-                                <td>
-                                  <div className="d-flex align-items-center">
-                                    {it.image ? (
-                                      <img
-                                        src={it.image}
-                                        alt={it.name}
-                                        style={{ width: '50px', height: '50px', objectFit: 'cover', marginRight: '10px' }}
-                                      />
-                                    ) : null}
-                                    <span>{it.name}</span>
-                                  </div>
-                                </td>
-                                <td>₹{formatAmount(it.unitPrice)}</td>
-                                <td>{it.quantity}</td>
-                                <td>₹{formatAmount(it.subtotal)}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                    {order.items && order.items.length > 0 ? (
+                      <div className="table-responsive">
+                        <table className="table table-bordered">
+                          <thead className="table-light">
+                            <tr>
+                              <th>Product</th>
+                              <th>Price</th>
+                              <th>Quantity</th>
+                              <th>Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {order.items.map((item, index) => {
+                              const it = normalizeItem(item);
+                              return (
+                                <tr key={index}>
+                                  <td>
+                                    <div className="d-flex align-items-center">
+                                      {it.image ? (
+                                        <img
+                                          src={it.image}
+                                          alt={it.name}
+                                          style={{ width: '50px', height: '50px', objectFit: 'cover', marginRight: '10px' }}
+                                        />
+                                      ) : null}
+                                      <div>
+                                        <div>{it.name}</div>
+                                        {(it.variantColor || it.variantSize || it.variantPattern) && (
+                                          <small className="text-muted">
+                                            {it.variantColor && <span>Color: {it.variantColor} </span>}
+                                            {it.variantSize && <span>| Size: {it.variantSize} </span>}
+                                            {it.variantPattern && <span>| Pattern: {it.variantPattern}</span>}
+                                          </small>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td>₹{formatAmount(it.unitPrice)}</td>
+                                  <td>{it.quantity}</td>
+                                  <td>₹{formatAmount(it.subtotal)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="alert alert-info">
+                        <p className="mb-0">No items found for this order.</p>
+                      </div>
+                    )}
                   </div>
 
                   <hr />
@@ -278,28 +361,115 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
 
                   <hr />
 
-                  {/* Status History */}
-                  <div className="mb-3">
-                    <h6 className="text-muted mb-3">Status History</h6>
-                    <div className="timeline">
-                      {order.status_history.map((history, index) => (
-                        <div key={index} className="mb-3 d-flex">
-                          <div className="me-3">
-                            <span className={`badge ${getStatusBadgeClass(history.status)}`}>
-                              {history.status.charAt(0).toUpperCase() + history.status.slice(1)}
-                            </span>
+                  {/* Order Status Flow */}
+                  <div className="mb-4">
+                    <h6 className="text-muted mb-3">Order Status</h6>
+                    <div className="order-status-flow" style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      padding: '20px 0',
+                      position: 'relative'
+                    }}>
+                      {getOrderStatusFlow(order).map((statusItem, index) => (
+                        <React.Fragment key={statusItem.key}>
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            flex: 1,
+                            position: 'relative',
+                            zIndex: 2
+                          }}>
+                            <div style={{
+                              width: '48px',
+                              height: '48px',
+                              borderRadius: '50%',
+                              backgroundColor: statusItem.completed ? '#28a745' : statusItem.current ? '#ffc107' : '#e9ecef',
+                              color: statusItem.completed ? '#fff' : statusItem.current ? '#000' : '#6c757d',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '24px',
+                              marginBottom: '8px',
+                              border: statusItem.current ? '3px solid #ffc107' : '2px solid ' + (statusItem.completed ? '#28a745' : '#dee2e6'),
+                              boxShadow: statusItem.current ? '0 0 0 3px rgba(255, 193, 7, 0.25)' : 'none',
+                              transition: 'all 0.3s ease'
+                            }}>
+                              {statusItem.completed ? (
+                                <i className="bi bi-check-circle-fill"></i>
+                              ) : statusItem.current ? (
+                                <i className="bi bi-clock-history"></i>
+                              ) : (
+                                <i className="bi bi-circle" style={{ fontSize: '16px' }}></i>
+                              )}
+                            </div>
+                            <div style={{
+                              textAlign: 'center',
+                              fontSize: '13px',
+                              fontWeight: statusItem.completed || statusItem.current ? '600' : '400',
+                              color: statusItem.completed ? '#28a745' : statusItem.current ? '#ffc107' : '#6c757d',
+                              maxWidth: '100px'
+                            }}>
+                              {statusItem.label}
+                            </div>
+                            {statusItem.date && (
+                              <div style={{
+                                fontSize: '11px',
+                                color: '#6c757d',
+                                marginTop: '4px',
+                                textAlign: 'center'
+                              }}>
+                                {new Date(statusItem.date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <p className="mb-1">{history.notes}</p>
-                            <small className="text-muted">
-                              {new Date(history.created_at).toLocaleString()}
-                              {history.created_by && ` by ${history.created_by}`}
-                            </small>
-                          </div>
-                        </div>
+                          {index < getOrderStatusFlow(order).length - 1 && (
+                            <div style={{
+                              flex: 1,
+                              height: '2px',
+                              backgroundColor: statusItem.completed ? '#28a745' : '#e9ecef',
+                              margin: '0 10px',
+                              marginBottom: '32px',
+                              marginTop: '24px'
+                            }}></div>
+                          )}
+                        </React.Fragment>
                       ))}
                     </div>
                   </div>
+
+                  {/* Status History */}
+                  {order.status_history && order.status_history.length > 0 && (
+                    <>
+                      <hr />
+                      <div className="mb-3">
+                        <h6 className="text-muted mb-3">Status History</h6>
+                        <div className="timeline">
+                          {order.status_history.map((history, index) => (
+                            <div key={index} className="mb-3 d-flex">
+                              <div className="me-3">
+                                <span className={`badge ${getStatusBadgeClass(history.status)}`}>
+                                  {history.status.charAt(0).toUpperCase() + history.status.slice(1)}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="mb-1">{history.notes}</p>
+                                <small className="text-muted">
+                                  {new Date(history.created_at).toLocaleString()}
+                                  {history.created_by && ` by ${history.created_by}`}
+                                </small>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-5">

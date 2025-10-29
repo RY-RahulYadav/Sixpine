@@ -18,7 +18,17 @@ interface OrderItem {
     title: string;
     main_image: string;
     price: number;
+    old_price?: number | null;
   };
+  variant?: {
+    id: number;
+    color: { name: string };
+    size: string;
+    pattern: string;
+  };
+  variant_color?: string;
+  variant_size?: string;
+  variant_pattern?: string;
   quantity: number;
   price: number;
 }
@@ -27,11 +37,13 @@ interface Order {
   order_id: string;
   status: string;
   payment_status: string;
+  payment_method?: string;
   total_amount: number;
   items_count: number;
   created_at: string;
   estimated_delivery?: string;
   shipping_address?: any;
+  razorpay_order_id?: string;
   items?: OrderItem[];
 }
 
@@ -41,194 +53,13 @@ const OrdersPage: React.FC = () => {
   const { state } = useApp();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'buyAgain' | 'notShipped' | 'cancelled'>('orders');
   const [timeFilter, setTimeFilter] = useState('past 3 months');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Demo data for when no orders exist
-  const demoOrders: Order[] = [
-    {
-      order_id: 'ORD-2024-001',
-      status: 'delivered',
-      payment_status: 'paid',
-      total_amount: 12999,
-      items_count: 1,
-      created_at: '2024-01-15T10:30:00Z',
-      estimated_delivery: '2024-01-20T10:30:00Z',
-      shipping_address: {
-        street_address: '123 Main Street, Apartment 4B',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        postal_code: '400001'
-      },
-      items: [
-        {
-          id: 1,
-          product: {
-            id: 1,
-            title: 'Comfortable Wooden bed perfect for your bedroom setup with modern design.',
-            main_image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400',
-            price: 12999
-          },
-          quantity: 1,
-          price: 12999
-        }
-      ]
-    },
-    {
-      order_id: 'ORD-2024-002',
-      status: 'processing',
-      payment_status: 'paid',
-      total_amount: 8499,
-      items_count: 1,
-      created_at: '2024-02-10T14:20:00Z',
-      estimated_delivery: '2024-02-18T14:20:00Z',
-      shipping_address: {
-        street_address: '456 Park Avenue',
-        city: 'Delhi',
-        state: 'Delhi',
-        postal_code: '110001'
-      },
-      items: [
-        {
-          id: 2,
-          product: {
-            id: 2,
-            title: 'Modern Ergonomic Office Chair with Lumbar Support and Adjustable Height',
-            main_image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=400',
-            price: 8499
-          },
-          quantity: 1,
-          price: 8499
-        }
-      ]
-    },
-    {
-      order_id: 'ORD-2024-003',
-      status: 'cancelled',
-      payment_status: 'refunded',
-      total_amount: 15999,
-      items_count: 1,
-      created_at: '2024-03-05T09:15:00Z',
-      shipping_address: {
-        street_address: '789 Beach Road',
-        city: 'Bangalore',
-        state: 'Karnataka',
-        postal_code: '560001'
-      },
-      items: [
-        {
-          id: 3,
-          product: {
-            id: 3,
-            title: 'Premium Leather Sofa Set 3+2 Seater for Living Room - Brown Color',
-            main_image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400',
-            price: 15999
-          },
-          quantity: 1,
-          price: 15999
-        }
-      ]
-    },
-    {
-      order_id: 'ORD-2024-004',
-      status: 'pending',
-      payment_status: 'pending',
-      total_amount: 3299,
-      items_count: 2,
-      created_at: '2024-03-20T11:45:00Z',
-      estimated_delivery: '2024-03-28T11:45:00Z',
-      shipping_address: {
-        street_address: '321 Garden Street',
-        city: 'Pune',
-        state: 'Maharashtra',
-        postal_code: '411001'
-      },
-      items: [
-        {
-          id: 4,
-          product: {
-            id: 4,
-            title: 'Designer Table Lamp with Wooden Base - Warm White Light',
-            main_image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400',
-            price: 1799
-          },
-          quantity: 1,
-          price: 1799
-        },
-        {
-          id: 5,
-          product: {
-            id: 5,
-            title: 'Decorative Wall Mirror with Golden Frame - 24x36 inches',
-            main_image: 'https://images.unsplash.com/photo-1618220179428-22790b461013?w=400',
-            price: 1500
-          },
-          quantity: 1,
-          price: 1500
-        }
-      ]
-    },
-    {
-      order_id: 'ORD-2024-005',
-      status: 'delivered',
-      payment_status: 'paid',
-      total_amount: 5499,
-      items_count: 1,
-      created_at: '2024-02-20T16:30:00Z',
-      estimated_delivery: '2024-02-25T16:30:00Z',
-      shipping_address: {
-        street_address: '555 Lake View',
-        city: 'Hyderabad',
-        state: 'Telangana',
-        postal_code: '500001'
-      },
-      items: [
-        {
-          id: 6,
-          product: {
-            id: 6,
-            title: 'Smart LED TV 43 inch Full HD with Netflix and Prime Video',
-            main_image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400',
-            price: 5499
-          },
-          quantity: 1,
-          price: 5499
-        }
-      ]
-    },
-    {
-      order_id: 'ORD-2024-006',
-      status: 'delivered',
-      payment_status: 'paid',
-      total_amount: 2199,
-      items_count: 1,
-      created_at: '2024-01-28T09:00:00Z',
-      estimated_delivery: '2024-02-02T09:00:00Z',
-      shipping_address: {
-        street_address: '888 Park Lane',
-        city: 'Chennai',
-        state: 'Tamil Nadu',
-        postal_code: '600001'
-      },
-      items: [
-        {
-          id: 7,
-          product: {
-            id: 7,
-            title: 'Wireless Bluetooth Headphones with Noise Cancellation - Black',
-            main_image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-            price: 2199
-          },
-          quantity: 1,
-          price: 2199
-        }
-      ]
-    }
-  ];
+  const [completingPayment, setCompletingPayment] = useState<string | null>(null);
 
   const handleViewDetails = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -242,18 +73,127 @@ const OrdersPage: React.FC = () => {
     fetchOrders();
   };
 
+  const handleCompletePayment = async (order: Order) => {
+    if (!order.shipping_address?.id) {
+      alert('Shipping address not found. Please contact support.');
+      return;
+    }
+
+    setCompletingPayment(order.order_id);
+
+    try {
+      // Create new Razorpay order for the pending order
+      const razorpayResponse = await orderAPI.createRazorpayOrder({
+        amount: order.total_amount,
+        shipping_address_id: order.shipping_address.id
+      });
+
+      const getRazorpayMethods = () => {
+        const paymentMethod = order.payment_method || 'RAZORPAY';
+        switch (paymentMethod) {
+          case 'CARD':
+            return {
+              method: {
+                card: true,
+                netbanking: false,
+                upi: false,
+                wallet: false,
+                emi: false
+              }
+            };
+          case 'NET_BANKING':
+            return {
+              method: {
+                card: false,
+                netbanking: true,
+                upi: false,
+                wallet: false,
+                emi: false
+              }
+            };
+          case 'UPI':
+            return {
+              method: {
+                card: false,
+                netbanking: false,
+                upi: true,
+                wallet: false,
+                emi: false
+              }
+            };
+          default:
+            return {};
+        }
+      };
+
+      const razorpayMethods = getRazorpayMethods();
+      const options = {
+        key: razorpayResponse.data.key,
+        amount: razorpayResponse.data.amount * 100,
+        currency: razorpayResponse.data.currency,
+        name: 'SIXPINE',
+        description: 'Complete Payment for Order',
+        order_id: razorpayResponse.data.razorpay_order_id,
+        ...razorpayMethods,
+        handler: async function (response: any) {
+          try {
+            await orderAPI.completePayment({
+              order_id: order.order_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              payment_method: order.payment_method || 'RAZORPAY'
+            });
+
+            alert('Payment completed successfully! Order confirmed.');
+            fetchOrders();
+          } catch (error: any) {
+            alert(error.response?.data?.error || 'Payment verification failed');
+          } finally {
+            setCompletingPayment(null);
+          }
+        },
+        prefill: {
+          name: state.user?.first_name && state.user?.last_name 
+            ? `${state.user.first_name} ${state.user.last_name}` 
+            : state.user?.username || '',
+          email: state.user?.email || '',
+          contact: ''
+        },
+        theme: {
+          color: '#FFD814'
+        },
+        modal: {
+          ondismiss: function() {
+            setCompletingPayment(null);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.on('payment.failed', function () {
+        alert('Payment failed. Please try again.');
+        setCompletingPayment(null);
+      });
+      razorpay.open();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to initiate payment. Please try again.');
+      setCompletingPayment(null);
+    }
+  };
+
+  const handleTrackOrder = (order: Order) => {
+    // Open order details modal
+    handleViewDetails(order.order_id);
+  };
+
   useEffect(() => {
     if (!state.isAuthenticated) {
       navigate('/login');
       return;
     }
 
-    // Check for success message from checkout
-    if (location.state?.message) {
-      setMessage(location.state.message);
-      // Clear the message after 5 seconds
-      setTimeout(() => setMessage(null), 5000);
-    }
+    // Don't show flash message from checkout (removed)
 
     // Check URL params for tab selection
     const params = new URLSearchParams(location.search);
@@ -267,28 +207,15 @@ const OrdersPage: React.FC = () => {
 
   const fetchOrders = async () => {
     try {
+      setLoading(true);
       const response = await orderAPI.getOrders();
-      const fetchedOrders = response.data.results || response.data;
+      const fetchedOrders = response.data.results || response.data || [];
       
-      // If no orders or empty, use demo data
-      if (!fetchedOrders || fetchedOrders.length === 0) {
-        setOrders(demoOrders);
-      } else {
-        // Check if there are any delivered orders for Buy Again tab
-        const deliveredOrders = fetchedOrders.filter((o: Order) => o.status === 'delivered');
-        
-        // If no delivered orders, add demo delivered orders for Buy Again tab
-        if (deliveredOrders.length === 0) {
-          const demoDeliveredOrders = demoOrders.filter(o => o.status === 'delivered');
-          setOrders([...fetchedOrders, ...demoDeliveredOrders]);
-        } else {
-          setOrders(fetchedOrders);
-        }
-      }
+      // Only use real data from backend API
+      setOrders(Array.isArray(fetchedOrders) ? fetchedOrders : []);
     } catch (error) {
       console.error('Fetch orders error:', error);
-      // Use demo data on error
-      setOrders(demoOrders);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -411,18 +338,6 @@ const OrdersPage: React.FC = () => {
             </select>
           </div>
 
-         
-          {message && (
-            <div className="alert alert-success alert-dismissible fade show" role="alert">
-              {message}
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setMessage(null)}
-              ></button>
-            </div>
-          )}
-
           {loading ? (
             <div className="text-center py-5">
               <div className="spinner-border" role="status">
@@ -474,13 +389,39 @@ const OrdersPage: React.FC = () => {
                                 {order.shipping_address.city}, {order.shipping_address.state}
                               </>
                             ) : (
-                              'Mumbai, Maharashtra'
+                              'Address not available'
                             )}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="info-label">PAYMENT STATUS</span>
+                          <span className={`info-value ${
+                            order.payment_status === 'paid' ? 'text-success' : 
+                            order.payment_status === 'pending' ? 'text-warning' : 
+                            'text-danger'
+                          }`}>
+                            {order.payment_status === 'paid' ? 'Paid' : 
+                             order.payment_status === 'pending' ? 'Pending' : 
+                             order.payment_status}
                           </span>
                         </div>
                       </div>
                       <div className="order-id-group">
-                        <span className="order-id-label">ORDER # {order.order_id}</span>
+                        <span className="order-id-label">
+                          ORDER #{order.order_id.slice(0, 8)}
+                          {order.items && order.items.length > 0 && (
+                            <>
+                              {' '}{order.items.length} item{order.items.length > 1 ? 's' : ''}
+                              {order.items[0]?.product?.title && (
+                                <span className="order-item-title">
+                                  {' '}({order.items[0].product.title.length > 50 
+                                    ? order.items[0].product.title.substring(0, 50) + '...'
+                                    : order.items[0].product.title})
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </span>
                         <div className="order-actions-header">
                           <button
                             className="btn-link-custom"
@@ -497,18 +438,33 @@ const OrdersPage: React.FC = () => {
 
                   {/* Order Body */}
                   <div className="order-body">
-                    {order.items && order.items.length > 0 ? (
-                      order.items.map((item) => (
-                        <div key={item.id} className="order-item">
+                    {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
+                        <div key={order.order_id} className="order-item">
                           <div className="item-image-container">
                             <img
-                              src={item.product.main_image || 'https://via.placeholder.com/150'}
-                              alt={item.product.title}
+                              src={order.items[0].product.main_image || 'https://via.placeholder.com/150'}
+                              alt={order.items[0].product.title}
                               className="item-image"
                             />
                           </div>
                           <div className="item-details">
-                            <h3 className="item-title">{item.product.title}</h3>
+                            <h3 className="item-title">Order #{order.order_id.slice(0, 8)}</h3>
+                            
+                            {order.items && order.items.length > 0 && (
+                            <>
+                              {order.items[0]?.product?.title && (
+                                <>
+                                <span className="order-item-title mt-0">
+                                {order.items.length} item{order.items.length > 1 ? 's' : ''} 
+                                  {' '}({order.items[0].product.title.length > 50 
+                                    ? order.items[0].product.title.substring(0, 50) + '...'
+                                    : order.items[0].product.title})
+                                </span>
+
+                                </>
+                              )}
+                            </>
+                          )}
                             <div className="item-rating">
                               <div className="stars">
                                 <span className="star filled">★</span>
@@ -520,13 +476,15 @@ const OrdersPage: React.FC = () => {
                               <span className="review-count">(120 reviews)</span>
                             </div>
                             <div className="item-pricing">
-                              <span className="item-price">₹{item.product.price.toLocaleString()}</span>
-                              <span className="item-strike">₹19,999</span>
+                              <span className="item-price">₹{order.items[0].price.toLocaleString()}</span>
+                              {order.items[0].product.old_price && Number(order.items[0].product.old_price) > Number(order.items[0].price) && (
+                                <span className="item-strike">₹{Number(order.items[0] .product.old_price).toLocaleString()}</span>
+                              )}
                             </div>
                             
                             {/* Show Buy Now and Add to Cart only in Buy Again tab */}
                             {activeTab === 'buyAgain' && (
-                              <div className="item-actions mt-3">
+                              <div className="item-actions">
                                 <button className="btn btn-warning btn-buy-now">Buy Now</button>
                                 <button className="btn btn-outline-secondary btn-add-cart">
                                   <i className="bi bi-cart"></i> Add to Cart
@@ -536,7 +494,7 @@ const OrdersPage: React.FC = () => {
 
                             {/* Show status-specific information for other tabs */}
                             {activeTab === 'notShipped' && (
-                              <div className="item-status mt-3">
+                              <div className="item-status">
                                 <p className="status-text">
                                   <i className="bi bi-clock-history me-2"></i>
                                   <strong>Status:</strong> {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -551,14 +509,18 @@ const OrdersPage: React.FC = () => {
                                     })}
                                   </p>
                                 )}
-                                <button className="btn btn-outline-primary btn-sm mt-2">
+                                <button 
+                                  className="btn btn-outline-primary btn-sm mt-2"
+                                  onClick={() => handleTrackOrder(order)}
+                                >
+                                  <i className="bi bi-truck me-1"></i>
                                   Track Package
                                 </button>
                               </div>
                             )}
 
                             {activeTab === 'cancelled' && (
-                              <div className="item-status mt-3">
+                              <div className="item-status">
                                 <p className="cancelled-text">
                                   <i className="bi bi-x-circle me-2 text-danger"></i>
                                   <strong>Order Cancelled</strong>
@@ -571,7 +533,7 @@ const OrdersPage: React.FC = () => {
                             )}
 
                             {activeTab === 'orders' && (
-                              <div className="item-status mt-3">
+                              <div className="item-status">
                                 <div className="status-badge-container">
                                   <div className="status-icon-wrapper">
                                     {order.status === 'delivered' && <i className="bi bi-check-circle-fill status-icon-delivered"></i>}
@@ -593,11 +555,45 @@ const OrdersPage: React.FC = () => {
                                     </span>
                                   </p>
                                 </div>
+                                
+                                {/* Payment Status and Actions */}
+                                {order.payment_status === 'pending' && (
+                                  <div className="payment-pending-alert mt-3 p-3 border border-warning rounded bg-light">
+                                    <p className="text-warning mb-2">
+                                      <i className="bi bi-exclamation-triangle me-2"></i>
+                                      <strong>Payment Not Successful</strong>
+                                    </p>
+                                    <p className="text-muted small mb-2">
+                                      Your order was created but payment verification failed. Please complete the payment to confirm your order.
+                                    </p>
+                                    <button 
+                                      className="btn btn-warning btn-sm"
+                                      onClick={() => handleCompletePayment(order)}
+                                      disabled={completingPayment === order.order_id}
+                                    >
+                                      {completingPayment === order.order_id ? 'Processing...' : 'Complete Payment'}
+                                    </button>
+                                  </div>
+                                )}
+{/*                                 
+                                {order.payment_status === 'paid' && order.status === 'confirmed' && (
+                                  <div className="payment-success-alert mt-3 p-3 border border-success rounded bg-light">
+                                    <p className="text-success mb-0">
+                                      <i className="bi bi-check-circle me-2"></i>
+                                      <strong>Order Placed Successfully</strong>
+                                    </p>
+                                  </div>
+                                )} */}
+                                
                                 {order.status === 'delivered' && (
                                   <button className="btn btn-warning btn-buy-now mt-2">Buy Again</button>
                                 )}
-                                {['pending', 'confirmed', 'processing'].includes(order.status) && (
-                                  <button className="btn btn-outline-primary btn-sm mt-2">
+                                {['pending', 'confirmed', 'processing', 'shipped'].includes(order.status) && order.payment_status === 'paid' && (
+                                  <button 
+                                    className="btn btn-outline-primary btn-sm mt-2"
+                                    onClick={() => handleTrackOrder(order)}
+                                  >
+                                    <i className="bi bi-truck me-1"></i>
                                     Track Package
                                   </button>
                                 )}
@@ -605,104 +601,9 @@ const OrdersPage: React.FC = () => {
                             )}
                           </div>
                         </div>
-                      ))
                     ) : (
-                      <div className="order-item">
-                        <div className="item-image-container">
-                          <img
-                            src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400"
-                            alt="Product"
-                            className="item-image"
-                          />
-                        </div>
-                        <div className="item-details">
-                          <h3 className="item-title">
-                            Comfortable Wooden bed perfect for your bedroom setup with modern design.
-                          </h3>
-                          <div className="item-rating">
-                            <div className="stars">
-                              <span className="star filled">★</span>
-                              <span className="star filled">★</span>
-                              <span className="star filled">★</span>
-                              <span className="star half">★</span>
-                              <span className="star empty">★</span>
-                            </div>
-                            <span className="review-count">(120 reviews)</span>
-                          </div>
-                          <div className="item-pricing">
-                            <span className="item-price">₹{order.total_amount.toLocaleString()}</span>
-                            <span className="item-strike">₹19,999</span>
-                          </div>
-                          
-                          {/* Show Buy Now and Add to Cart only in Buy Again tab */}
-                          {activeTab === 'buyAgain' && (
-                            <div className="item-actions mt-3">
-                              <button className="btn btn-warning btn-buy-now">Buy Now</button>
-                              <button className="btn btn-outline-secondary btn-add-cart">
-                                <i className="bi bi-cart"></i> Add to Cart
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Show status-specific information for other tabs */}
-                          {activeTab === 'notShipped' && (
-                            <div className="item-status mt-3">
-                              <p className="status-text">
-                                <i className="bi bi-clock-history me-2"></i>
-                                <strong>Status:</strong> {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                              </p>
-                              {order.estimated_delivery && (
-                                <p className="delivery-text">
-                                  <i className="bi bi-truck me-2"></i>
-                                  <strong>Expected Delivery:</strong> {new Date(order.estimated_delivery).toLocaleDateString('en-US', {
-                                    month: 'long',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}
-                                </p>
-                              )}
-                              <button className="btn btn-outline-primary btn-sm mt-2">
-                                Track Package
-                              </button>
-                            </div>
-                          )}
-
-                          {activeTab === 'cancelled' && (
-                            <div className="item-status mt-3">
-                              <p className="cancelled-text">
-                                <i className="bi bi-x-circle me-2 text-danger"></i>
-                                <strong>Order Cancelled</strong>
-                              </p>
-                              <p className="text-muted small">
-                                Refund will be processed within 5-7 business days
-                              </p>
-                              <button className="btn btn-warning btn-buy-now mt-2">Buy Again</button>
-                            </div>
-                          )}
-
-                          {activeTab === 'orders' && (
-                            
-                             <div className="item-status mt-3">
-                              <p className="status-text">
-                                <i className="bi bi-clock-history me-2"></i>
-                                <strong>Status:</strong> {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                              </p>
-                              {order.estimated_delivery && (
-                                <p className="delivery-text">
-                                  <i className="bi bi-truck me-2"></i>
-                                  <strong>Expected Delivery:</strong> {new Date(order.estimated_delivery).toLocaleDateString('en-US', {
-                                    month: 'long',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}
-                                </p>
-                              )}
-                              <button className="btn btn-outline-primary btn-sm mt-2">
-                                Track Package
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                      <div className="text-center py-4 text-muted">
+                        <p className="mb-0">No items found for this order.</p>
                       </div>
                     )}
                   </div>

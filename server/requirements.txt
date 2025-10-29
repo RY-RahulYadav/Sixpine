@@ -12,3 +12,4 @@ google-api-python-client>=2.100.0
 twilio>=8.10.0
 gunicorn>=21.2.0
 whitenoise>=6.6.0
+razorpay>=1.4.1

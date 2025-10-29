@@ -55,6 +55,15 @@ class Order(models.Model):
         ('failed', 'Failed'),
         ('refunded', 'Refunded'),
     ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('COD', 'Cash on Delivery'),
+        ('RAZORPAY', 'Razorpay'),
+        ('CARD', 'Credit/Debit Card'),
+        ('NET_BANKING', 'Net Banking'),
+        ('UPI', 'UPI'),
+        ('WALLET', 'Wallet'),
+    ]
 
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
@@ -62,6 +71,7 @@ class Order(models.Model):
     # Order details
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, null=True, blank=True)
     
     # Pricing
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
@@ -79,6 +89,11 @@ class Order(models.Model):
     
     # Notes
     order_notes = models.TextField(blank=True)
+    
+    # Razorpay Payment Fields
+    razorpay_order_id = models.CharField(max_length=255, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=255, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -98,12 +113,28 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant = models.ForeignKey('products.ProductVariant', on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     price = models.DecimalField(max_digits=10, decimal_places=2)  # Price at time of order
+    # Store variant details for historical record (if variant is deleted)
+    variant_color = models.CharField(max_length=100, blank=True)
+    variant_size = models.CharField(max_length=50, blank=True)
+    variant_pattern = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.title} in Order {self.order.order_id}"
+        variant_info = f" - {self.variant}" if self.variant else ""
+        if not self.variant and (self.variant_color or self.variant_size or self.variant_pattern):
+            variant_parts = []
+            if self.variant_color:
+                variant_parts.append(self.variant_color)
+            if self.variant_size:
+                variant_parts.append(self.variant_size)
+            if self.variant_pattern:
+                variant_parts.append(self.variant_pattern)
+            if variant_parts:
+                variant_info = f" - {' '.join(variant_parts)}"
+        return f"{self.quantity} x {self.product.title}{variant_info} in Order {self.order.order_id}"
 
     @property
     def total_price(self):

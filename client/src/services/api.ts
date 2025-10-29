@@ -141,7 +141,7 @@ export const productAPI = {
 export const cartAPI = {
   getCart: () => API.get('/cart/'),
   
-  addToCart: (data: { product_id: number; quantity: number }) =>
+  addToCart: (data: { product_id: number; quantity: number; variant_id?: number }) =>
     API.post('/cart/add/', data),
   
   updateCartItem: (itemId: number, data: { quantity: number }) =>
@@ -195,6 +195,28 @@ export const orderAPI = {
     API.post('/orders/checkout/', data),
   
   cancelOrder: (orderId: string) => API.post(`/orders/${orderId}/cancel/`),
+  
+  createRazorpayOrder: (data: { amount: number; shipping_address_id: number }) =>
+    API.post('/orders/razorpay/create-order/', data),
+  
+  verifyRazorpayPayment: (data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    shipping_address_id: number;
+    payment_method?: string;
+  }) => API.post('/orders/razorpay/verify-payment/', data),
+  
+  checkoutWithCOD: (data: { shipping_address_id: number; order_notes?: string }) =>
+    API.post('/orders/checkout/cod/', data),
+  
+  completePayment: (data: {
+    order_id: string;
+    razorpay_order_id?: string;
+    razorpay_payment_id?: string;
+    razorpay_signature?: string;
+    payment_method?: string;
+  }) => API.post('/orders/complete-payment/', data),
 };
 
 export default API;

@@ -1,25 +1,362 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/AppContext";
+import { orderAPI, addressAPI, cartAPI } from "../services/api";
 import OrderConfirmation from '../components/OrderConfirmation';
 import ReviewItems from '../components/ReviewItems';
 import DeliveryAddress from '../components/DeliveryAddress';
 import Navbar from "../components/Navbar";  
 import OrderSummary from "../components/OrderSummary";
-
-
-
-
-import "../styles/Pages.css"
-import "../styles/CheckoutPage.css"
+import NewPaymentMethod from "../components/NewPaymentMethod";
 import Footer from "../components/Footer";
 import CategoryTabs from "../components/CategoryTabs";
 import SubNav from "../components/SubNav";
-import NewPaymentMethod from "../components/NewPaymentMethod";
+import PaymentModal from "../components/PaymentModal";
+import "../styles/Pages.css";
+import "../styles/CheckoutPage.css";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+interface Address {
+  id: number;
+  type: string;
+  full_name: string;
+  phone: string;
+  street_address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  is_default: boolean;
+}
+
 const CheckoutPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { state, fetchCart } = useApp();
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  const [processing, setProcessing] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentModalType, setPaymentModalType] = useState<'success' | 'failed'>('success');
+  const [paymentModalMessage, setPaymentModalMessage] = useState<string>('');
+
+  useEffect(() => {
+    if (!state.isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (!state.cart || state.cart.items.length === 0) {
+      navigate('/cart');
+      return;
+    }
+
+    fetchCart();
+    fetchAddresses();
+  }, [state.isAuthenticated]);
+
+  const fetchAddresses = async () => {
+    try {
+      const response = await addressAPI.getAddresses();
+      const addressesData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data.results || response.data.data || []);
+      
+      if (addressesData.length > 0) {
+        const defaultAddr = addressesData.find((addr: Address) => addr.is_default);
+        const addrToSelect = defaultAddr || addressesData[0];
+        setSelectedAddressId(addrToSelect.id);
+        setSelectedAddress(addrToSelect);
+      }
+      // If no addresses, DeliveryAddress component will show add form inline
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+    }
+  };
+
+  const handleAddressChange = async (addressId: number) => {
+    setSelectedAddressId(addressId);
+    // Fetch the full address details to get phone number
+    try {
+      const response = await addressAPI.getAddresses();
+      const addressesData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data.results || response.data.data || []);
+      const address = addressesData.find((addr: Address) => addr.id === addressId);
+      if (address) {
+        setSelectedAddress(address);
+      }
+    } catch (error) {
+      console.error('Error fetching address details:', error);
+    }
+  };
+
+  const handlePaymentMethodChange = (paymentMethod: string) => {
+    setSelectedPaymentMethod(paymentMethod);
+  };
+
+  const handlePayment = async () => {
+    // Check authentication first
+    if (!state.isAuthenticated) {
+      alert('Please login to continue');
+      navigate('/login');
+      return;
+    }
+
+    // Check if token exists
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      alert('Session expired. Please login again');
+      navigate('/login');
+      return;
+    }
+
+    if (!selectedAddressId) {
+      alert('Please select a delivery address');
+      return;
+    }
+
+    if (!selectedPaymentMethod) {
+      alert('Please select a payment method');
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      if (selectedPaymentMethod === 'COD') {
+        // Validate token before making API call
+        const currentToken = localStorage.getItem('authToken');
+        if (!currentToken) {
+          alert('Session expired. Please login again.');
+          navigate('/login');
+          setProcessing(false);
+          return;
+        }
+
+        // Handle COD
+        try {
+          await orderAPI.checkoutWithCOD({
+            shipping_address_id: selectedAddressId,
+            order_notes: 'Order placed from checkout'
+          });
+          
+                 // Clear cart after successful COD order
+                 // Cart is automatically cleared by backend when order is created
+          
+          // Show success message and redirect
+          navigate(`/orders`, { 
+            state: { 
+              message: 'Order placed successfully! We will deliver your order soon.' 
+            } 
+          });
+        } catch (apiError: any) {
+          // Handle API errors
+          if (apiError.response?.status === 401 || apiError.response?.status === 403) {
+            alert('Authentication failed. Please login again.');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            navigate('/login');
+            setProcessing(false);
+            return;
+          }
+          throw apiError; // Re-throw other errors
+        }
+      } else {
+        // Handle Razorpay payment
+        const subtotal = state.cart?.total_price || 0;
+        const shippingCost = subtotal >= 500 ? 0 : 50;
+        const tax = subtotal * 0.05;
+        const total = subtotal + shippingCost + tax;
+
+        // Validate totals
+        if (total <= 0) {
+          alert('Invalid order total. Please check your cart.');
+          setProcessing(false);
+          return;
+        }
+
+        // Validate selected address ID
+        if (!selectedAddressId || selectedAddressId <= 0) {
+          alert('Please select a valid delivery address.');
+          setProcessing(false);
+          return;
+        }
+
+        // Map payment method to Razorpay method
+        const getRazorpayMethods = () => {
+          switch (selectedPaymentMethod) {
+            case 'CC':
+              // Credit/Debit Card
+              return {
+                method: {
+                  card: true,
+                  netbanking: false,
+                  upi: false,
+                  wallet: false,
+                  emi: false
+                }
+              };
+            case 'NB':
+              // Net Banking
+              return {
+                method: {
+                  card: false,
+                  netbanking: true,
+                  upi: false,
+                  wallet: false,
+                  emi: false
+                }
+              };
+            case 'UPI':
+              // UPI
+              return {
+                method: {
+                  card: false,
+                  netbanking: false,
+                  upi: true,
+                  wallet: false,
+                  emi: false
+                }
+              };
+            default:
+              // Show all methods
+              return {};
+          }
+        };
+
+        // Validate token before making API call
+        const currentToken = localStorage.getItem('authToken');
+        if (!currentToken) {
+          alert('Session expired. Please login again.');
+          navigate('/login');
+          setProcessing(false);
+          return;
+        }
+
+        // Create Razorpay order
+        let razorpayResponse;
+        try {
+          razorpayResponse = await orderAPI.createRazorpayOrder({
+            amount: total,
+            shipping_address_id: selectedAddressId
+          });
+        } catch (apiError: any) {
+          // Handle API errors before opening Razorpay
+          if (apiError.response?.status === 401 || apiError.response?.status === 403) {
+            alert('Authentication failed. Please login again.');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            navigate('/login');
+            setProcessing(false);
+            return;
+          }
+          
+          // Handle 400 Bad Request with detailed error message
+          if (apiError.response?.status === 400) {
+            const errorMsg = apiError.response?.data?.error || 'Invalid request. Please check your order details.';
+            alert(errorMsg);
+            setProcessing(false);
+            return;
+          }
+          
+          throw apiError; // Re-throw other errors
+        }
+
+        const razorpayMethods = getRazorpayMethods();
+
+        const options = {
+          key: razorpayResponse.data.key,
+          amount: razorpayResponse.data.amount * 100, // Convert rupees to paise (Razorpay requires amount in smallest currency unit)
+          currency: razorpayResponse.data.currency,
+          name: 'SIXPINE',
+          description: 'Order Payment',
+          order_id: razorpayResponse.data.razorpay_order_id,
+          ...razorpayMethods, // Only show selected payment method
+          handler: async function (response: any) {
+            // Verify payment on backend and create order
+            try {
+              await orderAPI.verifyRazorpayPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                shipping_address_id: selectedAddressId,
+                payment_method: selectedPaymentMethod
+              });
+
+              // Show success modal after Razorpay modal closes
+              setPaymentModalType('success');
+              setPaymentModalMessage('Your payment has been processed successfully. Your order has been placed.');
+              setShowPaymentModal(true);
+            } catch (error: any) {
+              const errorMsg = error.response?.data?.error || 'Payment verification failed';
+              const orderId = error.response?.data?.order_id;
+              
+              // Show failed modal
+              setPaymentModalType('failed');
+              if (orderId) {
+                setPaymentModalMessage(`${errorMsg}\nOrder ID: ${orderId}\nYou can complete payment from your orders page.`);
+              } else {
+                setPaymentModalMessage(errorMsg);
+              }
+              setShowPaymentModal(true);
+            }
+          },
+          prefill: {
+            name: selectedAddress?.full_name || (state.user?.first_name && state.user?.last_name 
+              ? `${state.user.first_name} ${state.user.last_name}` 
+              : state.user?.username || ''),
+            email: state.user?.email || '',
+            contact: selectedAddress?.phone ? selectedAddress.phone.replace(/\D/g, '') : ''
+          },
+          theme: {
+            color: '#FFD814'
+          },
+          modal: {
+            ondismiss: () => {
+              setProcessing(false);
+            }
+          }
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.on('payment.failed', function () {
+          // Show failed modal
+          setPaymentModalType('failed');
+          setPaymentModalMessage('Payment failed. Please try again.');
+          setShowPaymentModal(true);
+          setProcessing(false);
+        });
+        razorpay.open();
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      
+      // Handle authentication errors specifically
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        alert('Authentication failed. Please login again.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        navigate('/login');
+        return;
+      }
+      
+      // Handle other errors
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to process payment. Please try again.';
+      alert(errorMessage);
+      setProcessing(false);
+    }
+  };
 
   return (
     <div>
       <Navbar />
-       <div className="page-content">
+      <div className="page-content">
         <SubNav />
         <CategoryTabs />
       </div>
@@ -27,25 +364,51 @@ const CheckoutPage: React.FC = () => {
       <div className="checkout-page">
         <div className="checkout-main">
           <div className="checkout-left">
-            <DeliveryAddress />
-            <NewPaymentMethod />
+            <DeliveryAddress 
+              selectedAddressId={selectedAddressId || undefined}
+              onAddressChange={handleAddressChange}
+            />
+            <NewPaymentMethod 
+              onPaymentMethodChange={handlePaymentMethodChange}
+            />
             <ReviewItems />
             <OrderConfirmation />
           </div>
           <div className="checkout-right">
-            <OrderSummary />
+            <OrderSummary 
+              onPaymentClick={handlePayment}
+              paymentDisabled={processing || !selectedAddressId || !selectedPaymentMethod}
+            />
           </div>
         </div>
       </div>
 
-      <Footer/>
-
+      <Footer />
       
-       
+      {/* Payment Modal */}
+      <PaymentModal
+        show={showPaymentModal}
+        type={paymentModalType}
+        message={paymentModalMessage}
+        onClose={async () => {
+          setShowPaymentModal(false);
+          if (paymentModalType === 'success') {
+            // Navigate to orders page without message
+            navigate('/orders');
+          } else {
+            // Clear cart and navigate to orders page
+            try {
+              await cartAPI.clearCart();
+              await fetchCart();
+            } catch (error) {
+              console.error('Error clearing cart:', error);
+            }
+            navigate('/orders');
+          }
+        }}
+      />
     </div>
   );
 };
 
 export default CheckoutPage;
-
-

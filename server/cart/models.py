@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from products.models import Product
+from products.models import Product, ProductVariant
 from django.core.validators import MinValueValidator
 
 
@@ -28,25 +28,32 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, null=True, blank=True, related_name='cart_items')
     quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['cart', 'product']
+        unique_together = ['cart', 'product', 'variant']
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.title} in {self.cart.user.username}'s cart"
+        variant_info = f" - {self.variant}" if self.variant else ""
+        return f"{self.quantity} x {self.product.title}{variant_info} in {self.cart.user.username}'s cart"
 
     @property
     def total_price(self):
-        return self.quantity * self.product.price
+        # Use variant price if available, otherwise product price
+        price = self.variant.price if self.variant and self.variant.price else self.product.price
+        return self.quantity * price
 
     def save(self, *args, **kwargs):
-        # Ensure quantity doesn't exceed available stock (only if product has variants)
-        has_variants = self.product.variants.exists()
-        if has_variants:
-            total_available = sum(variant.stock_quantity for variant in self.product.variants.all())
-            if self.quantity > total_available:
-                self.quantity = total_available
+        # If product has variants, variant must be specified
+        if self.product.variants.exists() and not self.variant:
+            raise ValueError("Variant must be specified for products with variants")
+        
+        # Check variant stock
+        if self.variant:
+            if self.quantity > self.variant.stock_quantity:
+                raise ValueError(f"Only {self.variant.stock_quantity} items available in stock for this variant")
+        
         super().save(*args, **kwargs)

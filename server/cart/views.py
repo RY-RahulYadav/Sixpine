@@ -20,7 +20,10 @@ class CartView(generics.RetrieveAPIView):
 @permission_classes([permissions.IsAuthenticated])
 def add_to_cart(request):
     """Add item to cart or update quantity if item exists"""
+    from products.models import ProductVariant
+    
     product_id = request.data.get('product_id')
+    variant_id = request.data.get('variant_id')
     quantity = int(request.data.get('quantity', 1))
     
     if not product_id:
@@ -31,21 +34,32 @@ def add_to_cart(request):
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
     
-    # Check if product has variants with stock tracking
+    # Check if product has variants - variant_id is required if variants exist
     has_variants = product.variants.exists()
+    variant = None
     
-    # Stock check - check variant stock if variants exist, otherwise skip
-    if has_variants and quantity > 0:
-        total_available = sum(variant.stock_quantity for variant in product.variants.all())
-        if total_available < quantity:
+    if has_variants:
+        if not variant_id:
             return Response({
-                'error': f'Only {total_available} items available in stock'
+                'error': 'Variant is required for this product. Please select a color, size, or pattern.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            variant = ProductVariant.objects.get(id=variant_id, product=product, is_active=True)
+        except ProductVariant.DoesNotExist:
+            return Response({'error': 'Invalid variant selected'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Stock check for variant
+        if quantity > variant.stock_quantity:
+            return Response({
+                'error': f'Only {variant.stock_quantity} items available in stock for this variant'
             }, status=status.HTTP_400_BAD_REQUEST)
     
     cart, created = Cart.objects.get_or_create(user=request.user)
     cart_item, created = CartItem.objects.get_or_create(
         cart=cart, 
         product=product,
+        variant=variant,
         defaults={'quantity': quantity}
     )
     
@@ -53,12 +67,11 @@ def add_to_cart(request):
         # Update existing item quantity
         new_quantity = cart_item.quantity + quantity
         
-        # Stock check for variants only
-        if has_variants:
-            total_available = sum(variant.stock_quantity for variant in product.variants.all())
-            if new_quantity > total_available:
+        # Stock check for variants
+        if variant:
+            if new_quantity > variant.stock_quantity:
                 return Response({
-                    'error': f'Cannot add {quantity} more items. Only {total_available - cart_item.quantity} more available'
+                    'error': f'Cannot add {quantity} more items. Only {variant.stock_quantity - cart_item.quantity} more available'
                 }, status=status.HTTP_400_BAD_REQUEST)
         
         cart_item.quantity = new_quantity
@@ -82,13 +95,11 @@ def update_cart_item(request, item_id):
         cart_item.delete()
         return Response({'message': 'Item removed from cart'})
     
-    # Check stock only if product has variants
-    has_variants = cart_item.product.variants.exists()
-    if has_variants:
-        total_available = sum(variant.stock_quantity for variant in cart_item.product.variants.all())
-        if quantity > total_available:
+    # Check variant stock if variant exists
+    if cart_item.variant:
+        if quantity > cart_item.variant.stock_quantity:
             return Response({
-                'error': f'Only {total_available} items available in stock'
+                'error': f'Only {cart_item.variant.stock_quantity} items available in stock for this variant'
             }, status=status.HTTP_400_BAD_REQUEST)
     
     cart_item.quantity = quantity

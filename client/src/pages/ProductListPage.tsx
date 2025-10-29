@@ -11,12 +11,14 @@ import '../styles/productListModern.css';
 import '../styles/filterDropdowns.css';
 
 interface Product {
-  id: number;
+  id: number | string;
+  product_id?: number; // When variant is expanded
+  variant_id?: number; // When variant is expanded
   title: string;
   short_description: string;
   main_image: string;
   price: number;
-  old_price: number;
+  old_price: number | null;
   average_rating: number;
   review_count: number;
   slug: string;
@@ -31,15 +33,18 @@ interface Product {
     id: number;
     name: string;
     slug: string;
-  };
+  } | null;
   brand: string;
-  material: string;
-  images: Array<{
+  material?: {
+    id: number;
+    name: string;
+  } | string | null;
+  images?: Array<{
     id: number;
     image: string;
     alt_text: string;
   }>;
-  variants: Array<{
+  variants?: Array<{
     id: number;
     color: {
       id: number;
@@ -53,7 +58,31 @@ interface Product {
     stock_quantity: number;
     is_in_stock: boolean;
   }>;
-  available_colors: string[];
+  variant?: {
+    id: number;
+    title?: string;
+    color: {
+      id: number;
+      name: string;
+      hex_code: string;
+    };
+    size: string;
+    pattern: string;
+    price?: number;
+    old_price?: number;
+    stock_quantity: number;
+    is_in_stock: boolean;
+    image?: string;
+    images?: Array<{
+      id: number;
+      image: string;
+      alt_text: string;
+      sort_order: number;
+    }>;
+  };
+  variant_title?: string;
+  product_title?: string;
+  available_colors?: string[];
 }
 
 const ProductListPage: React.FC = () => {
@@ -61,6 +90,7 @@ const ProductListPage: React.FC = () => {
   const { addToCart } = useApp();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({
@@ -203,9 +233,18 @@ const ProductListPage: React.FC = () => {
           break;
       }
 
+      // Request variant expansion - show each variant as separate product card
+      params.expand_variants = 'true';
+
       console.log('Fetching products with params:', params);
       const response = await productAPI.getProducts(params);
       setProducts(response.data.results || response.data);
+      // Update total count (includes expanded variants)
+      if (response.data.count !== undefined) {
+        setTotalProducts(response.data.count);
+      } else {
+        setTotalProducts(Array.isArray(response.data.results || response.data) ? (response.data.results || response.data).length : 0);
+      }
     } catch (error) {
       console.error('Fetch products error:', error);
     } finally {
@@ -213,23 +252,31 @@ const ProductListPage: React.FC = () => {
     }
   };
 
-  const handleAddToCart = async (productId: number) => {
+  const handleAddToCart = async (product: Product) => {
     try {
-      await addToCart(productId, 1);
+      const productId = typeof product.id === 'string' && product.product_id ? product.product_id : Number(product.id);
+      const variantId = product.variant_id || product.variant?.id;
+      
+      await addToCart(productId, 1, variantId);
       // Sidebar will open automatically via context
     } catch (error: any) {
-      alert(error.message || 'Failed to add to cart');
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to add to cart';
+      alert(errorMsg);
     }
   };
 
-  const handleBuyNow = async (productId: number) => {
+  const handleBuyNow = async (product: Product) => {
     try {
+      const productId = typeof product.id === 'string' && product.product_id ? product.product_id : Number(product.id);
+      const variantId = product.variant_id || product.variant?.id;
+      
       // Add to cart then navigate to cart/checkout
-      await addToCart(productId, 1);
+      await addToCart(productId, 1, variantId);
       // Navigate user to cart page so they can checkout immediately
       navigate('/cart');
     } catch (error: any) {
-      alert(error.message || 'Failed to add to cart');
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to add to cart';
+      alert(errorMsg);
     }
   };
 
@@ -314,7 +361,7 @@ const ProductListPage: React.FC = () => {
                     <i className="bi bi-funnel"></i>
                     <span>Filters</span>
                   </button>
-                  <span className="results-count">{products.length} Products</span>
+                  <span className="results-count">{totalProducts || products.length} Products</span>
                 </div>
                 
                 <div className="right-actions">
@@ -668,9 +715,53 @@ const ProductListPage: React.FC = () => {
                           </div>
                           
                           <div className="product-info">
-                            <Link to={`/products-details/${product.slug}`} className="product-link">
-                              <h3 className="product-name">{product.title}</h3>
+                            <Link 
+                              to={`/products-details/${product.slug}${product.variant_id ? `?variant=${product.variant_id}` : ''}`} 
+                              className="product-link"
+                            >
+                              <h3 className="product-name">
+                                {product.product_title || product.title}
+                                {product.variant_title && (
+                                  <span className="text-muted" style={{ fontSize: '0.9em' }}>
+                                    {' '}- {product.variant_title}
+                                  </span>
+                                )}
+                              </h3>
                             </Link>
+                            
+                            {/* Variant Information */}
+                            {(product.variant || product.variant_title) && (
+                              <div className="product-variant-info mb-2">
+                                <small className="text-muted d-flex flex-wrap gap-2 align-items-center">
+                                  {product.variant?.color && (
+                                    <span>
+                                      <strong>Color:</strong> {product.variant.color.name}
+                                      {product.variant.color.hex_code && (
+                                        <span 
+                                          className="ms-1"
+                                          style={{
+                                            display: 'inline-block',
+                                            width: '12px',
+                                            height: '12px',
+                                            backgroundColor: product.variant.color.hex_code,
+                                            border: '1px solid #ccc',
+                                            borderRadius: '2px',
+                                            verticalAlign: 'middle'
+                                          }}
+                                          title={product.variant.color.name}
+                                        />
+                                      )}
+                                    </span>
+                                  )}
+                                  {product.variant?.size && (
+                                    <span><strong>Size:</strong> {product.variant.size}</span>
+                                  )}
+                                  {product.variant?.pattern && (
+                                    <span><strong>Pattern:</strong> {product.variant.pattern}</span>
+                                  )}
+                                </small>
+                              </div>
+                            )}
                             
                             <p className="product-description">
                               {product.short_description}
@@ -686,7 +777,7 @@ const ProductListPage: React.FC = () => {
                             <div className="product-pricing">
                               <div className="price-info">
                                 <span className="current-price">₹{product.price.toLocaleString()}</span>
-                                {product.old_price > product.price && (
+                                {product.old_price && product.old_price > product.price && (
                                   <>
                                     <span className="original-price">₹{product.old_price.toLocaleString()}</span>
                                     <span className="save-amount">Save ₹{(product.old_price - product.price).toLocaleString()}</span>
@@ -698,17 +789,17 @@ const ProductListPage: React.FC = () => {
                             <div className="product-action-row">
                               <button
                                 className="btn-add-to-cart btn-buy-now"
-                                onClick={() => handleBuyNow(product.id)}
-                                disabled={loading}
+                                onClick={() => handleBuyNow(product)}
+                                disabled={loading || (product.variant && !product.variant.is_in_stock)}
                               >
                                 Buy Now
                               </button>
 
                               <button
                                 className="btn-cart-icon"
-                                onClick={() => handleAddToCart(product.id)}
+                                onClick={() => handleAddToCart(product)}
                                 title="Add to cart"
-                                disabled={loading}
+                                disabled={loading || (product.variant && !product.variant.is_in_stock)}
                               >
                                 <i className="bi bi-cart-plus"></i>
                               </button>

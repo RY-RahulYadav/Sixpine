@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.db.models import Q
 from .models import (
     Category, Subcategory, Color, Material, Product, ProductImage, ProductVariant,
-    ProductReview, ProductRecommendation, ProductSpecification, 
+    ProductVariantImage, ProductReview, ProductRecommendation, ProductSpecification, 
     ProductFeature, ProductOffer
 )
 
@@ -39,15 +39,22 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'alt_text', 'sort_order']
 
 
+class ProductVariantImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductVariantImage
+        fields = ['id', 'image', 'alt_text', 'sort_order']
+
+
 class ProductVariantSerializer(serializers.ModelSerializer):
     color = ColorSerializer(read_only=True)
     color_id = serializers.IntegerField(write_only=True)
+    images = ProductVariantImageSerializer(many=True, read_only=True)
     
     class Meta:
         model = ProductVariant
         fields = [
-            'id', 'color', 'color_id', 'size', 'pattern', 'price', 'old_price',
-            'stock_quantity', 'is_in_stock', 'image'
+            'id', 'title', 'color', 'color_id', 'size', 'pattern', 'price', 'old_price',
+            'stock_quantity', 'is_in_stock', 'image', 'images'
         ]
 
 

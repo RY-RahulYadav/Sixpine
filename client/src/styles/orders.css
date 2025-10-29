@@ -3,9 +3,9 @@
 .orders-page {
   background-color: #ffffff;
   min-height: 100vh;
-max-width: 1500px !important;
+  width: 100%;
   padding: 0 !important;
-  margin: 0 auto !important;
+  margin: 0 !important;
 }
 
 /* Breadcrumb */
@@ -206,6 +206,16 @@ max-width: 1500px !important;
 .order-id-label {
   font-size: 12px;
   color: #565959;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.order-item-title {
+  font-size: 11px;
+  color: #565959;
+  font-weight: 400;
 }
 
 .order-actions-header {
@@ -264,10 +274,10 @@ max-width: 1500px !important;
 }
 
 .item-title {
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 18px;
+  font-weight: 500;
   color: #0f1111;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   line-height: 1.4;
 }
 
@@ -275,7 +285,7 @@ max-width: 1500px !important;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .stars {
@@ -313,7 +323,7 @@ max-width: 1500px !important;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .item-price {
@@ -610,15 +620,16 @@ max-width: 1500px !important;
 
 /* Status-Specific Styles */
 .item-status {
-  padding-top: 12px;
-  border-top: 1px solid #ddd;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: none;
 }
 
 .status-badge-container {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   /* vertical 8px, horizontal 10px */
   padding: 8px 10px;
   background-color: #f7f8f8;
@@ -684,7 +695,7 @@ max-width: 1500px !important;
 .status-text {
   font-size: 14px;
   color: #0f1111;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
 }
@@ -697,7 +708,7 @@ max-width: 1500px !important;
 .delivery-text {
   font-size: 13px;
   color: #565959;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
 }

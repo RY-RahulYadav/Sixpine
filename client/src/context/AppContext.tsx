@@ -66,7 +66,7 @@ const AppContext = createContext<{
   login: (credentials: { username: string; password: string }) => Promise<void>;
   logout: () => void;
   fetchCart: () => Promise<void>;
-  addToCart: (productId: number, quantity?: number) => Promise<void>;
+  addToCart: (productId: number, quantity?: number, variantId?: number) => Promise<void>;
   openCartSidebar: () => void;
   closeCartSidebar: () => void;
 } | null>(null);
@@ -181,9 +181,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const addToCart = async (productId: number, quantity: number = 1) => {
+  const addToCart = async (productId: number, quantity: number = 1, variantId?: number) => {
     try {
-      await cartAPI.addToCart({ product_id: productId, quantity });
+      await cartAPI.addToCart({ product_id: productId, quantity, variant_id: variantId });
       await fetchCart(); // Refresh cart
       dispatch({ type: 'OPEN_CART_SIDEBAR' }); // Open sidebar after adding to cart
     } catch (error: any) {

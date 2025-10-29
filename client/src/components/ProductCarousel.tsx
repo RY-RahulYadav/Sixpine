@@ -32,13 +32,22 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({ title, products, caro
       return;
     }
 
+    // If product has variants, navigate to product detail page for variant selection
+    if (product.variants && product.variants.length > 0) {
+      if (product.slug) {
+        navigate(`/product/${product.slug}`);
+      }
+      return;
+    }
+
     if (product.id) {
       try {
         await addToCart(product.id, 1);
         navigate('/cart');
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error adding to cart:', error);
-        alert('Failed to add item to cart');
+        const errorMsg = error.response?.data?.error || error.message || 'Failed to add item to cart';
+        alert(errorMsg);
       }
     }
   };
@@ -49,13 +58,22 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({ title, products, caro
       return;
     }
 
+    // If product has variants, navigate to product detail page for variant selection
+    if (product.variants && product.variants.length > 0) {
+      if (product.slug) {
+        navigate(`/product/${product.slug}`);
+      }
+      return;
+    }
+
     if (product.id) {
       try {
         await addToCart(product.id, 1);
         // Sidebar will open automatically via context
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error adding to cart:', error);
-        alert('Failed to add item to cart');
+        const errorMsg = error.response?.data?.error || error.message || 'Failed to add item to cart';
+        alert(errorMsg);
       }
     }
   };

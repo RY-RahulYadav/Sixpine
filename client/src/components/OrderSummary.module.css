@@ -20,8 +20,15 @@
     line-height: 20px;
 }
 
-.paymentButton:hover {
+.paymentButton:hover:not(:disabled) {
     background-color: #f7ca00;
+}
+
+.paymentButton.disabled,
+.paymentButton:disabled {
+    background-color: #ddd;
+    color: #888;
+    cursor: not-allowed;
 }
 
 .separator {

@@ -15,7 +15,7 @@ django.setup()
 
 from products.models import (
     Category, Subcategory, Color, Material, Product, ProductImage, 
-    ProductVariant, ProductSpecification, ProductFeature, ProductOffer,
+    ProductVariant, ProductVariantImage, ProductSpecification, ProductFeature, ProductOffer,
     ProductReview, ProductRecommendation
 )
 from accounts.models import User
@@ -257,23 +257,67 @@ def create_product_1():
                 sort_order=i
             )
         
-        # Add variants (exactly 3 each)
+        # Add variants - create ALL possible combinations
         colors = ['Red', 'Blue', 'Brown']
         sizes = ['Standard', 'Large', 'XL']
         patterns = ['Modern', 'Classic', 'Contemporary']
         
-        # Create exactly 3 variants (one for each color)
-        for i, color_name in enumerate(colors):
+        # Create all combinations: 3 colors x 3 sizes x 3 patterns = 27 variants
+        variant_count = 0
+        base_price = float(product.price)
+        
+        for color_name in colors:
             color = Color.objects.get(name=color_name)
-            ProductVariant.objects.create(
-                product=product,
-                color=color,
-                size=sizes[i % len(sizes)],
-                pattern=patterns[i % len(patterns)],
-                stock_quantity=10,
-                is_in_stock=True,
-                image=f'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&color={color_name.lower()}'
-            )
+            for size in sizes:
+                for pattern in patterns:
+                    variant_title = f"{color_name} {size} {pattern}"
+                    
+                    price_multiplier = 1.0
+                    if 'Modern' in pattern:
+                        price_multiplier = 1.1
+                    elif 'Classic' in pattern:
+                        price_multiplier = 0.95
+                    
+                    if 'XL' in size:
+                        price_multiplier *= 1.2
+                    elif 'Large' in size:
+                        price_multiplier *= 1.1
+                    
+                    variant_price = round(base_price * price_multiplier, 2)
+                    variant_old_price = round(base_price * price_multiplier * 1.15, 2) if product.old_price else None
+                    
+                    variant = ProductVariant.objects.create(
+                        product=product,
+                        color=color,
+                        size=size,
+                        pattern=pattern,
+                        title=variant_title,
+                        price=variant_price,
+                        old_price=variant_old_price,
+                        image=product.main_image,
+                        stock_quantity=10,
+                        is_in_stock=True
+                    )
+                    
+                    # Add variant images
+                    variant_images = [
+                        product.main_image,
+                        product.images.first().image if product.images.exists() else product.main_image,
+                        product.main_image
+                    ]
+                    
+                    for idx, img_url in enumerate(variant_images):
+                        if img_url:
+                            ProductVariantImage.objects.create(
+                                variant=variant,
+                                image=img_url,
+                                alt_text=f"{variant_title} - Image {idx + 1}",
+                                sort_order=idx
+                            )
+                    
+                    variant_count += 1
+        
+        print(f"Created {variant_count} variants for {product.title}")
         
         # Add offers
         ProductOffer.objects.create(
@@ -385,22 +429,67 @@ def create_product_2():
                 sort_order=i
             )
         
-        # Add variants (exactly 3 each)
+        # Add variants - create ALL possible combinations
         colors = ['Brown', 'Black', 'White']
         sizes = ['King', 'Queen', 'Single']
         patterns = ['Classic', 'Modern', 'Traditional']
         
-        # Create exactly 3 variants (one for each color)
-        for i, color_name in enumerate(colors):
+        # Create all combinations: 3 colors x 3 sizes x 3 patterns = 27 variants
+        variant_count = 0
+        base_price = float(product.price)
+        
+        for color_name in colors:
             color = Color.objects.get(name=color_name)
-            ProductVariant.objects.create(
-                product=product,
-                color=color,
-                size=sizes[i % len(sizes)],
-                pattern=patterns[i % len(patterns)],
-                stock_quantity=8,
-                is_in_stock=True
-            )
+            for size in sizes:
+                for pattern in patterns:
+                    variant_title = f"{color_name} {size} {pattern}"
+                    
+                    price_multiplier = 1.0
+                    if 'Modern' in pattern:
+                        price_multiplier = 1.1
+                    elif 'Classic' in pattern:
+                        price_multiplier = 0.95
+                    
+                    if 'King' in size:
+                        price_multiplier *= 1.2
+                    elif 'Queen' in size:
+                        price_multiplier *= 1.1
+                    
+                    variant_price = round(base_price * price_multiplier, 2)
+                    variant_old_price = round(base_price * price_multiplier * 1.15, 2) if product.old_price else None
+                    
+                    variant = ProductVariant.objects.create(
+                        product=product,
+                        color=color,
+                        size=size,
+                        pattern=pattern,
+                        title=variant_title,
+                        price=variant_price,
+                        old_price=variant_old_price,
+                        image=product.main_image,
+                        stock_quantity=8,
+                        is_in_stock=True
+                    )
+                    
+                    # Add variant images
+                    variant_images = [
+                        product.main_image,
+                        product.images.first().image if product.images.exists() else product.main_image,
+                        product.main_image
+                    ]
+                    
+                    for idx, img_url in enumerate(variant_images):
+                        if img_url:
+                            ProductVariantImage.objects.create(
+                                variant=variant,
+                                image=img_url,
+                                alt_text=f"{variant_title} - Image {idx + 1}",
+                                sort_order=idx
+                            )
+                    
+                    variant_count += 1
+        
+        print(f"Created {variant_count} variants for {product.title}")
         
         # Add offers
         ProductOffer.objects.create(
@@ -623,22 +712,67 @@ def create_product_4():
                 sort_order=i
             )
         
-        # Add variants (exactly 3 each)
+        # Add variants - create ALL possible combinations
         colors = ['Brown', 'Black', 'White']
         sizes = ['6-Seater', '4-Seater', '2-Seater']
         patterns = ['Classic', 'Modern', 'Rustic']
         
-        # Create exactly 3 variants (one for each color)
-        for i, color_name in enumerate(colors):
+        # Create all combinations: 3 colors x 3 sizes x 3 patterns = 27 variants
+        variant_count = 0
+        base_price = float(product.price)
+        
+        for color_name in colors:
             color = Color.objects.get(name=color_name)
-            ProductVariant.objects.create(
-                product=product,
-                color=color,
-                size=sizes[i % len(sizes)],
-                pattern=patterns[i % len(patterns)],
-                stock_quantity=12,
-                is_in_stock=True
-            )
+            for size in sizes:
+                for pattern in patterns:
+                    variant_title = f"{color_name} {size} {pattern}"
+                    
+                    price_multiplier = 1.0
+                    if 'Modern' in pattern:
+                        price_multiplier = 1.1
+                    elif 'Classic' in pattern:
+                        price_multiplier = 0.95
+                    
+                    if '6-Seater' in size:
+                        price_multiplier *= 1.15
+                    elif '4-Seater' in size:
+                        price_multiplier *= 1.05
+                    
+                    variant_price = round(base_price * price_multiplier, 2)
+                    variant_old_price = round(base_price * price_multiplier * 1.15, 2) if product.old_price else None
+                    
+                    variant = ProductVariant.objects.create(
+                        product=product,
+                        color=color,
+                        size=size,
+                        pattern=pattern,
+                        title=variant_title,
+                        price=variant_price,
+                        old_price=variant_old_price,
+                        image=product.main_image,
+                        stock_quantity=12,
+                        is_in_stock=True
+                    )
+                    
+                    # Add variant images
+                    variant_images = [
+                        product.main_image,
+                        product.images.first().image if product.images.exists() else product.main_image,
+                        product.main_image
+                    ]
+                    
+                    for idx, img_url in enumerate(variant_images):
+                        if img_url:
+                            ProductVariantImage.objects.create(
+                                variant=variant,
+                                image=img_url,
+                                alt_text=f"{variant_title} - Image {idx + 1}",
+                                sort_order=idx
+                            )
+                    
+                    variant_count += 1
+        
+        print(f"Created {variant_count} variants for {product.title}")
         
         # Add offers
         ProductOffer.objects.create(
@@ -743,22 +877,71 @@ def create_product_5():
                 sort_order=i
             )
         
-        # Add variants (exactly 3 each)
+        # Add variants - create ALL possible combinations
         colors = ['White', 'Brown', 'Black']
         sizes = ['4-Door', '3-Door', '2-Door']
         patterns = ['Modern', 'Classic', 'Contemporary']
         
-        # Create exactly 3 variants (one for each color)
-        for i, color_name in enumerate(colors):
+        # Create all combinations: 3 colors x 3 sizes x 3 patterns = 27 variants
+        variant_count = 0
+        base_price = float(product.price)
+        
+        for color_name in colors:
             color = Color.objects.get(name=color_name)
-            ProductVariant.objects.create(
-                product=product,
-                color=color,
-                size=sizes[i % len(sizes)],
-                pattern=patterns[i % len(patterns)],
-                stock_quantity=6,
-                is_in_stock=True
-            )
+            for size in sizes:
+                for pattern in patterns:
+                    # Generate variant title (e.g., "White 4-Door Modern")
+                    variant_title = f"{color_name} {size} {pattern}"
+                    
+                    # Add price variation based on variant
+                    # Example: Different colors/sizes/patterns can have different prices
+                    price_multiplier = 1.0
+                    if 'Modern' in pattern:
+                        price_multiplier = 1.1  # Modern pattern costs 10% more
+                    elif 'Classic' in pattern:
+                        price_multiplier = 0.95  # Classic pattern costs 5% less
+                    
+                    if '4-Door' in size:
+                        price_multiplier *= 1.2  # 4-Door costs 20% more
+                    elif '3-Door' in size:
+                        price_multiplier *= 1.1  # 3-Door costs 10% more
+                    
+                    variant_price = round(base_price * price_multiplier, 2)
+                    variant_old_price = round(base_price * price_multiplier * 1.15, 2) if product.old_price else None
+                    
+                    variant = ProductVariant.objects.create(
+                        product=product,
+                        color=color,
+                        size=size,
+                        pattern=pattern,
+                        title=variant_title,
+                        price=variant_price,
+                        old_price=variant_old_price,
+                        image=product.main_image,  # Use product main image as default variant image
+                        stock_quantity=6,
+                        is_in_stock=True
+                    )
+                    
+                    # Add variant images (example - you can add more images per variant)
+                    # Add 2-3 variant images per variant
+                    variant_images = [
+                        product.main_image,
+                        product.images.first().image if product.images.exists() else product.main_image,
+                        product.main_image  # Can be different images for each variant
+                    ]
+                    
+                    for idx, img_url in enumerate(variant_images):
+                        if img_url:
+                            ProductVariantImage.objects.create(
+                                variant=variant,
+                                image=img_url,
+                                alt_text=f"{variant_title} - Image {idx + 1}",
+                                sort_order=idx
+                            )
+                    
+                    variant_count += 1
+        
+        print(f"Created {variant_count} variants for {product.title}")
         
         # Add offers
         ProductOffer.objects.create(

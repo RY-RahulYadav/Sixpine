@@ -10,7 +10,7 @@ interface CartSidebarProps {
 }
 
 const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
-    isOpen =false;
+    // isOpen =false;
   const navigate = useNavigate();
   const { state, fetchCart } = useApp();
 

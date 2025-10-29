@@ -30,6 +30,10 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,sixpine-server.onrender.com,*,sixpine-server.vercel.app', cast=Csv())
 
+# Razorpay Configuration
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
+
 
 # Application definition
 

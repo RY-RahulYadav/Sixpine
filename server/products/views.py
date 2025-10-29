@@ -8,7 +8,7 @@ from django.db.models import Q, Avg, Count, Prefetch
 from django.shortcuts import get_object_or_404
 
 from .models import (
-    Product, Category, Subcategory, Color, Material, ProductVariant,
+    Product, Category, Subcategory, Color, Material, ProductVariant, ProductVariantImage,
     ProductReview, ProductRecommendation, ProductSpecification,
     ProductFeature, ProductOffer
 )
@@ -44,7 +44,7 @@ class ProductListView(generics.ListAPIView):
         ).prefetch_related(
             'images',
             'reviews',
-            Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True).select_related('color'))
+            Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True).select_related('color').prefetch_related('images'))
         )
         
         # Apply sorting
@@ -54,25 +54,148 @@ class ProductListView(generics.ListAPIView):
         return queryset
     
     def list(self, request, *args, **kwargs):
-        """Override list to include filter options"""
+        """Override list to include filter options and expand variants"""
         queryset = self.filter_queryset(self.get_queryset())
+        
+        # Check if we should expand variants into separate items
+        expand_variants = request.query_params.get('expand_variants', 'false').lower() == 'true'
         
         # Get filter options for the current queryset
         filter_options = ProductAggregationFilter.get_filter_options(queryset)
         
-        # Paginate results
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            paginated_response = self.get_paginated_response(serializer.data)
-            paginated_response.data['filter_options'] = filter_options
-            return paginated_response
-        
-        serializer = self.get_serializer(queryset, many=True)
-        return Response({
-            'results': serializer.data,
-            'filter_options': filter_options
-        })
+        # If expand_variants, we need to handle pagination differently
+        if expand_variants:
+            # Expand variants: create a list where each variant is a separate item
+            expanded_results = []
+            for product in queryset:
+                variants = product.variants.filter(is_active=True).prefetch_related('images').all()
+                if variants.exists():
+                    # If product has variants, add each variant as a separate item
+                    for variant in variants:
+                        # Get variant images
+                        variant_images = [
+                            {
+                                'id': img.id,
+                                'image': img.image,
+                                'alt_text': img.alt_text,
+                                'sort_order': img.sort_order
+                            }
+                            for img in variant.images.filter(is_active=True).order_by('sort_order')
+                        ] if hasattr(variant, 'images') else []
+                        
+                        expanded_results.append({
+                            'id': f"{product.id}-{variant.id}",  # Unique ID for variant
+                            'product_id': product.id,
+                            'variant_id': variant.id,
+                            'title': f"{product.title} - {variant.title}",  # Include variant title in product title
+                            'slug': product.slug,
+                            'product_title': product.title,  # Original product title
+                            'short_description': product.short_description,
+                            'main_image': variant.image if variant.image else product.main_image,
+                            'images': variant_images if variant_images else [{'image': variant.image if variant.image else product.main_image}] if variant.image or product.main_image else [],
+                            'price': float(variant.price) if variant.price else float(product.price),
+                            'old_price': float(variant.old_price) if variant.old_price else (float(product.old_price) if product.old_price else None),
+                            'is_on_sale': product.is_on_sale,
+                            'discount_percentage': product.discount_percentage,
+                            'average_rating': self._get_average_rating(product),
+                            'review_count': product.reviews.filter(is_approved=True).count(),
+                            'category': {
+                                'id': product.category.id,
+                                'name': product.category.name,
+                                'slug': product.category.slug
+                            },
+                            'subcategory': {
+                                'id': product.subcategory.id,
+                                'name': product.subcategory.name,
+                                'slug': product.subcategory.slug
+                            } if product.subcategory else None,
+                            'brand': product.brand,
+                            'material': {
+                                'id': product.material.id,
+                                'name': product.material.name
+                            } if product.material else None,
+                            'variant': {
+                                'id': variant.id,
+                                'title': variant.title,
+                                'color': {
+                                    'id': variant.color.id,
+                                    'name': variant.color.name,
+                                    'hex_code': variant.color.hex_code
+                                },
+                                'size': variant.size,
+                                'pattern': variant.pattern,
+                                'price': float(variant.price) if variant.price else float(product.price),
+                                'old_price': float(variant.old_price) if variant.old_price else (float(product.old_price) if product.old_price else None),
+                                'stock_quantity': variant.stock_quantity,
+                                'is_in_stock': variant.is_in_stock,
+                                'image': variant.image if variant.image else product.main_image,
+                                'images': variant_images
+                            },
+                            'variant_title': variant.title,  # For easy access in frontend
+                            'is_featured': product.is_featured,
+                            'created_at': product.created_at.isoformat()
+                        })
+                else:
+                    # If no variants, add product as is
+                    serializer = self.get_serializer(product)
+                    expanded_results.append(serializer.data)
+            
+            # Apply sorting to expanded results
+            sort_option = request.query_params.get('sort', 'relevance')
+            expanded_results = self._sort_expanded_results(expanded_results, sort_option)
+            
+            # Manual pagination for expanded results
+            page_size = int(request.query_params.get('page_size', self.pagination_class.page_size))
+            page_number = int(request.query_params.get('page', 1))
+            start = (page_number - 1) * page_size
+            end = start + page_size
+            paginated_items = expanded_results[start:end]
+            
+            total_count = len(expanded_results)
+            total_pages = (total_count + page_size - 1) // page_size
+            
+            return Response({
+                'count': total_count,
+                'next': f"?page={page_number + 1}" if end < total_count else None,
+                'previous': f"?page={page_number - 1}" if page_number > 1 else None,
+                'results': paginated_items,
+                'filter_options': filter_options
+            })
+        else:
+            # Normal pagination without expansion
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                paginated_response = self.get_paginated_response(serializer.data)
+                paginated_response.data['filter_options'] = filter_options
+                return paginated_response
+            
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({
+                'results': serializer.data,
+                'filter_options': filter_options
+            })
+    
+    def _get_average_rating(self, product):
+        """Helper to get average rating"""
+        from django.db.models import Avg
+        avg_rating = product.reviews.filter(is_approved=True).aggregate(
+            avg_rating=Avg('rating')
+        )['avg_rating']
+        return round(float(avg_rating), 1) if avg_rating else 0.0
+    
+    def _sort_expanded_results(self, results, sort_option):
+        """Sort expanded variant results"""
+        if sort_option == 'price_low_to_high':
+            return sorted(results, key=lambda x: x['price'])
+        elif sort_option == 'price_high_to_low':
+            return sorted(results, key=lambda x: x['price'], reverse=True)
+        elif sort_option == 'newest':
+            return sorted(results, key=lambda x: x.get('created_at', ''), reverse=True)
+        elif sort_option == 'rating':
+            return sorted(results, key=lambda x: x.get('average_rating', 0), reverse=True)
+        else:
+            return results
 
 
 class ProductDetailView(generics.RetrieveAPIView):
@@ -90,7 +213,7 @@ class ProductDetailView(generics.RetrieveAPIView):
             'features',
             'offers',
             'reviews',
-            Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True).select_related('color')),
+            Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True).select_related('color').prefetch_related('images')),
             Prefetch('recommendations__recommended_product', 
                     queryset=Product.objects.filter(is_active=True))
         )

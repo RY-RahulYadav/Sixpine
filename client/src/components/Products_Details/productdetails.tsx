@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext";
 import { offersAPI } from "../../services/api";
@@ -69,20 +70,71 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
     setMainImage(img);
   };
 
+  // Get variant_id from URL params if present
+  const [searchParams] = useSearchParams();
+  const variantIdFromUrl = searchParams.get('variant') ? parseInt(searchParams.get('variant')!) : null;
+
+  // Extract variant options from product.variants
+  const variants = product?.variants || [];
+  
+  // Get unique colors, sizes, patterns from variants
+  const availableColors = Array.from(new Set(variants.map((v: any) => v.color?.name || v.color_name).filter(Boolean)));
+  const availableSizes = Array.from(new Set(variants.map((v: any) => v.size).filter(Boolean)));
+  const availablePatterns = Array.from(new Set(variants.map((v: any) => v.pattern).filter(Boolean)));
+
+  // Fallback to available_colors if variants not available (backward compatibility)
+  const colors = availableColors.length > 0 ? availableColors : 
+    (product?.available_colors?.map((c: any) => c.color__name || c.name) || []);
+  const sizes = availableSizes.length > 0 ? availableSizes : (product?.available_sizes || []);
+  const patterns = availablePatterns.length > 0 ? availablePatterns : (product?.available_patterns || []);
+
+  // Auto-select variant from URL if provided
+  const getInitialVariant = () => {
+    if (variantIdFromUrl && variants.length > 0) {
+      const variantFromUrl = variants.find((v: any) => v.id === variantIdFromUrl);
+      if (variantFromUrl) {
+        return {
+          color: variantFromUrl.color?.name || '',
+          size: variantFromUrl.size || '',
+          pattern: variantFromUrl.pattern || ''
+        };
+      }
+    }
+    // Default to first available
+    return {
+      color: colors[0] || "",
+      size: sizes[0] || "",
+      pattern: patterns[0] || ""
+    };
+  };
+
+  const initialVariant = getInitialVariant();
+
   // State for options
-  const [selectedColor, setSelectedColor] = useState(
-    product?.available_colors?.[0]?.color__name || product?.available_colors?.[0]?.name || "Red"
-  );
-  const [selectedSize, setSelectedSize] = useState(
-    product?.available_sizes?.[0] || "M"
-  );
-  const [selectedPattern, setSelectedPattern] = useState(
-    product?.available_patterns?.[0] || "Classic"
-  );
+  const [selectedColor, setSelectedColor] = useState<string>(initialVariant.color);
+  const [selectedSize, setSelectedSize] = useState<string>(initialVariant.size);
+  const [selectedPattern, setSelectedPattern] = useState<string>(initialVariant.pattern);
+
+  // Find selected variant based on selections
+  const findSelectedVariant = () => {
+    if (variants.length === 0) return null;
+    
+    return variants.find((v: any) => {
+      const colorMatch = !selectedColor || (v.color?.name || v.color_name) === selectedColor;
+      const sizeMatch = !selectedSize || v.size === selectedSize || (!v.size && !selectedSize);
+      const patternMatch = !selectedPattern || v.pattern === selectedPattern || (!v.pattern && !selectedPattern);
+      
+      return colorMatch && sizeMatch && patternMatch;
+    }) || variants[0]; // Fallback to first variant if exact match not found
+  };
+
+  const selectedVariant = findSelectedVariant();
+  
+  // Use variant price if available, otherwise product price
+  const cartPrice = selectedVariant?.price || product?.price || 29999;
 
   // Cart Summary
   const [cartQty, setCartQty] = useState(1);
-  const cartPrice = product?.price || 29999;
 
   // Modal for info icons
   interface ModalContent {
@@ -127,11 +179,18 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
     if (product?.id) {
       try {
-        await addToCart(product.id, cartQty);
+        // If product has variants, variant_id is required
+        if (variants.length > 0 && !selectedVariant) {
+          alert('Please select a variant (color, size, or pattern)');
+          return;
+        }
+
+        await addToCart(product.id, cartQty, selectedVariant?.id);
         // Sidebar will open automatically via context
       } catch (error: any) {
         console.error('Error adding to cart:', error);
-        alert(error.message || 'Failed to add to cart');
+        const errorMsg = error.response?.data?.error || error.message || 'Failed to add to cart';
+        alert(errorMsg);
       }
     }
   };
@@ -144,11 +203,18 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
     if (product?.id) {
       try {
-        await addToCart(product.id, cartQty);
+        // If product has variants, variant_id is required
+        if (variants.length > 0 && !selectedVariant) {
+          alert('Please select a variant (color, size, or pattern)');
+          return;
+        }
+
+        await addToCart(product.id, cartQty, selectedVariant?.id);
         navigate('/cart');
       } catch (error: any) {
         console.error('Error adding to cart:', error);
-        alert(error.message || 'Failed to add to cart');
+        const errorMsg = error.response?.data?.error || error.message || 'Failed to add to cart';
+        alert(errorMsg);
       }
     }
   };
@@ -319,50 +385,56 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
           {/* Options */}
           <div className={styles.options}>
-            {product?.available_colors && product.available_colors.length > 0 && (
-            <div>
-              <strong>Color: </strong>
-                {product.available_colors.map((color: any, index: number) => {
-                  const colorName = color.color__name || color.name;
-                  return (
-                <button
-                      key={`color-${index}-${colorName}`}
-                      className={selectedColor === colorName ? styles.active : ""}
-                      onClick={() => setSelectedColor(colorName)}
-                    >
-                      {colorName}
-                </button>
-                  );
-                })}
-            </div>
+            {colors.length > 0 && (
+              <div>
+                <strong>Color: </strong>
+                {colors.map((color: string, index: number) => (
+                  <button
+                    key={`color-${index}-${color}`}
+                    className={selectedColor === color ? styles.active : ""}
+                    onClick={() => setSelectedColor(color)}
+                  >
+                    {color}
+                  </button>
+                ))}
+              </div>
             )}
-            {product?.available_sizes && product.available_sizes.length > 0 && (
-            <div>
-              <strong>Size: </strong>
-                {product.available_sizes.map((size: string, index: number) => (
-                <button
+            {sizes.length > 0 && (
+              <div>
+                <strong>Size: </strong>
+                {sizes.map((size: string, index: number) => (
+                  <button
                     key={`size-${index}-${size}`}
-                  className={selectedSize === size ? styles.active : ""}
-                  onClick={() => setSelectedSize(size)}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
+                    className={selectedSize === size ? styles.active : ""}
+                    onClick={() => setSelectedSize(size)}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
             )}
-            {product?.available_patterns && product.available_patterns.length > 0 && (
-            <div>
-              <strong>Pattern: </strong>
-                {product.available_patterns.map((pattern: string, index: number) => (
-                <button
+            {patterns.length > 0 && (
+              <div>
+                <strong>Pattern: </strong>
+                {patterns.map((pattern: string, index: number) => (
+                  <button
                     key={`pattern-${index}-${pattern}`}
                     className={selectedPattern === pattern ? styles.active : ""}
                     onClick={() => setSelectedPattern(pattern)}
                   >
                     {pattern}
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedVariant && (
+              <div className={styles.variantInfo}>
+                <small className="text-muted">
+                  {selectedVariant.stock_quantity > 0 
+                    ? `${selectedVariant.stock_quantity} in stock`
+                    : 'Out of stock'}
+                </small>
+              </div>
             )}
           </div>
 
