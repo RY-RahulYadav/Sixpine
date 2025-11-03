@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference, SavedCard
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -251,3 +251,41 @@ class BulkOrderCreateSerializer(serializers.ModelSerializer):
     def validate_special_requirements(self, value):
         """Convert empty string to None"""
         return value if value else None
+
+
+class PaymentPreferenceSerializer(serializers.ModelSerializer):
+    """Serializer for payment preferences - returns address details if available"""
+    preferred_address = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PaymentPreference
+        fields = [
+            'id', 'preferred_method', 'preferred_card_token_id', 
+            'preferred_address_id', 'preferred_address', 'payment_nickname',
+            'razorpay_customer_id', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'razorpay_customer_id', 'created_at', 'updated_at']
+    
+    def get_preferred_address(self, obj):
+        """Get preferred address details if available"""
+        if obj.preferred_address_id:
+            from orders.models import Address
+            try:
+                address = Address.objects.get(id=obj.preferred_address_id, user=obj.user)
+                from orders.serializers import AddressSerializer
+                return AddressSerializer(address).data
+            except Address.DoesNotExist:
+                return None
+        return None
+
+
+class SavedCardSerializer(serializers.ModelSerializer):
+    """Serializer for saved cards"""
+    class Meta:
+        model = SavedCard
+        fields = [
+            'id', 'token_id', 'customer_id', 'card_last4', 'card_network',
+            'card_type', 'card_issuer', 'nickname', 'is_default',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

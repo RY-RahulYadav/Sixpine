@@ -11,13 +11,13 @@ from django.core.mail import send_mail
 from django.conf import settings
 import random
 import string
-from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference
 from .serializers import (
     UserLoginSerializer, UserRegistrationSerializer, UserSerializer,
     OTPRequestSerializer, OTPVerificationSerializer, OTPResendSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
     ChangePasswordSerializer, ContactQuerySerializer, ContactQueryCreateSerializer,
-    BulkOrderSerializer, BulkOrderCreateSerializer
+    BulkOrderSerializer, BulkOrderCreateSerializer, PaymentPreferenceSerializer
 )
 from .gmail_oauth_service import GmailOAuth2Service
 from .whatsapp_service import WhatsAppService
@@ -495,4 +495,250 @@ def bulk_order_submit(request):
         return Response({
             'success': False,
             'error': f'Failed to submit bulk order: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============= Payment Preferences APIs =============
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_payment_preference(request):
+    """Get user's payment preference"""
+    try:
+        preference, created = PaymentPreference.objects.get_or_create(
+            user=request.user,
+            defaults={'preferred_method': 'card'}
+        )
+        serializer = PaymentPreferenceSerializer(preference)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to get payment preference: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_payment_preference(request):
+    """Update user's payment preference"""
+    try:
+        preference, _ = PaymentPreference.objects.get_or_create(user=request.user)
+        serializer = PaymentPreferenceSerializer(preference, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            # Validate address belongs to user if provided
+            preferred_address_id = serializer.validated_data.get('preferred_address_id')
+            if preferred_address_id:
+                from orders.models import Address
+                try:
+                    Address.objects.get(id=preferred_address_id, user=request.user)
+                except Address.DoesNotExist:
+                    return Response({
+                        'success': False,
+                        'error': 'Invalid address ID'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Payment preference updated successfully',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'success': False,
+            'error': 'Invalid data',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to update payment preference: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_saved_cards(request):
+    """Get saved cards - fetch from Razorpay and sync with database"""
+    import razorpay
+    from django.conf import settings
+    from .models import SavedCard
+    from .serializers import SavedCardSerializer
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Get customer_id from preference
+        preference, _ = PaymentPreference.objects.get_or_create(user=request.user)
+        customer_id = preference.razorpay_customer_id
+        
+        if not customer_id:
+            return Response({
+                'success': True,
+                'customer_id': '',
+                'saved_cards': [],
+                'count': 0,
+                'message': 'No customer ID found. Cards will be saved after first payment.'
+            }, status=status.HTTP_200_OK)
+        
+        # Fetch active tokens from Razorpay
+        razorpay_key_id = getattr(settings, 'RAZORPAY_KEY_ID', '').strip()
+        razorpay_key_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '').strip()
+        
+        active_tokens = []
+        
+        if razorpay_key_id and razorpay_key_secret:
+            try:
+                razorpay_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+                
+                # Fetch tokens from Razorpay
+                tokens_url = f'/customers/{customer_id}/tokens'
+                tokens_response = razorpay_client.request('GET', tokens_url)
+                tokens = tokens_response.get('items', [])
+                
+                logger.info(f'Fetched {len(tokens)} tokens from Razorpay for customer {customer_id}')
+                
+                # Filter only active tokens (status should be active, not failed)
+                for token in tokens:
+                    token_status = token.get('status', '').lower()
+                    token_method = token.get('method', '')
+                    
+                    # Only include active card tokens
+                    if token_method == 'card' and token_status in ['active', 'activated']:
+                        card = token.get('card', {})
+                        token_id = token.get('id')
+                        
+                        # Sync with database - update or create
+                        SavedCard.objects.update_or_create(
+                            token_id=token_id,
+                            user=request.user,
+                            defaults={
+                                'customer_id': customer_id,
+                                'card_last4': str(card.get('last4', '')),
+                                'card_network': card.get('network', ''),
+                                'card_type': card.get('type', ''),
+                                'card_issuer': card.get('issuer', ''),
+                            }
+                        )
+                        
+                        active_tokens.append({
+                            'token_id': token_id,
+                            'method': token_method,
+                            'card': {
+                                'last4': str(card.get('last4', '')),
+                                'network': card.get('network', ''),
+                                'type': card.get('type', ''),
+                                'issuer': card.get('issuer', ''),
+                                'name': card.get('name', ''),
+                                'expiry_month': str(card.get('expiry_month', '')).zfill(2) if card.get('expiry_month') else '',
+                                'expiry_year': str(card.get('expiry_year', '')),
+                            },
+                            'status': token_status,
+                            'created_at': token.get('created_at', 0)
+                        })
+                
+                logger.info(f'Found {len(active_tokens)} active tokens')
+                
+            except Exception as e:
+                logger.warning(f'Failed to fetch tokens from Razorpay: {str(e)}')
+                # Fallback to database if Razorpay fetch fails
+                saved_cards = SavedCard.objects.filter(user=request.user)
+                cards_data = SavedCardSerializer(saved_cards, many=True).data
+                active_tokens = [{
+                    'token_id': card['token_id'],
+                    'method': 'card',
+                    'card': {
+                        'last4': card['card_last4'],
+                        'network': card['card_network'],
+                        'type': card['card_type'],
+                        'issuer': card['card_issuer'],
+                        'name': '',
+                        'expiry_month': '',
+                        'expiry_year': '',
+                    },
+                    'status': 'active',
+                    'created_at': card.get('created_at', 0)
+                } for card in cards_data]
+        
+        return Response({
+            'success': True,
+            'customer_id': customer_id,
+            'saved_cards': active_tokens,
+            'count': len(active_tokens),
+            'message': f'Found {len(active_tokens)} active saved cards' if active_tokens else 'No active saved cards found'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f'Failed to get saved cards: {str(e)}')
+        return Response({
+            'success': False,
+            'error': f'Failed to get saved cards: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_saved_card(request, token_id):
+    """Delete a saved card from database and Razorpay"""
+    import razorpay
+    from django.conf import settings
+    from .models import SavedCard
+    
+    try:
+        # Delete from our database first
+        try:
+            saved_card = SavedCard.objects.get(token_id=token_id, user=request.user)
+            saved_card.delete()
+        except SavedCard.DoesNotExist:
+            pass  # Card might not exist in DB, continue to delete from Razorpay
+        
+        # Also delete from Razorpay if configured
+        razorpay_key_id = getattr(settings, 'RAZORPAY_KEY_ID', '').strip()
+        razorpay_key_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '').strip()
+        
+        if razorpay_key_id and razorpay_key_secret:
+            try:
+                razorpay_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+                preference = PaymentPreference.objects.get(user=request.user)
+                
+                if preference.razorpay_customer_id:
+                    try:
+                        razorpay_client.customer.delete_token(preference.razorpay_customer_id, token_id)
+                    except Exception as e:
+                        # Log but don't fail if Razorpay deletion fails
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f'Failed to delete token from Razorpay: {str(e)}')
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f'Failed to delete from Razorpay: {str(e)}')
+        
+        # Clear preferred card if it was this one
+        preference = PaymentPreference.objects.get(user=request.user)
+        if preference.preferred_card_token_id == token_id:
+            preference.preferred_card_token_id = None
+            preference.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Card removed successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except PaymentPreference.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Payment preference not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to delete saved card: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

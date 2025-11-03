@@ -5,7 +5,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     Category, Subcategory, Color, Material, Product, ProductImage, ProductVariant,
     ProductReview, ProductRecommendation, ProductSpecification,
-    ProductFeature, ProductOffer
+    ProductFeature, ProductOffer 
 )
 
 

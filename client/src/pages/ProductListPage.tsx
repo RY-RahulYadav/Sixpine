@@ -130,6 +130,22 @@ const ProductListPage: React.FC = () => {
     fetchFilterOptions();
   }, []);
 
+  // Sync URL category param to selectedFilters when component mounts or category param changes
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam && categoryParam !== selectedFilters.category) {
+      setSelectedFilters((prev) => ({
+        ...prev,
+        category: categoryParam,
+        subcategory: '', // Reset subcategory when category changes from URL
+      }));
+      // Fetch subcategories for the selected category
+      if (categoryParam) {
+        fetchSubcategories(categoryParam);
+      }
+    }
+  }, [searchParams]);
+
   // Reset to page 1 when filters, search, or sort changes
   useEffect(() => {
     setCurrentPage(1);

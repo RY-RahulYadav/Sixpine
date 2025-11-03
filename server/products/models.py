@@ -356,3 +356,28 @@ class Discount(models.Model):
 
     def __str__(self):
         return f"{self.percentage}%"
+
+
+class BrowsingHistory(models.Model):
+    """Track user browsing history for products and categories"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='browsing_history')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='browsing_history')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='browsing_history', null=True, blank=True)
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, related_name='browsing_history', null=True, blank=True)
+    viewed_at = models.DateTimeField(auto_now_add=True)
+    view_count = models.PositiveIntegerField(default=1)
+    last_viewed = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Browsing History'
+        verbose_name_plural = 'Browsing History'
+        db_table = 'browsing_history'
+        ordering = ['-last_viewed']
+        unique_together = ['user', 'product']
+        indexes = [
+            models.Index(fields=['user', '-last_viewed'], name='browsing_hi_user_id_941c7b_idx'),
+            models.Index(fields=['user', 'category'], name='browsing_hi_user_id_3df6af_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.product.title} ({self.view_count} views)"

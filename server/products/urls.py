@@ -34,4 +34,9 @@ urlpatterns = [
     # Product offers
     path('offers/', views.get_active_offers, name='active-offers'),
     path('offers/create/', views.create_offer, name='create-offer'),
+    
+    path('browsing-history/track/', views.track_browsing_history, name='track-browsing-history'),
+    path('browsing-history/categories/', views.get_browsed_categories, name='browsed-categories'),
+    path('browsing-history/clear/', views.clear_browsing_history, name='clear-browsing-history'),
+    path('browsing-history/', views.get_browsing_history, name='browsing-history'),
 ]

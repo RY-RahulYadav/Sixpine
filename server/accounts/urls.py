@@ -27,4 +27,9 @@ urlpatterns = [
     
     # Bulk orders
     path('bulk-order/submit/', views.bulk_order_submit, name='bulk_order_submit'),
+    
+    path('payment-preferences/', views.get_payment_preference, name='get_payment_preference'),
+    path('payment-preferences/update/', views.update_payment_preference, name='update_payment_preference'),
+    path('payment-preferences/saved-cards/', views.get_saved_cards, name='get_saved_cards'),
+    path('payment-preferences/saved-cards/<str:token_id>/delete/', views.delete_saved_card, name='delete_saved_card'),
 ]

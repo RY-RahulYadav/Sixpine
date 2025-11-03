@@ -229,10 +229,10 @@ const CheckoutPage: React.FC = () => {
         const getRazorpayMethods = () => {
           switch (selectedPaymentMethod) {
             case 'CC':
-              // Credit/Debit Card
+              // Credit/Debit Card - use object format to allow save option
               return {
                 method: {
-                  card: true,
+                  card: {},  // Empty object to allow adding save: true
                   netbanking: false,
                   upi: false,
                   wallet: false,
@@ -307,6 +307,13 @@ const CheckoutPage: React.FC = () => {
 
         const razorpayMethods = getRazorpayMethods();
 
+        // Get customer_id from order creation response (created automatically if doesn't exist)
+        // This handles first-time payment where customer_id is created during order creation
+        const customerId = razorpayResponse.data.customer_id?.trim() || null;
+
+        // Validate customer_id format (should start with 'cust_')
+        const isValidCustomerId = customerId && customerId.startsWith('cust_');
+
         const options = {
           key: razorpayResponse.data.key,
           amount: razorpayResponse.data.amount * 100, // Convert rupees to paise (Razorpay requires amount in smallest currency unit)
@@ -314,7 +321,12 @@ const CheckoutPage: React.FC = () => {
           name: 'SIXPINE',
           description: 'Order Payment',
           order_id: razorpayResponse.data.razorpay_order_id,
-          ...razorpayMethods, // Only show selected payment method
+          ...razorpayMethods, // Include payment method selection
+          // Only add customer_id if it's valid (prevents "id does not exist" error)
+          ...(isValidCustomerId && { customer_id: customerId }), // Add customer_id to enable card saving
+          // Enable save card option - Razorpay requires save: 1 (number), not true (boolean)
+          // This shows the "Save this card" checkbox in Razorpay checkout
+          ...(selectedPaymentMethod === 'CC' && isValidCustomerId && { save: 1 }),
           handler: async function (response: any) {
             // Verify payment on backend and create order
             try {

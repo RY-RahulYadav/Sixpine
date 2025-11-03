@@ -135,6 +135,18 @@ export const productAPI = {
     API.get(`/products/${slug}/recommendations/`),
   
   getFilterOptions: (params?: any) => API.get('/filter-options/', { params }),
+  
+  // Browsing history
+  trackBrowsingHistory: (productId: number) =>
+    API.post('/browsing-history/track/', { product_id: productId }),
+  
+  getBrowsingHistory: (limit?: number) =>
+    API.get('/browsing-history/', { params: limit ? { limit } : {} }),
+  
+  getBrowsedCategories: () => API.get('/browsing-history/categories/'),
+  
+  clearBrowsingHistory: (productId?: number) =>
+    API.delete('/browsing-history/clear/', { params: productId ? { product_id: productId } : {} }),
 };
 
 // Cart API calls
@@ -181,6 +193,22 @@ export const addressAPI = {
   updateAddress: (id: number, data: any) => API.put(`/addresses/${id}/`, data),
   
   deleteAddress: (id: number) => API.delete(`/addresses/${id}/`),
+};
+
+// Payment Preferences API calls
+export const paymentPreferencesAPI = {
+  getPaymentPreference: () => API.get('/auth/payment-preferences/'),
+  
+  updatePaymentPreference: (data: {
+    preferred_method?: string;
+    preferred_card_token_id?: string;
+    preferred_address_id?: number;
+    payment_nickname?: string;
+  }) => API.patch('/auth/payment-preferences/update/', data),
+  
+  getSavedCards: () => API.get('/auth/payment-preferences/saved-cards/'),
+  
+  deleteSavedCard: (tokenId: string) => API.delete(`/auth/payment-preferences/saved-cards/${tokenId}/delete/`),
 };
 
 // Order API calls

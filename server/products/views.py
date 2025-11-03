@@ -6,16 +6,18 @@ from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Avg, Count, Prefetch
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from .models import (
     Product, Category, Subcategory, Color, Material, ProductVariant, ProductVariantImage,
     ProductReview, ProductRecommendation, ProductSpecification,
-    ProductFeature, ProductOffer
+    ProductFeature, ProductOffer, BrowsingHistory
 )
 from .serializers import (
     ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer,
     CategorySerializer, SubcategorySerializer, ColorSerializer, MaterialSerializer,
-    ProductReviewSerializer, ProductFilterSerializer, ProductOfferSerializer
+    ProductReviewSerializer, ProductFilterSerializer, ProductOfferSerializer,
+    BrowsingHistorySerializer
 )
 from .filters import ProductFilter, ProductSortFilter, ProductAggregationFilter
 
@@ -217,6 +219,41 @@ class ProductDetailView(generics.RetrieveAPIView):
             Prefetch('recommendations__recommended_product', 
                     queryset=Product.objects.filter(is_active=True))
         )
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Override retrieve to track browsing history"""
+        response = super().retrieve(request, *args, **kwargs)
+        
+        # Track browsing history if user is authenticated
+        if request.user.is_authenticated and response.status_code == 200:
+            product_id = response.data.get('id')
+            if product_id:
+                try:
+                    # Get or create browsing history entry
+                    browsing_history, created = BrowsingHistory.objects.get_or_create(
+                        user=request.user,
+                        product_id=product_id,
+                        defaults={
+                            'category_id': response.data.get('category', {}).get('id'),
+                            'subcategory_id': response.data.get('subcategory', {}).get('id') if response.data.get('subcategory') else None,
+                        }
+                    )
+                    
+                    if not created:
+                        # Update view count and last viewed
+                        browsing_history.view_count += 1
+                        browsing_history.last_viewed = timezone.now()
+                        # Update category/subcategory if not set
+                        if not browsing_history.category_id and response.data.get('category', {}).get('id'):
+                            browsing_history.category_id = response.data.get('category', {}).get('id')
+                        if not browsing_history.subcategory_id and response.data.get('subcategory', {}).get('id'):
+                            browsing_history.subcategory_id = response.data.get('subcategory', {}).get('id')
+                        browsing_history.save()
+                except Exception as e:
+                    # Silently fail - don't break the product detail page if tracking fails
+                    pass
+        
+        return response
 
 
 class ProductSearchView(generics.ListAPIView):
@@ -590,3 +627,141 @@ def create_offer(request):
         'message': 'Offer created successfully',
         'offer': serializer.data
     }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def track_browsing_history(request):
+    """Track when a user views a product"""
+    product_id = request.data.get('product_id')
+    
+    if not product_id:
+        return Response(
+            {'error': 'product_id is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        product = Product.objects.get(id=product_id, is_active=True)
+    except Product.DoesNotExist:
+        return Response(
+            {'error': 'Product not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Get or create browsing history entry
+    browsing_history, created = BrowsingHistory.objects.get_or_create(
+        user=request.user,
+        product=product,
+        defaults={
+            'category': product.category,
+            'subcategory': product.subcategory,
+        }
+    )
+    
+    if not created:
+        # Update view count and last viewed
+        browsing_history.view_count += 1
+        browsing_history.last_viewed = timezone.now()
+        # Update category/subcategory if product changed
+        if not browsing_history.category:
+            browsing_history.category = product.category
+        if not browsing_history.subcategory:
+            browsing_history.subcategory = product.subcategory
+        browsing_history.save()
+    
+    serializer = BrowsingHistorySerializer(browsing_history)
+    return Response({
+        'message': 'Browsing history tracked successfully',
+        'data': serializer.data
+    }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_browsing_history(request):
+    """Get user's browsing history"""
+    limit = int(request.query_params.get('limit', 20))
+    
+    browsing_history = BrowsingHistory.objects.filter(
+        user=request.user
+    ).select_related(
+        'product', 'category', 'subcategory'
+    ).prefetch_related(
+        'product__images',
+        'product__variants__color'
+    ).order_by('-last_viewed')[:limit]
+    
+    serializer = BrowsingHistorySerializer(browsing_history, many=True)
+    return Response({
+        'count': len(serializer.data),
+        'results': serializer.data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_browsed_categories(request):
+    """Get categories based on user's browsing history"""
+    # Get unique categories from browsing history, ordered by most recently browsed
+    from django.db.models import Count, Max
+    
+    categories_data = BrowsingHistory.objects.filter(
+        user=request.user,
+        category__isnull=False
+    ).values(
+        'category_id', 'category__name', 'category__slug', 
+        'category__image', 'category__description'
+    ).annotate(
+        product_count=Count('product_id', distinct=True),
+        last_viewed=Max('last_viewed')
+    ).order_by('-last_viewed', '-product_count')
+    
+    # Convert to list with proper structure
+    categories = []
+    for cat_data in categories_data:
+        # Get product count for this category
+        category = Category.objects.get(id=cat_data['category_id'])
+        total_products = category.products.filter(is_active=True).count()
+        
+        categories.append({
+            'id': cat_data['category_id'],
+            'name': cat_data['category__name'],
+            'slug': cat_data['category__slug'],
+            'image': cat_data['category__image'],
+            'description': cat_data['category__description'],
+            'product_count': total_products,
+            'browsed_product_count': cat_data['product_count']
+        })
+    
+    return Response({
+        'count': len(categories),
+        'results': categories
+    })
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def clear_browsing_history(request):
+    """Clear user's browsing history"""
+    product_id = request.query_params.get('product_id')
+    
+    if product_id:
+        # Clear specific product from history
+        deleted_count, _ = BrowsingHistory.objects.filter(
+            user=request.user,
+            product_id=product_id
+        ).delete()
+        
+        return Response({
+            'message': f'Removed {deleted_count} item(s) from browsing history'
+        })
+    else:
+        # Clear all browsing history
+        deleted_count, _ = BrowsingHistory.objects.filter(
+            user=request.user
+        ).delete()
+        
+        return Response({
+            'message': f'Cleared {deleted_count} item(s) from browsing history'
+        })

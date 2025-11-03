@@ -3,7 +3,7 @@ from django.db.models import Q
 from .models import (
     Category, Subcategory, Color, Material, Product, ProductImage, ProductVariant,
     ProductVariantImage, ProductReview, ProductRecommendation, ProductSpecification, 
-    ProductFeature, ProductOffer
+    ProductFeature, ProductOffer, BrowsingHistory
 )
 
 
@@ -344,3 +344,18 @@ class ProductFilterSerializer(serializers.Serializer):
     # Pagination
     page = serializers.IntegerField(required=False, default=1)
     page_size = serializers.IntegerField(required=False, default=20)
+
+
+class BrowsingHistorySerializer(serializers.ModelSerializer):
+    """Serializer for browsing history"""
+    product = ProductListSerializer(read_only=True)
+    category = CategorySerializer(read_only=True)
+    subcategory = SubcategorySerializer(read_only=True)
+    
+    class Meta:
+        model = BrowsingHistory
+        fields = [
+            'id', 'product', 'category', 'subcategory', 
+            'viewed_at', 'view_count', 'last_viewed'
+        ]
+        read_only_fields = ['user', 'viewed_at', 'last_viewed']

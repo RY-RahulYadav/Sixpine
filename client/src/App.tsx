@@ -48,7 +48,7 @@ import MessageCentrePage from './pages/MessageCentrePage';
 import AddressesPage from './pages/AddressesPage';
 import EmailSubscriptionsPage from './pages/EmailSubscriptionsPage';
 import CheckoutPage from './pages/checkout';
-import ManagePaymentPage from './pages/ManagePayment';
+import ManagePaymentPage from './pages/ManagePaymentPage';
 import CartSidebar from './components/CartSidebar/CartSidebar';
 
 function AppContent() {

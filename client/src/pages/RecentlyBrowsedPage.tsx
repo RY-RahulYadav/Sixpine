@@ -19,8 +19,11 @@ const RecentlyBrowsedPage: React.FC = () => {
 
   const fetchHistoryData = async () => {
     try {
-      // You can replace this with actual API call when available
-      await productAPI.getHomeData();
+      // Fetch browsing history and categories
+      await Promise.all([
+        productAPI.getBrowsingHistory(),
+        productAPI.getBrowsedCategories()
+      ]);
     } catch (error) {
       console.error('Fetch history data error:', error);
     } finally {

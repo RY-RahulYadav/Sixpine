@@ -150,3 +150,59 @@ class BulkOrder(models.Model):
     
     def __str__(self):
         return f"{self.company_name} - {self.contact_person} ({self.status})"
+
+
+class SavedCard(models.Model):
+    """Store saved card information with token_id and card details"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_cards')
+    token_id = models.CharField(max_length=100, unique=True, help_text='Razorpay token ID')
+    customer_id = models.CharField(max_length=100, help_text='Razorpay customer ID')
+    card_last4 = models.CharField(max_length=4, help_text='Last 4 digits of card')
+    card_network = models.CharField(max_length=20, blank=True, help_text='Card network (Visa, Mastercard, etc.)')
+    card_type = models.CharField(max_length=20, blank=True, help_text='Card type (credit, debit)')
+    card_issuer = models.CharField(max_length=100, blank=True, help_text='Card issuer bank name')
+    nickname = models.CharField(max_length=100, blank=True, help_text='User nickname for this card')
+    is_default = models.BooleanField(default=False, help_text='Is this the default card?')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'saved_cards'
+        verbose_name = 'Saved Card'
+        verbose_name_plural = 'Saved Cards'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.card_network} ****{self.card_last4}"
+
+
+class PaymentPreference(models.Model):
+    """Store user payment preferences - NO card details, only references to Razorpay tokens"""
+    PAYMENT_METHOD_CHOICES = [
+        ('card', 'Credit/Debit Card'),
+        ('netbanking', 'Net Banking'),
+        ('upi', 'UPI'),
+        ('wallet', 'Digital Wallet'),
+        ('cod', 'Cash on Delivery'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='payment_preference')
+    preferred_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='card')
+    preferred_card_token_id = models.CharField(max_length=100, blank=True, null=True, 
+                                                help_text='Razorpay token ID - card details stored only in Razorpay')
+    preferred_address_id = models.IntegerField(blank=True, null=True, 
+                                                help_text='Preferred shipping address ID')
+    payment_nickname = models.CharField(max_length=100, blank=True,
+                                         help_text='User nickname for this payment preference')
+    razorpay_customer_id = models.CharField(max_length=100, blank=True, null=True,
+                                            help_text='Razorpay customer ID for fetching saved cards')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'payment_preferences'
+        verbose_name = 'Payment Preference'
+        verbose_name_plural = 'Payment Preferences'
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.get_preferred_method_display()}"
