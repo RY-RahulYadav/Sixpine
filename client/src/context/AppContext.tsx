@@ -60,7 +60,7 @@ const initialState: AppState = {
   cartSidebarOpen: false,
 };
 
-const AppContext = createContext<{
+interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   login: (credentials: { username: string; password: string }) => Promise<void>;
@@ -69,7 +69,9 @@ const AppContext = createContext<{
   addToCart: (productId: number, quantity?: number, variantId?: number) => Promise<void>;
   openCartSidebar: () => void;
   closeCartSidebar: () => void;
-} | null>(null);
+}
+
+const AppContext = createContext<AppContextType | null>(null);
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {

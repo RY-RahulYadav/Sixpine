@@ -1,94 +1,165 @@
-from rest_framework import viewsets, permissions, generics, status, filters
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework import viewsets, status
+from rest_framework.decorators import api_view, action, permission_classes
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from django.db.models import Sum, Count, F, Q
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from django.db.models import Sum, Count, Q, Avg
 from django.utils import timezone
 from datetime import timedelta
-import ipaddress
+from decimal import Decimal
 
-from products.models import Product, Category, ProductImage, ProductVariant
-from orders.models import Order, OrderItem, OrderStatusHistory
-from accounts.models import User
-from .models import AdminLog, AdminDashboardSetting
-from .serializers import (
-    AdminUserSerializer, AdminUserDetailSerializer,
-    AdminProductSerializer, AdminProductDetailSerializer,
-    AdminOrderSerializer, AdminOrderDetailSerializer,
-    AdminCategorySerializer, AdminDashboardStatsSerializer,
-    AdminLogSerializer
-)
 from .permissions import IsAdminUser
+from .models import GlobalSettings
+from .serializers import (
+    DashboardStatsSerializer, AdminUserListSerializer, AdminUserDetailSerializer,
+    AdminUserCreateSerializer, AdminUserUpdateSerializer, AdminCategorySerializer,
+    AdminSubcategorySerializer, AdminColorSerializer, AdminMaterialSerializer,
+    AdminProductListSerializer, AdminProductDetailSerializer,
+    AdminOrderListSerializer, AdminOrderDetailSerializer, AdminDiscountSerializer,
+    PaymentChargeSerializer, GlobalSettingsSerializer,
+    AdminContactQuerySerializer, AdminBulkOrderSerializer, AdminLogSerializer
+)
+from accounts.models import User, ContactQuery, BulkOrder
+from products.models import (
+    Category, Subcategory, Color, Material, Product, ProductImage,
+    ProductVariant, ProductVariantImage, ProductSpecification, ProductFeature,
+    ProductOffer, Discount
+)
+from orders.models import Order, OrderItem, OrderStatusHistory, OrderNote
+from .models import AdminLog
+
+User = get_user_model()
 
 
-class AdminPagination(PageNumberPagination):
-    """Custom pagination for admin API"""
-    page_size = 50  # Default page size
-    page_size_query_param = 'limit'  # Use 'limit' query parameter
-    max_page_size = 100
+# ==================== Dashboard Views ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def dashboard_stats(request):
+    """Get comprehensive dashboard statistics"""
+    # Calculate date ranges
+    today = timezone.now().date()
+    thirty_days_ago = today - timedelta(days=30)
+    
+    # Basic stats
+    total_users = User.objects.count()
+    total_orders = Order.objects.count()
+    total_revenue = Order.objects.filter(
+        payment_status='paid'
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    total_products = Product.objects.count()
+    
+    # Order summary stats
+    orders_placed_count = Order.objects.count()
+    delivered_orders_count = Order.objects.filter(status='delivered').count()
+    cod_orders_count = Order.objects.filter(payment_method='COD').count()
+    # Online payment = total orders - COD orders
+    online_payment_orders_count = orders_placed_count - cod_orders_count
+    
+    # Low stock products - get global threshold, default to 100
+    low_stock_threshold = GlobalSettings.get_setting('low_stock_threshold', 100)
+    
+    # Calculate low stock products: sum all variant stocks per product, compare to threshold
+    products_with_stock = Product.objects.annotate(
+        total_stock=Sum('variants__stock_quantity', filter=Q(variants__is_active=True))
+    ).filter(total_stock__lt=low_stock_threshold, total_stock__isnull=False, is_active=True)
+    low_stock_products = products_with_stock.count()
+    
+    # Recent orders (last 10)
+    recent_orders = Order.objects.order_by('-created_at')[:10].values(
+        'id', 'order_id', 'status', 'total_amount', 'created_at'
+    )
+    recent_orders = [{
+        **order,
+        'customer_name': Order.objects.get(id=order['id']).user.get_full_name() or Order.objects.get(id=order['id']).user.username
+    } for order in recent_orders]
+    
+    # Top selling products
+    top_products = OrderItem.objects.values('product').annotate(
+        sold=Sum('quantity')
+    ).order_by('-sold')[:10]
+    top_selling_products = []
+    for item in top_products:
+        product = Product.objects.get(id=item['product'])
+        top_selling_products.append({
+            'id': product.id,
+            'title': product.title,
+            'sold': item['sold']
+        })
+    
+    # Sales by day (last 30 days)
+    sales_by_day = []
+    for i in range(30):
+        date = thirty_days_ago + timedelta(days=i)
+        day_orders = Order.objects.filter(
+            created_at__date=date,
+            payment_status='paid'
+        )
+        revenue = day_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        orders_count = day_orders.count()
+        sales_by_day.append({
+            'date': date.isoformat(),
+            'revenue': float(revenue),
+            'orders': orders_count
+        })
+    
+    data = {
+        'total_users': total_users,
+        'total_orders': total_orders,
+        'total_revenue': str(total_revenue),
+        'total_products': total_products,
+        'orders_placed_count': orders_placed_count,
+        'delivered_orders_count': delivered_orders_count,
+        'cod_orders_count': cod_orders_count,
+        'online_payment_orders_count': online_payment_orders_count,
+        'low_stock_products': low_stock_products,
+        'recent_orders': list(recent_orders),
+        'top_selling_products': top_selling_products,
+        'sales_by_day': sales_by_day
+    }
+    
+    serializer = DashboardStatsSerializer(data)
+    return Response(serializer.data)
 
 
+# ==================== User Management Views ====================
 class AdminUserViewSet(viewsets.ModelViewSet):
-    """ViewSet for admin user management"""
+    """Admin viewset for user management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = AdminUserSerializer
-    permission_classes = [IsAdminUser]
-    pagination_class = AdminPagination
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['username', 'email', 'first_name', 'last_name']
-    ordering_fields = ['username', 'date_joined', 'last_login', 'is_active']
-
+    
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action == 'create':
+            return AdminUserCreateSerializer
+        elif self.action == 'list':
+            return AdminUserListSerializer
+        elif self.action == 'retrieve':
             return AdminUserDetailSerializer
-        return AdminUserSerializer
+        return AdminUserUpdateSerializer
     
-    def create(self, request, *args, **kwargs):
-        # Create user with admin permissions
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search = self.request.query_params.get('search', None)
+        is_active = self.request.query_params.get('is_active', None)
+        is_staff = self.request.query_params.get('is_staff', None)
         
-        # Add staff status to new user
-        user = serializer.save()
-        user.is_staff = True
-        user.set_password(request.data.get('password'))
-        user.save()
+        # By default, exclude admin users (customers only)
+        # Only show admin users if explicitly requested
+        if is_staff is None:
+            queryset = queryset.filter(is_staff=False)
+        elif is_staff is not None:
+            queryset = queryset.filter(is_staff=is_staff.lower() == 'true')
         
-        # Log action
-        AdminLog.objects.create(
-            user=request.user,
-            action='create',
-            model_name='User',
-            object_id=str(user.id),
-            details=f"Created admin user: {user.username}",
-            ip_address=self.get_client_ip(request)
-        )
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) |
+                Q(email__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search)
+            )
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
         
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        # Log action
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='update',
-            model_name='User',
-            object_id=str(instance.id),
-            details=f"Updated user: {instance.username}",
-            ip_address=self.get_client_ip(self.request)
-        )
-    
-    def perform_destroy(self, instance):
-        # Log action before deleting
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='delete',
-            model_name='User',
-            object_id=str(instance.id),
-            details=f"Deleted user: {instance.username}",
-            ip_address=self.get_client_ip(self.request)
-        )
-        instance.delete()
+        return queryset
     
     @action(detail=True, methods=['post'])
     def toggle_active(self, request, pk=None):
@@ -96,19 +167,11 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         user.is_active = not user.is_active
         user.save()
-        
-        # Log action
-        action_desc = "Activated" if user.is_active else "Deactivated"
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='User',
-            object_id=str(user.id),
-            details=f"{action_desc} user: {user.username}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': f'User {action_desc.lower()}'})
+        return Response({
+            'id': user.id,
+            'is_active': user.is_active,
+            'message': f'User {"activated" if user.is_active else "deactivated"} successfully'
+        })
     
     @action(detail=True, methods=['post'])
     def toggle_staff(self, request, pk=None):
@@ -116,164 +179,157 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         user.is_staff = not user.is_staff
         user.save()
-        
-        # Log action
-        action_desc = "Granted admin access to" if user.is_staff else "Removed admin access from"
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='User',
-            object_id=str(user.id),
-            details=f"{action_desc} user: {user.username}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': f'Admin status {"granted" if user.is_staff else "removed"}'})
+        return Response({
+            'id': user.id,
+            'is_staff': user.is_staff,
+            'message': f'Staff status {"granted" if user.is_staff else "revoked"} successfully'
+        })
     
     @action(detail=True, methods=['post'])
     def reset_password(self, request, pk=None):
         """Reset user password"""
         user = self.get_object()
         new_password = request.data.get('password')
-        
         if not new_password:
-            return Response({'error': 'Password is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {'error': 'Password is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         user.set_password(new_password)
         user.save()
-        
-        # Log action (don't include the actual password in logs)
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='User',
-            object_id=str(user.id),
-            details=f"Reset password for user: {user.username}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': 'Password reset successful'})
+        return Response({'message': 'Password reset successfully'})
+
+
+# ==================== Category Management Views ====================
+class AdminCategoryViewSet(viewsets.ModelViewSet):
+    """Admin viewset for category management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Category.objects.all()
+    serializer_class = AdminCategorySerializer
     
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        
-        try:
-            # Validate IP address
-            ipaddress.ip_address(ip)
-            return ip
-        except ValueError:
-            return None
-
-
-class AdminProductViewSet(viewsets.ModelViewSet):
-    """ViewSet for admin product management"""
-    queryset = Product.objects.all().order_by('-created_at')
-    serializer_class = AdminProductSerializer
-    permission_classes = [IsAdminUser]
-    pagination_class = AdminPagination
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['title', 'sku', 'description']
-    ordering_fields = ['title', 'price', 'stock_quantity', 'created_at', 'is_active']
-
     def get_queryset(self):
         queryset = super().get_queryset()
-        
-        # Filter by category
-        category_id = self.request.query_params.get('category', '').strip()
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def hierarchical(self, request):
+        """Get categories with nested subcategories"""
+        categories = Category.objects.prefetch_related('subcategories').all()
+        data = []
+        for cat in categories:
+            data.append({
+                'id': cat.id,
+                'name': cat.name,
+                'slug': cat.slug,
+                'subcategories': [
+                    {
+                        'id': sub.id,
+                        'name': sub.name,
+                        'slug': sub.slug
+                    }
+                    for sub in cat.subcategories.all()
+                ]
+            })
+        return Response(data)
+
+
+class AdminSubcategoryViewSet(viewsets.ModelViewSet):
+    """Admin viewset for subcategory management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Subcategory.objects.all()
+    serializer_class = AdminSubcategorySerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category_id = self.request.query_params.get('category', None)
         if category_id:
             queryset = queryset.filter(category_id=category_id)
-        
-        # Filter by brand
-        brand_id = self.request.query_params.get('brand', '').strip()
-        if brand_id:
-            queryset = queryset.filter(brand_id=brand_id)
-        
-        # Filter by stock status
-        stock_status = self.request.query_params.get('stock_status', '').strip()
-        if stock_status == 'in_stock':
-            queryset = queryset.filter(stock_quantity__gt=0)
-        elif stock_status == 'out_of_stock':
-            queryset = queryset.filter(stock_quantity=0)
-        elif stock_status == 'low_stock':
-            queryset = queryset.filter(stock_quantity__gt=0, stock_quantity__lte=10)
-        
-        # Filter by status (active/inactive)
-        is_active = self.request.query_params.get('is_active', '').strip()
-        if is_active and is_active.lower() in ['true', 'false']:
-            is_active_bool = is_active.lower() == 'true'
-            queryset = queryset.filter(is_active=is_active_bool)
-        
         return queryset
 
+
+# ==================== Color & Material Management Views ====================
+class AdminColorViewSet(viewsets.ModelViewSet):
+    """Admin viewset for color management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Color.objects.all()
+    serializer_class = AdminColorSerializer
+
+
+class AdminMaterialViewSet(viewsets.ModelViewSet):
+    """Admin viewset for material management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Material.objects.all()
+    serializer_class = AdminMaterialSerializer
+
+
+# ==================== Product Management Views ====================
+class AdminProductViewSet(viewsets.ModelViewSet):
+    """Admin viewset for product management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    pagination_class = None  # We'll handle pagination manually or use default
+    
     def get_serializer_class(self):
-        if self.action in ['retrieve', 'create', 'update', 'partial_update']:
-            return AdminProductDetailSerializer
-        return AdminProductSerializer
+        if self.action == 'list':
+            return AdminProductListSerializer
+        return AdminProductDetailSerializer
     
-    def perform_create(self, serializer):
-        instance = serializer.save()
+    def get_queryset(self):
+        queryset = Product.objects.select_related(
+            'category', 'subcategory', 'material'
+        ).prefetch_related(
+            'images', 'variants__color', 'variants__images'
+        ).all().order_by('-created_at')
         
-        # Handle image uploads if present in request
-        images = self.request.FILES.getlist('images', [])
-        for idx, image_file in enumerate(images):
-            ProductImage.objects.create(
-                product=instance,
-                image=image_file,
-                is_main=(idx == 0),  # First image is main
-                order=idx
+        search = self.request.query_params.get('search', None)
+        category = self.request.query_params.get('category', None)
+        is_active = self.request.query_params.get('is_active', None)
+        is_featured = self.request.query_params.get('is_featured', None)
+        stock_status = self.request.query_params.get('stock_status', None)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(short_description__icontains=search)
             )
+        if category:
+            queryset = queryset.filter(category_id=category)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        if is_featured is not None:
+            queryset = queryset.filter(is_featured=is_featured.lower() == 'true')
+        if stock_status == 'low_stock':
+            # Products where total stock (sum of all variants) < global threshold
+            low_stock_threshold = GlobalSettings.get_setting('low_stock_threshold', 100)
+            products_with_stock = Product.objects.annotate(
+                total_stock=Sum('variants__stock_quantity', filter=Q(variants__is_active=True))
+            ).filter(total_stock__lt=low_stock_threshold, total_stock__isnull=False, is_active=True)
+            queryset = queryset.filter(id__in=products_with_stock.values_list('id', flat=True))
         
-        # Log action
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='create',
-            model_name='Product',
-            object_id=str(instance.id),
-            details=f"Created product: {instance.title}",
-            ip_address=self.get_client_ip(self.request)
-        )
+        return queryset
     
-    def perform_update(self, serializer):
-        instance = serializer.save()
+    def list(self, request, *args, **kwargs):
+        """Override list to provide pagination"""
+        from rest_framework.response import Response
+        from rest_framework.pagination import PageNumberPagination
         
-        # Handle image uploads if present in request
-        images = self.request.FILES.getlist('images', [])
-        if images:
-            # Get current max order
-            max_order = instance.images.count()
-            for idx, image_file in enumerate(images):
-                ProductImage.objects.create(
-                    product=instance,
-                    image=image_file,
-                    is_main=False,  # Don't auto-set as main when updating
-                    order=max_order + idx
-                )
+        class AdminProductPagination(PageNumberPagination):
+            page_size = 20
+            page_size_query_param = 'page_size'
+            max_page_size = 100
         
-        # Log action
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='update',
-            model_name='Product',
-            object_id=str(instance.id),
-            details=f"Updated product: {instance.title}",
-            ip_address=self.get_client_ip(self.request)
-        )
-    
-    def perform_destroy(self, instance):
-        # Log action before deleting
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='delete',
-            model_name='Product',
-            object_id=str(instance.id),
-            details=f"Deleted product: {instance.title}",
-            ip_address=self.get_client_ip(self.request)
-        )
-        instance.delete()
+        queryset = self.filter_queryset(self.get_queryset())
+        paginator = AdminProductPagination()
+        page = paginator.paginate_queryset(queryset, request)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def toggle_active(self, request, pk=None):
@@ -281,19 +337,11 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         product = self.get_object()
         product.is_active = not product.is_active
         product.save()
-        
-        # Log action
-        action_desc = "Activated" if product.is_active else "Deactivated"
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='Product',
-            object_id=str(product.id),
-            details=f"{action_desc} product: {product.title}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': f'Product {action_desc.lower()}'})
+        return Response({
+            'id': product.id,
+            'is_active': product.is_active,
+            'message': f'Product {"activated" if product.is_active else "deactivated"} successfully'
+        })
     
     @action(detail=True, methods=['post'])
     def toggle_featured(self, request, pk=None):
@@ -301,462 +349,465 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         product = self.get_object()
         product.is_featured = not product.is_featured
         product.save()
-        
-        # Log action
-        action_desc = "Featured" if product.is_featured else "Unfeatured"
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='Product',
-            object_id=str(product.id),
-            details=f"{action_desc} product: {product.title}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': f'Product {action_desc.lower()}'})
+        return Response({
+            'id': product.id,
+            'is_featured': product.is_featured,
+            'message': f'Product {"featured" if product.is_featured else "unfeatured"} successfully'
+        })
     
     @action(detail=True, methods=['post'])
     def update_stock(self, request, pk=None):
-        """Update product stock quantity"""
-        product = self.get_object()
+        """Update stock for a product variant"""
+        variant_id = request.data.get('variant_id')
         quantity = request.data.get('quantity')
         
-        if quantity is None:
-            return Response({'error': 'Quantity is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not variant_id or quantity is None:
+            return Response(
+                {'error': 'variant_id and quantity are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         try:
-            quantity = int(quantity)
-            if quantity < 0:
-                return Response({'error': 'Quantity cannot be negative'}, status=status.HTTP_400_BAD_REQUEST)
-        except ValueError:
-            return Response({'error': 'Invalid quantity'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        old_quantity = product.stock_quantity
-        product.stock_quantity = quantity
-        product.save()
-        
-        # Log action
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='Product',
-            object_id=str(product.id),
-            details=f"Updated stock for product: {product.title} from {old_quantity} to {quantity}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': 'Stock updated successfully'})
-    
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        
-        try:
-            # Validate IP address
-            ipaddress.ip_address(ip)
-            return ip
-        except ValueError:
-            return None
+            variant = ProductVariant.objects.get(id=variant_id, product_id=pk)
+            variant.stock_quantity = quantity
+            variant.is_in_stock = quantity > 0
+            variant.save()
+            return Response({
+                'message': 'Stock updated successfully',
+                'variant_id': variant.id,
+                'stock_quantity': variant.stock_quantity
+            })
+        except ProductVariant.DoesNotExist:
+            return Response(
+                {'error': 'Variant not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
-class AdminOrderViewSet(viewsets.ModelViewSet):
-    """ViewSet for admin order management"""
+# ==================== Order Management Views ====================
+class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """Admin viewset for order management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = Order.objects.all().order_by('-created_at')
-    serializer_class = AdminOrderSerializer
-    permission_classes = [IsAdminUser]
-    pagination_class = AdminPagination
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['order_id', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
-    ordering_fields = ['created_at', 'total_amount', 'status', 'payment_status']
-
-    from orders.models import OrderNote
-    from orders.serializers import OrderNoteSerializer
-
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return AdminOrderListSerializer
+        return AdminOrderDetailSerializer
+    
     def get_queryset(self):
         queryset = super().get_queryset()
+        status_filter = self.request.query_params.get('status', None)
+        payment_status = self.request.query_params.get('payment_status', None)
+        payment_method = self.request.query_params.get('payment_method', None)
+        search = self.request.query_params.get('search', None)
+        date_from = self.request.query_params.get('date_from', None)
+        date_to = self.request.query_params.get('date_to', None)
         
-        # Filter by order status
-        status = self.request.query_params.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
-        
-        # Filter by payment status
-        payment_status = self.request.query_params.get('payment_status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
         if payment_status:
             queryset = queryset.filter(payment_status=payment_status)
-        
-        # Filter by date range
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
-        
+        if payment_method:
+            if payment_method.lower() == 'cod':
+                queryset = queryset.filter(payment_method='COD')
+            elif payment_method.lower() == 'online':
+                # Online payment = anything that's not COD
+                queryset = queryset.exclude(payment_method='COD').exclude(
+                    payment_method__isnull=True
+                ).exclude(payment_method='')
+        if search:
+            queryset = queryset.filter(
+                Q(order_id__icontains=search) |
+                Q(user__email__icontains=search) |
+                Q(user__username__icontains=search)
+            )
         if date_from:
-            queryset = queryset.filter(created_at__gte=date_from)
+            queryset = queryset.filter(created_at__date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(created_at__lte=date_to)
+            queryset = queryset.filter(created_at__date__lte=date_to)
         
         return queryset
-
-    def get_serializer_class(self):
-        if self.action in ['retrieve', 'update', 'partial_update']:
-            return AdminOrderDetailSerializer
-        return AdminOrderSerializer
     
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
         """Update order status"""
         order = self.get_object()
-        status = request.data.get('status')
+        new_status = request.data.get('status')
         notes = request.data.get('notes', '')
         
-        if not status or status not in [choice[0] for choice in Order.STATUS_CHOICES]:
-            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+        if not new_status:
+            return Response(
+                {'error': 'Status is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         old_status = order.status
-        order.status = status
+        order.status = new_status
+        
+        # Set delivered_at if status is delivered
+        if new_status == 'delivered' and not order.delivered_at:
+            order.delivered_at = timezone.now()
+        
         order.save()
         
         # Create status history entry
         OrderStatusHistory.objects.create(
             order=order,
-            status=status,
+            status=new_status,
             notes=notes,
             created_by=request.user
         )
         
-        # Log action
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='Order',
-            object_id=str(order.id),
-            details=f"Updated order status: {order.order_id} from {old_status} to {status}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': 'Order status updated successfully'})
+        return Response({
+            'message': f'Order status updated from {old_status} to {new_status}',
+            'status': order.status
+        })
     
     @action(detail=True, methods=['post'])
     def update_payment_status(self, request, pk=None):
-        """Update order payment status"""
+        """Update payment status"""
         order = self.get_object()
-        payment_status = request.data.get('payment_status')
+        new_status = request.data.get('payment_status')
         notes = request.data.get('notes', '')
         
-        if not payment_status or payment_status not in [choice[0] for choice in Order.PAYMENT_STATUS_CHOICES]:
-            return Response({'error': 'Invalid payment status'}, status=status.HTTP_400_BAD_REQUEST)
+        if not new_status:
+            return Response(
+                {'error': 'Payment status is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         old_status = order.payment_status
-        order.payment_status = payment_status
+        order.payment_status = new_status
         order.save()
         
         # Create status history entry
         OrderStatusHistory.objects.create(
             order=order,
-            status=f"payment_{payment_status}",
-            notes=f"Payment status updated to {payment_status}. {notes}",
+            status=order.status,
+            notes=f'Payment status changed to {new_status}. {notes}',
             created_by=request.user
         )
         
-        # Log action
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='Order',
-            object_id=str(order.id),
-            details=f"Updated order payment status: {order.order_id} from {old_status} to {payment_status}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': 'Order payment status updated successfully'})
+        return Response({
+            'message': f'Payment status updated from {old_status} to {new_status}',
+            'payment_status': order.payment_status
+        })
     
     @action(detail=True, methods=['post'])
     def update_tracking(self, request, pk=None):
-        """Update order tracking information"""
+        """Update tracking information"""
         order = self.get_object()
-        tracking_number = request.data.get('tracking_number')
-        estimated_delivery = request.data.get('estimated_delivery')
+        tracking_number = request.data.get('tracking_number', '')
+        estimated_delivery = request.data.get('estimated_delivery', None)
         notes = request.data.get('notes', '')
         
-        if tracking_number:
-            order.tracking_number = tracking_number
-        
+        order.tracking_number = tracking_number
         if estimated_delivery:
+            from datetime import datetime
             try:
-                order.estimated_delivery = estimated_delivery
-            except ValueError:
-                return Response({'error': 'Invalid date format for estimated delivery'}, 
-                               status=status.HTTP_400_BAD_REQUEST)
+                order.estimated_delivery = datetime.strptime(estimated_delivery, '%Y-%m-%d').date()
+            except:
+                pass
         
         order.save()
         
-        # Create status history entry for tracking update
+        # Create status history entry
         OrderStatusHistory.objects.create(
             order=order,
             status=order.status,
-            notes=f"Tracking information updated. Tracking #: {tracking_number}. {notes}",
+            notes=f'Tracking updated: {tracking_number}. {notes}',
             created_by=request.user
         )
         
-        # Log action
-        AdminLog.objects.create(
-            user=request.user,
-            action='update',
-            model_name='Order',
-            object_id=str(order.id),
-            details=f"Updated tracking for order: {order.order_id}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({'status': 'Tracking information updated successfully'})
-        
+        return Response({
+            'message': 'Tracking information updated',
+            'tracking_number': order.tracking_number,
+            'estimated_delivery': order.estimated_delivery
+        })
+    
     @action(detail=True, methods=['get'])
     def notes(self, request, pk=None):
-        """Get all notes for an order"""
-        from orders.models import OrderNote
-        from orders.serializers import OrderNoteSerializer
-        
+        """Get order notes"""
         order = self.get_object()
-        notes = OrderNote.objects.filter(order=order).order_by('-created_at')
-        serializer = OrderNoteSerializer(notes, many=True)
-        return Response(serializer.data)
+        notes = order.notes.all().order_by('-created_at')
+        return Response([{
+            'id': n.id,
+            'content': n.content,
+            'created_at': n.created_at,
+            'created_by': n.created_by.username if n.created_by else None
+        } for n in notes])
     
     @action(detail=True, methods=['post'])
     def add_note(self, request, pk=None):
-        """Add a note to an order"""
-        from orders.models import OrderNote
-        from orders.serializers import OrderNoteSerializer
-        
+        """Add note to order"""
         order = self.get_object()
-        content = request.data.get('note')
+        note_content = request.data.get('note', '')
         
-        if not content:
-            return Response({'error': 'Note content is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not note_content:
+            return Response(
+                {'error': 'Note content is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         note = OrderNote.objects.create(
             order=order,
-            content=content,
+            content=note_content,
             created_by=request.user
         )
         
-        # Log action
-        AdminLog.objects.create(
-            user=request.user,
-            action='create',
-            model_name='OrderNote',
-            object_id=str(order.id),
-            details=f"Added note to order: {order.order_id}",
-            ip_address=self.get_client_ip(request)
-        )
-        
-        serializer = OrderNoteSerializer(note)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
+        return Response({
+            'id': note.id,
+            'content': note.content,
+            'created_at': note.created_at,
+            'created_by': request.user.username,
+            'message': 'Note added successfully'
+        })
+
+
+# ==================== Discount Management Views ====================
+class AdminDiscountViewSet(viewsets.ModelViewSet):
+    """Admin viewset for discount management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Discount.objects.all()
+    serializer_class = AdminDiscountSerializer
+
+
+# ==================== Global Settings Views ====================
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def global_settings(request):
+    """Get/Update global settings"""
+    if request.method == 'GET':
+        # Get all settings or specific setting
+        key = request.query_params.get('key', None)
+        if key:
+            setting = GlobalSettings.objects.filter(key=key).first()
+            if setting:
+                serializer = GlobalSettingsSerializer(setting)
+                return Response(serializer.data)
+            else:
+                return Response(
+                    {'error': f'Setting with key "{key}" not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         else:
-            ip = request.META.get('REMOTE_ADDR')
-        
-        try:
-            # Validate IP address
-            ipaddress.ip_address(ip)
-            return ip
-        except ValueError:
-            return None
-
-
-class AdminCategoryViewSet(viewsets.ModelViewSet):
-    """ViewSet for admin category management"""
-    queryset = Category.objects.all().order_by('sort_order', 'name')
-    serializer_class = AdminCategorySerializer
-    permission_classes = [IsAdminUser]
-    pagination_class = AdminPagination
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description']
-    ordering_fields = ['name', 'sort_order', 'is_active']
-
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        # Log action
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='create',
-            model_name='Category',
-            object_id=str(instance.id),
-            details=f"Created category: {instance.name}",
-            ip_address=self.get_client_ip(self.request)
+            # Return all settings as a dict
+            settings = GlobalSettings.objects.all()
+            settings_dict = {s.key: s.value for s in settings}
+            return Response(settings_dict)
+    
+    # Update settings
+    key = request.data.get('key')
+    value = request.data.get('value')
+    description = request.data.get('description', '')
+    
+    if not key or value is None:
+        return Response(
+            {'error': 'key and value are required'},
+            status=status.HTTP_400_BAD_REQUEST
         )
     
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        # Log action
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='update',
-            model_name='Category',
-            object_id=str(instance.id),
-            details=f"Updated category: {instance.name}",
-            ip_address=self.get_client_ip(self.request)
-        )
-    
-    def perform_destroy(self, instance):
-        # Log action before deleting
-        AdminLog.objects.create(
-            user=self.request.user,
-            action='delete',
-            model_name='Category',
-            object_id=str(instance.id),
-            details=f"Deleted category: {instance.name}",
-            ip_address=self.get_client_ip(self.request)
-        )
-        instance.delete()
-    
-    @action(detail=False, methods=['get'])
-    def hierarchical(self, request):
-        """Get categories in hierarchical structure"""
-        # Get all parent categories
-        parents = Category.objects.filter(parent__isnull=True).order_by('sort_order', 'name')
-        
-        # Build hierarchical structure
-        result = []
-        for parent in parents:
-            parent_data = AdminCategorySerializer(parent).data
-            # Get subcategories for this parent
-            subcategories = Category.objects.filter(parent=parent).order_by('sort_order', 'name')
-            parent_data['subcategories'] = AdminCategorySerializer(subcategories, many=True).data
-            result.append(parent_data)
-        
-        return Response(result)
-    
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        
-        try:
-            # Validate IP address
-            ipaddress.ip_address(ip)
-            return ip
-        except ValueError:
-            return None
+    setting = GlobalSettings.set_setting(key, value, description)
+    serializer = GlobalSettingsSerializer(setting)
+    return Response(serializer.data)
 
 
-class AdminDashboardStatsView(generics.GenericAPIView):
-    """View for admin dashboard statistics"""
-    permission_classes = [IsAdminUser]
-    serializer_class = AdminDashboardStatsSerializer
+# ==================== Payment & Charges Views ====================
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def payment_charges_settings(request):
+    """Get/Update payment and charges settings"""
+    from .models import GlobalSettings
     
-    def get(self, request):
-        # Calculate date ranges
-        today = timezone.now().date()
-        start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
-        end_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.max.time()))
-        
-        # Count users
-        total_users = User.objects.count()
-        
-        # Count orders and revenue
-        total_orders = Order.objects.count()
-        total_revenue = Order.objects.filter(payment_status='paid').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-        
-        # Count products
-        total_products = Product.objects.count()
-        
-        # Count pending orders
-        pending_orders = Order.objects.filter(status='pending').count()
-        
-        # Count low stock products (less than 10 items)
-        low_stock_products = Product.objects.filter(stock_quantity__gt=0, stock_quantity__lt=10).count()
-        
-        # Get recent orders
-        recent_orders = Order.objects.order_by('-created_at')[:10]
-        
-        # Get top selling products
-        top_products = OrderItem.objects.values('product').annotate(
-            total_sold=Sum('quantity')
-        ).order_by('-total_sold')[:10]
-        
-        top_selling_products = []
-        for item in top_products:
-            product = Product.objects.get(id=item['product'])
-            top_selling_products.append({
-                'id': product.id,
-                'title': product.title,
-                'sold': item['total_sold'],
-                'price': float(product.price),
-                'revenue': float(product.price) * item['total_sold']
-            })
-        
-        # Get sales by day for the last 30 days
-        thirty_days_ago = today - timedelta(days=30)
-        sales_by_day = []
-        
-        for i in range(30):
-            date = thirty_days_ago + timedelta(days=i)
-            orders = Order.objects.filter(
-                created_at__date=date,
-                payment_status='paid'
-            )
-            revenue = orders.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-            count = orders.count()
-            
-            sales_by_day.append({
-                'date': date.strftime('%Y-%m-%d'),
-                'revenue': float(revenue),
-                'orders': count
-            })
+    if request.method == 'GET':
+        # Get platform fees from GlobalSettings or use defaults
+        def get_setting_value(key, default):
+            value = GlobalSettings.get_setting(key, default)
+            # Ensure boolean values are properly converted
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str) and value.lower() in ['true', 'false']:
+                return value.lower() == 'true'
+            return value
         
         data = {
-            'total_users': total_users,
-            'total_orders': total_orders,
-            'total_revenue': total_revenue,
-            'total_products': total_products,
-            'pending_orders': pending_orders,
-            'low_stock_products': low_stock_products,
-            'recent_orders': AdminOrderSerializer(recent_orders, many=True).data,
-            'top_selling_products': top_selling_products,
-            'sales_by_day': sales_by_day
+            'platform_fee_upi': str(GlobalSettings.get_setting('platform_fee_upi', '0.00')),
+            'platform_fee_card': str(GlobalSettings.get_setting('platform_fee_card', '2.36')),
+            'platform_fee_netbanking': str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')),
+            'platform_fee_wallet': str(GlobalSettings.get_setting('platform_fee_wallet', '2.36')),
+            'platform_fee_cod': str(GlobalSettings.get_setting('platform_fee_cod', '0.00')),
+            'tax_rate': str(GlobalSettings.get_setting('tax_rate', '5.00')),
+            'razorpay_enabled': get_setting_value('razorpay_enabled', True),
+            'cod_enabled': get_setting_value('cod_enabled', True)
         }
+        serializer = PaymentChargeSerializer(data)
+        return Response(serializer.data)
+    
+    # Update settings - save to GlobalSettings
+    serializer = PaymentChargeSerializer(data=request.data)
+    if serializer.is_valid():
+        validated_data = serializer.validated_data
         
-        return Response(data)
+        # Save each setting to GlobalSettings
+        GlobalSettings.set_setting('platform_fee_upi', validated_data.get('platform_fee_upi', '0.00'), 'Platform fee percentage for UPI payments')
+        GlobalSettings.set_setting('platform_fee_card', validated_data.get('platform_fee_card', '2.36'), 'Platform fee percentage for Credit/Debit Card payments')
+        GlobalSettings.set_setting('platform_fee_netbanking', validated_data.get('platform_fee_netbanking', '2.36'), 'Platform fee percentage for Net Banking payments')
+        GlobalSettings.set_setting('platform_fee_wallet', validated_data.get('platform_fee_wallet', '2.36'), 'Platform fee percentage for Wallet payments')
+        GlobalSettings.set_setting('platform_fee_cod', validated_data.get('platform_fee_cod', '0.00'), 'Platform fee percentage for COD payments')
+        GlobalSettings.set_setting('tax_rate', validated_data.get('tax_rate', '5.00'), 'Tax rate percentage')
+        GlobalSettings.set_setting('razorpay_enabled', str(validated_data.get('razorpay_enabled', True)), 'Enable Razorpay payment gateway')
+        GlobalSettings.set_setting('cod_enabled', str(validated_data.get('cod_enabled', True)), 'Enable Cash on Delivery')
+        
+        return Response({
+            'message': 'Settings updated successfully',
+            **serializer.validated_data
+        })
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AdminLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for admin action logs (read-only)"""
-    queryset = AdminLog.objects.all().order_by('-created_at')
-    serializer_class = AdminLogSerializer
-    permission_classes = [IsAdminUser]
-    pagination_class = AdminPagination
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['user__username', 'action', 'model_name', 'details']
-    ordering_fields = ['created_at', 'user', 'action']
-
+# ==================== Contact Query Management Views ====================
+class AdminContactQueryViewSet(viewsets.ModelViewSet):
+    """Admin viewset for contact query management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = ContactQuery.objects.all().order_by('-created_at')
+    serializer_class = AdminContactQuerySerializer
+    
     def get_queryset(self):
         queryset = super().get_queryset()
+        status_filter = self.request.query_params.get('status', None)
+        search = self.request.query_params.get('search', None)
         
-        # Filter by user
-        user_id = self.request.query_params.get('user')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if search:
+            queryset = queryset.filter(
+                Q(full_name__icontains=search) |
+                Q(phone_number__icontains=search) |
+                Q(email__icontains=search) |
+                Q(pincode__icontains=search)
+            )
+        return queryset
+    
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """Update contact query status"""
+        contact_query = self.get_object()
+        status_value = request.data.get('status')
+        notes = request.data.get('notes', '')
+        
+        if status_value not in dict(ContactQuery.STATUS_CHOICES).keys():
+            return Response(
+                {'error': 'Invalid status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        contact_query.status = status_value
+        if notes:
+            contact_query.admin_notes = notes
+        if status_value == 'resolved':
+            contact_query.resolved_at = timezone.now()
+        contact_query.save()
+        
+        serializer = self.get_serializer(contact_query)
+        return Response(serializer.data)
+
+
+# ==================== Bulk Order Management Views ====================
+class AdminBulkOrderViewSet(viewsets.ModelViewSet):
+    """Admin viewset for bulk order management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = BulkOrder.objects.all().order_by('-created_at')
+    serializer_class = AdminBulkOrderSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        status_filter = self.request.query_params.get('status', None)
+        search = self.request.query_params.get('search', None)
+        assigned_to = self.request.query_params.get('assigned_to', None)
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if assigned_to:
+            queryset = queryset.filter(assigned_to_id=assigned_to)
+        if search:
+            queryset = queryset.filter(
+                Q(company_name__icontains=search) |
+                Q(contact_person__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone_number__icontains=search)
+            )
+        return queryset
+    
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """Update bulk order status"""
+        bulk_order = self.get_object()
+        status_value = request.data.get('status')
+        notes = request.data.get('notes', '')
+        quoted_price = request.data.get('quoted_price', None)
+        
+        if status_value not in dict(BulkOrder.STATUS_CHOICES).keys():
+            return Response(
+                {'error': 'Invalid status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        bulk_order.status = status_value
+        if notes:
+            bulk_order.admin_notes = notes
+        if quoted_price is not None:
+            bulk_order.quoted_price = quoted_price
+        bulk_order.save()
+        
+        serializer = self.get_serializer(bulk_order)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def assign(self, request, pk=None):
+        """Assign bulk order to admin user"""
+        bulk_order = self.get_object()
+        admin_id = request.data.get('admin_id')
+        
+        try:
+            admin_user = User.objects.get(id=admin_id, is_staff=True)
+            bulk_order.assigned_to = admin_user
+            bulk_order.save()
+            
+            serializer = self.get_serializer(bulk_order)
+            return Response(serializer.data)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Admin user not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+# ==================== Admin Log Views ====================
+class AdminLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """Admin viewset for viewing logs (read-only)"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = AdminLog.objects.all().order_by('-created_at')
+    serializer_class = AdminLogSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        action_type = self.request.query_params.get('action_type', None)
+        model_name = self.request.query_params.get('model_name', None)
+        user_id = self.request.query_params.get('user', None)
+        date_from = self.request.query_params.get('date_from', None)
+        date_to = self.request.query_params.get('date_to', None)
+        
+        if action_type:
+            queryset = queryset.filter(action_type=action_type)
+        if model_name:
+            queryset = queryset.filter(model_name=model_name)
         if user_id:
             queryset = queryset.filter(user_id=user_id)
-        
-        # Filter by action type
-        action = self.request.query_params.get('action')
-        if action:
-            queryset = queryset.filter(action=action)
-        
-        # Filter by date range
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
-        
         if date_from:
             queryset = queryset.filter(created_at__gte=date_from)
         if date_to:
             queryset = queryset.filter(created_at__lte=date_to)
         
         return queryset
+

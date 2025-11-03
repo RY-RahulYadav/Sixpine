@@ -116,6 +116,11 @@ class Product(models.Model):
     warranty = models.CharField(max_length=100, blank=True)
     assembly_required = models.BooleanField(default=False)
     
+    # Additional Product Information
+    screen_offer = models.JSONField(default=list, blank=True, help_text="Array of screen offer texts to display on product page")
+    user_guide = models.TextField(blank=True, null=True, help_text="User guide instructions")
+    care_instructions = models.TextField(blank=True, null=True, help_text="Care and maintenance instructions")
+    
     # SEO and Display
     meta_title = models.CharField(max_length=200, blank=True)
     meta_description = models.TextField(blank=True)
@@ -309,6 +314,7 @@ class ProductFeature(models.Model):
 
     class Meta:
         ordering = ['sort_order', 'created_at']
+
 
     def __str__(self):
         return f"{self.product.title} - {self.feature[:50]}..."

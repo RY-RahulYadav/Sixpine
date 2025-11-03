@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './heroSection.module.css';
+import API from '../../services/api';
 
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isExpertOpen, setIsExpertOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const contactFormRef = useRef<HTMLFormElement>(null);
 
   const slides = [
     {
@@ -50,6 +53,13 @@ const HeroSection = () => {
 
   const toggleExpertPopup = () => {
     setIsExpertOpen(!isExpertOpen);
+    if (isExpertOpen) {
+      // Reset form when closing
+      setIsSubmitting(false);
+      if (contactFormRef.current) {
+        contactFormRef.current.reset();
+      }
+    }
   };
 
   useEffect(() => {
@@ -272,18 +282,84 @@ const HeroSection = () => {
               <p className={styles.callbackSubtitle}>Our Nearest Store Will Contact You</p>
             </div>
 
-            <form className={styles.callbackForm} onSubmit={(e) => { e.preventDefault(); /* TODO: submit handler */ toggleExpertPopup(); }}>
+            <form 
+              ref={contactFormRef}
+              className={styles.callbackForm} 
+              onSubmit={async (e) => { 
+                e.preventDefault();
+                
+                // Prevent double submission
+                if (isSubmitting) {
+                  return;
+                }
+                
+                setIsSubmitting(true);
+                
+                const form = contactFormRef.current || e.currentTarget;
+                if (!form) {
+                  setIsSubmitting(false);
+                  return;
+                }
+                
+                const formData = new FormData(form);
+                const data = {
+                  full_name: formData.get('name') as string,
+                  pincode: formData.get('pincode') as string,
+                  phone_number: formData.get('phone') as string,
+                  email: (formData.get('email') as string) || '',
+                  message: (formData.get('message') as string) || ''
+                };
+                
+                try {
+                  const response = await API.post('/auth/contact/submit/', data);
+                  const result = response.data;
+                  
+                  if (result && result.success) {
+                    const successMessage = result.message || 'Thank you! Our team will contact you soon.';
+                    setIsSubmitting(false);
+                    
+                    // Reset form if it still exists
+                    if (contactFormRef.current) {
+                      contactFormRef.current.reset();
+                    }
+                    
+                    alert(successMessage);
+                    
+                    // Small delay before closing to ensure alert is processed
+                    setTimeout(() => {
+                      setIsExpertOpen(false);
+                    }, 100);
+                  } else {
+                    const errorMsg = result?.error || result?.detail || 
+                                    (result?.errors ? JSON.stringify(result.errors) : 'Failed to submit. Please try again.');
+                    console.error('Contact form error:', result);
+                    alert(errorMsg);
+                    setIsSubmitting(false);
+                  }
+                } catch (error: any) {
+                  console.error('Contact form error:', error);
+                  const errorMessage = error?.response?.data?.error || 
+                                     error?.response?.data?.detail ||
+                                     error?.message || 
+                                     'Network error. Please try again later.';
+                  alert(`Failed to submit: ${errorMessage}`);
+                  setIsSubmitting(false);
+                }
+              }}
+            >
               <div className={styles.formGroup}>
-                <input type="text" name="name" placeholder="Full Name" className={styles.inputField} required />
+                <input type="text" name="name" placeholder="Full Name" className={styles.inputField} required disabled={isSubmitting} />
               </div>
               <div className={styles.formGroup}>
-                <input type="text" name="pincode" placeholder="Pincode" className={styles.inputField} required />
+                <input type="text" name="pincode" placeholder="Pincode" className={styles.inputField} required disabled={isSubmitting} />
               </div>
               <div className={styles.formGroup}>
-                <input type="tel" name="phone" placeholder="Phone Number" className={styles.inputField} required />
+                <input type="tel" name="phone" placeholder="Phone Number" className={styles.inputField} required disabled={isSubmitting} />
               </div>
               <div className={styles.formGroup}>
-                <button type="submit" className={styles.submitBtn}>SUBMIT</button>
+                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'SUBMIT'}
+                </button>
               </div>
             </form>
 

@@ -58,6 +58,7 @@ interface OrderDetails {
   payment_method: string;
   subtotal: number;
   shipping_cost: number;
+  platform_fee?: number;
   tax_amount: number;
   total_amount: number;
   created_at: string;
@@ -138,26 +139,42 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
 
   // Get order status flow with completion tracking
   const getOrderStatusFlow = (order: OrderDetails) => {
-    const statusFlow = [
-      {
-        key: 'payment',
-        label: 'Payment Success',
-        completed: order.payment_status === 'paid',
-        current: order.payment_status === 'pending',
-        date: order.payment_status === 'paid' ? order.created_at : null
-      },
-      {
-        key: 'confirmed',
-        label: 'Order Confirmed',
-        completed: ['confirmed', 'processing', 'shipped', 'delivered'].includes(order.status),
-        current: order.status === 'confirmed',
-        date: order.status === 'confirmed' ? order.created_at : null
-      },
+    const isCOD = order.payment_method === 'COD';
+    const isCODPending = isCOD && order.payment_status === 'pending';
+    
+    // Base status flow
+    const confirmedStep = {
+      key: 'confirmed',
+      label: 'Order Confirmed',
+      completed: ['confirmed', 'processing', 'shipped', 'delivered'].includes(order.status) || isCODPending,
+      current: order.status === 'confirmed' && !isCODPending,
+      failed: false,
+      date: (order.status === 'confirmed' || isCODPending) ? order.created_at : null
+    };
+    
+    const paymentStep = {
+      key: 'payment',
+      label: 'Payment Success',
+      completed: order.payment_status === 'paid',
+      current: order.payment_status === 'pending' && !isCOD,
+      failed: isCODPending,
+      date: order.payment_status === 'paid' ? order.created_at : null
+    };
+    
+    // For COD orders, show Order Confirmed first, then Payment Success
+    // For non-COD orders, show Payment Success first, then Order Confirmed
+    const statusFlow = isCOD 
+      ? [confirmedStep, paymentStep]
+      : [paymentStep, confirmedStep];
+    
+    // Add remaining steps
+    statusFlow.push(
       {
         key: 'processing',
         label: 'Processing',
         completed: ['processing', 'shipped', 'delivered'].includes(order.status),
         current: order.status === 'processing',
+        failed: false,
         date: null
       },
       {
@@ -165,6 +182,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
         label: 'Shipped',
         completed: ['shipped', 'delivered'].includes(order.status),
         current: order.status === 'shipped',
+        failed: false,
         date: null
       },
       {
@@ -172,9 +190,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
         label: 'Delivered',
         completed: order.status === 'delivered',
         current: false,
+        failed: false,
         date: order.status === 'delivered' ? order.updated_at : null
       }
-    ];
+    );
 
     // If cancelled, show cancelled status
     if (order.status === 'cancelled') {
@@ -228,8 +247,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
                       </p>
                       <p className="mb-2">
                         <strong>Status:</strong>{' '}
-                        <span className={`badge ${getStatusBadgeClass(order.status)}`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <span className={`badge ${getStatusBadgeClass(order.payment_method === 'COD' && order.payment_status === 'pending' ? 'confirmed' : order.status)}`}>
+                          {/* For COD orders with pending payment, show Confirmed */}
+                          {(order.payment_method === 'COD' && order.payment_status === 'pending') 
+                            ? 'Confirmed' 
+                            : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       </p>
                       <p className="mb-2">
@@ -333,10 +355,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
                         <span>Subtotal:</span>
                         <strong>₹{formatAmount(order.subtotal)}</strong>
                       </div>
-                      <div className="d-flex justify-content-between mb-2">
-                        <span>Shipping:</span>
-                        <strong>₹{formatAmount(order.shipping_cost)}</strong>
-                      </div>
+                      {(order.platform_fee || 0) > 0 && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span>Platform Fee:</span>
+                          <strong>₹{formatAmount(order.platform_fee || 0)}</strong>
+                        </div>
+                      )}
                       <div className="d-flex justify-content-between mb-2">
                         <span>Tax:</span>
                         <strong>₹{formatAmount(order.tax_amount)}</strong>
@@ -386,19 +410,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
                               width: '48px',
                               height: '48px',
                               borderRadius: '50%',
-                              backgroundColor: statusItem.completed ? '#28a745' : statusItem.current ? '#ffc107' : '#e9ecef',
-                              color: statusItem.completed ? '#fff' : statusItem.current ? '#000' : '#6c757d',
+                              backgroundColor: statusItem.completed ? '#28a745' : statusItem.failed ? '#dc3545' : statusItem.current ? '#ffc107' : '#e9ecef',
+                              color: statusItem.completed ? '#fff' : statusItem.failed ? '#fff' : statusItem.current ? '#000' : '#6c757d',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontSize: '24px',
                               marginBottom: '8px',
-                              border: statusItem.current ? '3px solid #ffc107' : '2px solid ' + (statusItem.completed ? '#28a745' : '#dee2e6'),
+                              border: statusItem.current ? '3px solid #ffc107' : '2px solid ' + (statusItem.completed ? '#28a745' : statusItem.failed ? '#dc3545' : '#dee2e6'),
                               boxShadow: statusItem.current ? '0 0 0 3px rgba(255, 193, 7, 0.25)' : 'none',
                               transition: 'all 0.3s ease'
                             }}>
                               {statusItem.completed ? (
                                 <i className="bi bi-check-circle-fill"></i>
+                              ) : statusItem.failed ? (
+                                <i className="bi bi-x-circle-fill"></i>
                               ) : statusItem.current ? (
                                 <i className="bi bi-clock-history"></i>
                               ) : (
@@ -408,8 +434,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
                             <div style={{
                               textAlign: 'center',
                               fontSize: '13px',
-                              fontWeight: statusItem.completed || statusItem.current ? '600' : '400',
-                              color: statusItem.completed ? '#28a745' : statusItem.current ? '#ffc107' : '#6c757d',
+                              fontWeight: statusItem.completed || statusItem.current || statusItem.failed ? '600' : '400',
+                              color: statusItem.completed ? '#28a745' : statusItem.failed ? '#dc3545' : statusItem.current ? '#ffc107' : '#6c757d',
                               maxWidth: '100px'
                             }}>
                               {statusItem.label}

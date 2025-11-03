@@ -72,3 +72,81 @@ class PasswordResetToken(models.Model):
     @classmethod
     def generate_token(cls):
         return str(uuid.uuid4())
+
+
+class ContactQuery(models.Model):
+    """Model for storing contact form submissions"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+    
+    full_name = models.CharField(max_length=200)
+    pincode = models.CharField(max_length=10)
+    phone_number = models.CharField(max_length=15)
+    email = models.EmailField(blank=True, null=True)
+    message = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(blank=True, null=True)
+    
+    class Meta:
+        db_table = 'contact_queries'
+        ordering = ['-created_at']
+        verbose_name = 'Contact Query'
+        verbose_name_plural = 'Contact Queries'
+    
+    def __str__(self):
+        return f"{self.full_name} - {self.phone_number} ({self.status})"
+
+
+class BulkOrder(models.Model):
+    """Model for bulk order inquiries"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('reviewing', 'Under Review'),
+        ('quoted', 'Quoted'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+    ]
+    
+    # Customer Information
+    company_name = models.CharField(max_length=200)
+    contact_person = models.CharField(max_length=200)
+    email = models.EmailField()
+    phone_number = models.CharField(max_length=15)
+    address = models.TextField()
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    pincode = models.CharField(max_length=10)
+    country = models.CharField(max_length=100, default='India')
+    
+    # Order Details
+    project_type = models.CharField(max_length=100)  # e.g., 'Corporate', 'Hospitality', 'Residential'
+    estimated_quantity = models.IntegerField(blank=True, null=True)
+    estimated_budget = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
+    special_requirements = models.TextField(blank=True, null=True)
+    
+    # Admin Fields
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField(blank=True, null=True)
+    quoted_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='bulk_orders')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'bulk_orders'
+        ordering = ['-created_at']
+        verbose_name = 'Bulk Order'
+        verbose_name_plural = 'Bulk Orders'
+    
+    def __str__(self):
+        return f"{self.company_name} - {self.contact_person} ({self.status})"

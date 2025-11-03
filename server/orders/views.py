@@ -11,6 +11,8 @@ from .serializers import (
     AddressSerializer, OrderListSerializer, OrderDetailSerializer, 
     OrderCreateSerializer
 )
+from .utils import calculate_order_totals
+from admin_api.models import GlobalSettings
 
 # Initialize Razorpay client
 razorpay_key_id = getattr(settings, 'RAZORPAY_KEY_ID', '')
@@ -199,6 +201,16 @@ def create_razorpay_order(request):
     """Create a Razorpay order for payment"""
     from cart.models import Cart
     
+    # Check if Razorpay is enabled
+    razorpay_enabled = GlobalSettings.get_setting('razorpay_enabled', True)
+    if isinstance(razorpay_enabled, str):
+        razorpay_enabled = razorpay_enabled.lower() not in ['false', '0', 'no', '']
+    if not razorpay_enabled:
+        return Response(
+            {'error': 'Razorpay payment gateway is currently disabled. Please use Cash on Delivery or contact support.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     # Check if Razorpay is configured
     if not razorpay_client:
         return Response(
@@ -294,6 +306,16 @@ def verify_razorpay_payment(request):
     shipping_address_id = request.data.get('shipping_address_id')
     payment_method = request.data.get('payment_method', 'RAZORPAY')
     
+    # Check if Razorpay is enabled
+    razorpay_enabled = GlobalSettings.get_setting('razorpay_enabled', True)
+    if isinstance(razorpay_enabled, str):
+        razorpay_enabled = razorpay_enabled.lower() not in ['false', '0', 'no', '']
+    if not razorpay_enabled:
+        return Response(
+            {'error': 'Razorpay payment gateway is currently disabled. Please use Cash on Delivery or contact support.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature, shipping_address_id]):
         return Response({'error': 'Missing required payment parameters'}, 
                        status=status.HTTP_400_BAD_REQUEST)
@@ -327,18 +349,18 @@ def verify_razorpay_payment(request):
                 price = cart_item.variant.price
             subtotal += price * cart_item.quantity
         
-        tax_amount = subtotal * Decimal('0.05')
-        shipping_cost = Decimal('50.00') if subtotal < Decimal('500.00') else Decimal('0.00')
-        total_amount = subtotal + tax_amount + shipping_cost
+        # Calculate totals with platform fee
+        totals = calculate_order_totals(subtotal, payment_method)
         
         # Create pending order with payment_status='pending'
         order = Order.objects.create(
             user=request.user,
             shipping_address=address,
-            subtotal=subtotal,
-            shipping_cost=shipping_cost,
-            tax_amount=tax_amount,
-            total_amount=total_amount,
+            subtotal=totals['subtotal'],
+            shipping_cost=totals['shipping_cost'],
+            platform_fee=totals['platform_fee'],
+            tax_amount=totals['tax_amount'],
+            total_amount=totals['total_amount'],
             payment_method=payment_method,
             razorpay_order_id=razorpay_order_id,
             payment_status='pending',
@@ -407,21 +429,23 @@ def verify_razorpay_payment(request):
     # Calculate totals
     subtotal = Decimal('0.00')
     for cart_item in cart.items.all():
-        subtotal += cart_item.product.price * cart_item.quantity
+        price = cart_item.product.price
+        if cart_item.variant and cart_item.variant.price:
+            price = cart_item.variant.price
+        subtotal += price * cart_item.quantity
     
-    # Simple tax and shipping calculation
-    tax_amount = subtotal * Decimal('0.05')  # 5% Tax
-    shipping_cost = Decimal('50.00') if subtotal < Decimal('500.00') else Decimal('0.00')
-    total_amount = subtotal + tax_amount + shipping_cost
+    # Calculate totals with platform fee
+    totals = calculate_order_totals(subtotal, payment_method)
     
     # Create order
     order = Order.objects.create(
         user=request.user,
         shipping_address=address,
-        subtotal=subtotal,
-        shipping_cost=shipping_cost,
-        tax_amount=tax_amount,
-        total_amount=total_amount,
+        subtotal=totals['subtotal'],
+        shipping_cost=totals['shipping_cost'],
+        platform_fee=totals['platform_fee'],
+        tax_amount=totals['tax_amount'],
+        total_amount=totals['total_amount'],
         payment_method=payment_method,
         razorpay_order_id=razorpay_order_id,
         razorpay_payment_id=razorpay_payment_id,
@@ -503,6 +527,26 @@ def complete_payment(request):
         return Response({'error': 'Order payment is already completed or cannot be completed'}, 
                        status=status.HTTP_400_BAD_REQUEST)
     
+    # Validate payment method availability
+    if payment_method in ['RAZORPAY', 'CARD', 'NET_BANKING', 'UPI', 'WALLET']:
+        razorpay_enabled = GlobalSettings.get_setting('razorpay_enabled', True)
+        if isinstance(razorpay_enabled, str):
+            razorpay_enabled = razorpay_enabled.lower() not in ['false', '0', 'no', '']
+        if not razorpay_enabled:
+            return Response(
+                {'error': 'Razorpay payment gateway is currently disabled. Please use Cash on Delivery or contact support.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+    elif payment_method == 'COD':
+        cod_enabled = GlobalSettings.get_setting('cod_enabled', True)
+        if isinstance(cod_enabled, str):
+            cod_enabled = cod_enabled.lower() not in ['false', '0', 'no', '']
+        if not cod_enabled:
+            return Response(
+                {'error': 'Cash on Delivery is currently disabled. Please use online payment methods or contact support.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
     # Verify payment signature if Razorpay
     if payment_method in ['RAZORPAY', 'CARD', 'NET_BANKING', 'UPI', 'WALLET']:
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
@@ -558,12 +602,47 @@ def complete_payment(request):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def get_payment_charges(request):
+    """Get payment charges (platform fees and tax rate) - Public endpoint for checkout calculation"""
+    def get_setting_value(key, default):
+        value = GlobalSettings.get_setting(key, default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str) and value.lower() in ['true', 'false']:
+            return value.lower() == 'true'
+        return value
+    
+    data = {
+        'platform_fee_upi': str(GlobalSettings.get_setting('platform_fee_upi', '0.00')),
+        'platform_fee_card': str(GlobalSettings.get_setting('platform_fee_card', '2.36')),
+        'platform_fee_netbanking': str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')),
+        'platform_fee_wallet': str(GlobalSettings.get_setting('platform_fee_wallet', '2.36')),
+        'platform_fee_cod': str(GlobalSettings.get_setting('platform_fee_cod', '0.00')),
+        'tax_rate': str(GlobalSettings.get_setting('tax_rate', '5.00')),
+        'razorpay_enabled': get_setting_value('razorpay_enabled', True),
+        'cod_enabled': get_setting_value('cod_enabled', True)
+    }
+    return Response(data, status=status.HTTP_200_OK)
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def checkout_with_cod(request):
     """Checkout with Cash on Delivery"""
     from cart.models import Cart
     from decimal import Decimal
+    
+    # Check if COD is enabled
+    cod_enabled = GlobalSettings.get_setting('cod_enabled', True)
+    if isinstance(cod_enabled, str):
+        cod_enabled = cod_enabled.lower() not in ['false', '0', 'no', '']
+    if not cod_enabled:
+        return Response(
+            {'error': 'Cash on Delivery is currently disabled. Please use online payment methods or contact support.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
     
     shipping_address_id = request.data.get('shipping_address_id')
     order_notes = request.data.get('order_notes', '')
@@ -587,24 +666,26 @@ def checkout_with_cod(request):
     # Calculate totals
     subtotal = Decimal('0.00')
     for cart_item in cart.items.all():
-        subtotal += cart_item.product.price * cart_item.quantity
+        price = cart_item.product.price
+        if cart_item.variant and cart_item.variant.price:
+            price = cart_item.variant.price
+        subtotal += price * cart_item.quantity
     
-    # Simple tax and shipping calculation
-    tax_amount = subtotal * Decimal('0.05')  # 5% Tax
-    shipping_cost = Decimal('50.00') if subtotal < Decimal('500.00') else Decimal('0.00')
-    total_amount = subtotal + tax_amount + shipping_cost
+    # Calculate totals with platform fee
+    totals = calculate_order_totals(subtotal, 'COD')
     
     # Create order
     order = Order.objects.create(
         user=request.user,
         shipping_address=address,
-        subtotal=subtotal,
-        shipping_cost=shipping_cost,
-        tax_amount=tax_amount,
-        total_amount=total_amount,
+        subtotal=totals['subtotal'],
+        shipping_cost=totals['shipping_cost'],
+        platform_fee=totals['platform_fee'],
+        tax_amount=totals['tax_amount'],
+        total_amount=totals['total_amount'],
         payment_method='COD',
         payment_status='pending',
-        status='pending',
+        status='confirmed',  # COD orders are confirmed immediately, payment is pending
         order_notes=order_notes
     )
     
@@ -639,8 +720,8 @@ def checkout_with_cod(request):
     # Create initial status history
     OrderStatusHistory.objects.create(
         order=order,
-        status='pending',
-        notes='Order created with COD payment',
+        status='confirmed',
+        notes='Order confirmed with COD payment',
         created_by=request.user
     )
     

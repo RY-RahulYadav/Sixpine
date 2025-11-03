@@ -11,6 +11,8 @@ const ProductInformation = ({ product }: ProductInformationProps) => {
       <h2 className={styles.heading}>Product information</h2>
 
       <div className={styles.grid}>
+        {/* Left Column */}
+        
         {/* Brand & Measurement */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
@@ -25,6 +27,7 @@ const ProductInformation = ({ product }: ProductInformationProps) => {
           {product?.weight && <p>Weight: {product.weight}</p>}
         </div>
 
+        {/* Middle Column - First Row */}
         {/* Style */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
@@ -36,6 +39,7 @@ const ProductInformation = ({ product }: ProductInformationProps) => {
           </p>
         </div>
 
+        {/* Right Column */}
         {/* Item Details */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
@@ -52,6 +56,7 @@ const ProductInformation = ({ product }: ProductInformationProps) => {
           </ul>
         </div>
 
+        {/* Left Column - Second Row */}
         {/* Features */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
@@ -64,28 +69,37 @@ const ProductInformation = ({ product }: ProductInformationProps) => {
           </ul>
         </div>
 
+        {/* Middle Column - Second Row */}
         {/* User Guide */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <Book size={16} /> <strong>User Guide</strong>
           </div>
-          <p>
-            {product?.assembly_required ? 
-              "Easy to assemble with included toolkit. Recommended to clean with a dry cloth and avoid direct sunlight to maintain finish." :
-              "Ready to use out of the box. Recommended to clean with a dry cloth and avoid direct sunlight to maintain finish."
-            }
-          </p>
+          {product?.user_guide ? (
+            <p>{product.user_guide}</p>
+          ) : (
+            <p>
+              {product?.assembly_required ? 
+                "Easy to assemble with included toolkit. Recommended to clean with a dry cloth and avoid direct sunlight to maintain finish." :
+                "Ready to use out of the box. Recommended to clean with a dry cloth and avoid direct sunlight to maintain finish."
+              }
+            </p>
+          )}
         </div>
 
+        {/* Right Column - Second Row */}
         {/* Material & Care */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <Feather size={16} /> <strong>Material & Care</strong>
           </div>
           <p>Material: {product?.material?.name || "High-quality materials"}</p>
-          <p>
-            Care: Wipe with a dry soft cloth. Avoid water and harsh chemicals.
-          </p>
+          {product?.care_instructions && (
+            <p>Care: {product.care_instructions}</p>
+          )}
+          {!product?.care_instructions && (
+            <p>Care: Wipe with a dry soft cloth. Avoid water and harsh chemicals.</p>
+          )}
         </div>
       </div>
 

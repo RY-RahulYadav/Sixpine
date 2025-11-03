@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import adminAPI from '../../../services/adminApi';
+import { showToast } from '../utils/adminUtils';
+import '../../../styles/admin-theme.css';
 
 interface User {
   id: number;
@@ -58,57 +60,85 @@ const AdminUsers: React.FC = () => {
       setUsers(users.map(user => 
         user.id === id ? { ...user, is_active: !isActive } : user
       ));
+      
+      showToast(`User ${!isActive ? 'activated' : 'suspended'} successfully`, 'success');
     } catch (err) {
       console.error('Error toggling user status:', err);
-      alert('Failed to update user status');
+      showToast('Failed to update user status', 'error');
+    }
+  };
+
+  const handleDeleteUser = async (id: number, username: string) => {
+    if (!window.confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await adminAPI.deleteUser(id);
+      setUsers(users.filter(user => user.id !== id));
+      showToast('User deleted successfully', 'success');
+    } catch (err: any) {
+      console.error('Error deleting user:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Failed to delete user';
+      showToast(errorMessage, 'error');
     }
   };
   
   
-  
   if (loading && users.length === 0) {
     return (
-      <div className="admin-loader">
-        <div className="spinner"></div>
-        <p>Loading users...</p>
+      <div className="admin-loading-state">
+        <div className="admin-loader"></div>
+        <p>Loading customers...</p>
       </div>
     );
   }
   
   return (
-    <div className="admin-users">
-      <div className="admin-header-actions">
-        <h2>Users</h2>
+    <div className="admin-page">
+      {/* Page Header */}
+      <div className="admin-page-header">
+        <div className="admin-page-title">
+          <span className="material-symbols-outlined">people</span>
+          <div>
+            <h1>Customers Management</h1>
+            <p className="admin-page-subtitle">View and manage customer accounts</p>
+          </div>
+        </div>
       </div>
       
       {/* Filters */}
-      <div className="admin-filters">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-input">
+      <div className="admin-filters-bar">
+        <form onSubmit={handleSearch} className="admin-search-form">
+          <div className="admin-search-input">
+            <span className="material-symbols-outlined">search</span>
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search customers by name, email, username..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <button type="submit">
-              <span className="material-symbols-outlined">search</span>
-            </button>
           </div>
+          <button type="submit" className="admin-modern-btn secondary">
+            Search
+          </button>
         </form>
       </div>
       
       {/* Error message */}
       {error && (
-        <div className="admin-error-message">
+        <div className="admin-alert error">
           <span className="material-symbols-outlined">error</span>
-          {error}
+          <div className="admin-alert-content">
+            <strong>Error</strong>
+            <p>{error}</p>
+          </div>
         </div>
       )}
       
       {/* Users table */}
-      <div className="admin-table-container">
-        <table className="admin-table responsive-table">
+      <div className="admin-modern-card">
+        <table className="admin-modern-table">
           <thead>
             <tr>
               <th>Username</th>
@@ -116,36 +146,51 @@ const AdminUsers: React.FC = () => {
               <th>Email</th>
               <th>Joined</th>
               <th>Status</th>
-              
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="responsive-row">
-                <td data-label="Username">{user.username}</td>
+              <tr key={user.id}>
+                <td data-label="Username"><strong>{user.username}</strong></td>
                 <td data-label="Name">{user.first_name} {user.last_name}</td>
                 <td data-label="Email">{user.email}</td>
                 <td data-label="Joined">{new Date(user.date_joined).toLocaleDateString()}</td>
-                {/* <td>{user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</td> */}
                 <td data-label="Status">
-                  <button 
-                    className={`status-toggle ${user.is_active ? 'active' : 'inactive'}`}
-                    onClick={() => handleToggleActive(user.id, user.is_active)}
-                  >
-                    {user.is_active ? 'Active' : 'Inactive'}
-                  </button>
+                  <span className={`admin-status-badge ${user.is_active ? 'success' : 'error'}`}>
+                    {user.is_active ? 'Active' : 'Suspended'}
+                  </span>
                 </td>
-                
-               
+                <td data-label="Actions" className="actions">
+                  <div className="admin-action-buttons">
+                    <button
+                      className={`admin-modern-btn ${user.is_active ? 'warning' : 'success'} icon-only`}
+                      onClick={() => handleToggleActive(user.id, user.is_active)}
+                      title={user.is_active ? 'Suspend user' : 'Activate user'}
+                    >
+                      <span className="material-symbols-outlined">
+                        {user.is_active ? 'block' : 'check_circle'}
+                      </span>
+                    </button>
+                    <button
+                      className="admin-modern-btn danger icon-only"
+                      onClick={() => handleDeleteUser(user.id, user.username)}
+                      title="Delete user"
+                    >
+                      <span className="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             
             {users.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="empty-table">
+                <td colSpan={6} className="admin-empty-state">
                   <div>
                     <span className="material-symbols-outlined">people</span>
-                    <p>No users found</p>
+                    <h3>No customers found</h3>
+                    <p>Customer accounts will appear here once users register</p>
                   </div>
                 </td>
               </tr>
@@ -160,18 +205,22 @@ const AdminUsers: React.FC = () => {
           <button 
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
+            className="admin-modern-btn secondary"
           >
             <span className="material-symbols-outlined">chevron_left</span>
+            Previous
           </button>
           
-          <span className="page-info">
+          <span className="admin-pagination-info">
             Page {currentPage} of {totalPages}
           </span>
           
           <button 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
+            className="admin-modern-btn secondary"
           >
+            Next
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
         </div>

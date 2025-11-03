@@ -497,7 +497,10 @@ const OrdersPage: React.FC = () => {
                               <div className="item-status">
                                 <p className="status-text">
                                   <i className="bi bi-clock-history me-2"></i>
-                                  <strong>Status:</strong> {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                  <strong>Status:</strong> {
+                                    // For COD orders with pending payment, show Confirmed
+                                    order.status.charAt(0).toUpperCase() + order.status.slice(1)
+                                  }
                                 </p>
                                 {order.estimated_delivery && (
                                   <p className="delivery-text">
@@ -536,12 +539,18 @@ const OrdersPage: React.FC = () => {
                               <div className="item-status">
                                 <div className="status-badge-container">
                                   <div className="status-icon-wrapper">
-                                    {order.status === 'delivered' && <i className="bi bi-check-circle-fill status-icon-delivered"></i>}
-                                    {order.status === 'cancelled' && <i className="bi bi-x-circle-fill status-icon-cancelled"></i>}
-                                    {order.status === 'shipped' && <i className="bi bi-truck status-icon-shipped"></i>}
-                                    {['pending', 'confirmed', 'processing'].includes(order.status) && (
+                                    {/* Show only one icon based on priority: cancelled > delivered > shipped > confirmed/COD > pending/processing */}
+                                    {order.status === 'cancelled' ? (
+                                      <i className="bi bi-x-circle-fill status-icon-cancelled"></i>
+                                    ) : order.status === 'delivered' ? (
+                                      <i className="bi bi-check-circle-fill status-icon-delivered"></i>
+                                    ) : order.status === 'shipped' ? (
+                                      <i className="bi bi-truck status-icon-shipped"></i>
+                                    ) : (order.payment_method === 'COD' && order.payment_status === 'pending') || order.status === 'confirmed' ? (
+                                      <i className="bi bi-check-circle-fill status-icon-delivered"></i>
+                                    ) : ['pending', 'processing'].includes(order.status) ? (
                                       <i className="bi bi-clock status-icon-pending"></i>
-                                    )}
+                                    ) : null}
                                   </div>
                                   <p className="status-text-inline mb-0">
                                     <strong>Status:</strong>
@@ -549,31 +558,55 @@ const OrdersPage: React.FC = () => {
                                       order.status === 'delivered' ? 'text-success' :
                                       order.status === 'cancelled' ? 'text-danger' :
                                       order.status === 'shipped' ? 'text-info' :
+                                      // For COD orders with pending payment, show as confirmed
+                                      (order.payment_method === 'COD' && order.payment_status === 'pending') ? 'text-success' :
                                       'text-warning'
                                     }`}>
-                                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                      {/* For COD orders with pending payment, show Confirmed */}
+                                      { order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                                     </span>
                                   </p>
                                 </div>
                                 
-                                {/* Payment Status and Actions */}
-                                {order.payment_status === 'pending' && (
-                                  <div className="payment-pending-alert mt-3 p-3 border border-warning rounded bg-light">
-                                    <p className="text-warning mb-2">
-                                      <i className="bi bi-exclamation-triangle me-2"></i>
-                                      <strong>Payment Not Successful</strong>
-                                    </p>
-                                    <p className="text-muted small mb-2">
-                                      Your order was created but payment verification failed. Please complete the payment to confirm your order.
-                                    </p>
-                                    <button 
-                                      className="btn btn-warning btn-sm"
-                                      onClick={() => handleCompletePayment(order)}
-                                      disabled={completingPayment === order.order_id}
-                                    >
-                                      {completingPayment === order.order_id ? 'Processing...' : 'Complete Payment'}
-                                    </button>
-                                  </div>
+                                {/* Payment Status and Actions - Don't show for cancelled orders */}
+                                {order.payment_status === 'pending' && order.status !== 'cancelled' && (
+                                  <>
+                                    {order.payment_method === 'COD' ? (
+                                      <div className="payment-pending-alert mt-3 p-3 border border-success rounded bg-light">
+                                        <p className="text-success mb-2">
+                                          <i className="bi bi-check-circle me-2"></i>
+                                          <strong>Order Confirmed</strong>
+                                        </p>
+                                        <p className="text-muted small mb-2">
+                                          <strong>Payment Pending</strong> - Your order will be delivered and payment collected on delivery.
+                                        </p>
+                                        <button 
+                                          className="btn btn-warning btn-sm"
+                                          onClick={() => handleCompletePayment(order)}
+                                          disabled={completingPayment === order.order_id}
+                                        >
+                                          {completingPayment === order.order_id ? 'Processing...' : 'You can also pay'}
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="payment-pending-alert mt-3 p-3 border border-warning rounded bg-light">
+                                        <p className="text-warning mb-2">
+                                          <i className="bi bi-exclamation-triangle me-2"></i>
+                                          <strong>Payment Not Successful</strong>
+                                        </p>
+                                        <p className="text-muted small mb-2">
+                                          Your order was created but payment verification failed. Please complete the payment to confirm your order.
+                                        </p>
+                                        <button 
+                                          className="btn btn-warning btn-sm"
+                                          onClick={() => handleCompletePayment(order)}
+                                          disabled={completingPayment === order.order_id}
+                                        >
+                                          {completingPayment === order.order_id ? 'Processing...' : 'Complete Payment'}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </>
                                 )}
 {/*                                 
                                 {order.payment_status === 'paid' && order.status === 'confirmed' && (

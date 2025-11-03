@@ -21,4 +21,10 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('profile/update/', views.update_profile_view, name='update_profile'),
     path('change-password/', views.change_password_view, name='change_password'),
+    
+    # Contact form
+    path('contact/submit/', views.contact_form_submit, name='contact_submit'),
+    
+    # Bulk orders
+    path('bulk-order/submit/', views.bulk_order_submit, name='bulk_order_submit'),
 ]

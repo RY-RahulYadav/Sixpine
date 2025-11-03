@@ -1,8 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import adminAPI from '../../../services/adminApi';
 import { formatCurrency, showToast } from '../utils/adminUtils';
-import './admin-products.css';
+import '../../../styles/admin-theme.css';
+
+interface Variant {
+  id: number;
+  title?: string;
+  color: {
+    id: number;
+    name: string;
+    hex_code?: string;
+  };
+  size: string;
+  pattern: string;
+  price: number | null;
+  stock_quantity: number;
+  is_in_stock: boolean;
+  image?: string;
+}
 
 interface Product {
   id: number;
@@ -10,45 +26,31 @@ interface Product {
   slug: string;
   price: number;
   old_price: number | null;
-  stock_quantity: number;
-  sku: string;
-  category_name: string;
-  brand_name: string;
+  variant_count: number;
+  total_stock: number;
+  order_count: number;
+  category: string;
+  subcategory?: string | null;
   is_active: boolean;
   is_featured: boolean;
-  is_new_arrival: boolean;
-  main_image_url: string | null;
+  created_at: string;
+  main_image?: string;
+  variants?: Variant[];
 }
 
-// Add styles for the new badge
-const newBadgeStyle = document.createElement('style');
-newBadgeStyle.innerHTML = `
-  .new-badge {
-    background-color: #ff5722;
-    color: white;
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: 6px;
-    display: inline-block;
-    vertical-align: middle;
-  }
-`;
-document.head.appendChild(newBadgeStyle);
-
-// Styles are loaded from admin-products.css
-
 const AdminProducts: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filterCategory, setFilterCategory] = useState<string>('');
-  const [filterStock, setFilterStock] = useState<string>('');
-  const [filterActive, setFilterActive] = useState<string>('');
+  const [filterCategory, setFilterCategory] = useState<string>(searchParams.get('category') || '');
+  const [filterStock, setFilterStock] = useState<string>(searchParams.get('stock_status') || '');
+  const [filterActive, setFilterActive] = useState<string>(searchParams.get('is_active') || '');
   
   // Fetch categories for filter dropdown
   useEffect(() => {
@@ -72,49 +74,39 @@ const AdminProducts: React.FC = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const params = {
+        const params: any = {
           page: currentPage,
-          search: searchTerm,
-          category: filterCategory,
-          stock_status: filterStock,
-          is_active: filterActive,
-          limit: 10 // Set a smaller limit to test pagination
         };
+        
+        if (searchTerm) params.search = searchTerm;
+        if (filterCategory) params.category = filterCategory;
+        if (filterStock) params.stock_status = filterStock;
+        if (filterActive) params.is_active = filterActive;
         
         console.log('Fetching products with params:', params);
         const response = await adminAPI.getProducts(params);
         
-        console.log('API Response:', response.data); // Debug log
+        console.log('API Response:', response.data);
         
-        console.log('Raw API Response:', response.data); // Debug log
-        
-        // Ensure we have the products data - Handle different response formats
         if (response.data) {
-          let products = [];
-          let totalCount = 0;
+          let productsList = [];
+          let count = 0;
           
-          if (Array.isArray(response.data.results)) {
-            // Standard paginated response
-            products = response.data.results;
-            totalCount = response.data.count || products.length;
+          if (response.data.results && Array.isArray(response.data.results)) {
+            productsList = response.data.results;
+            count = response.data.count || productsList.length;
           } else if (Array.isArray(response.data)) {
-            // Direct array response
-            products = response.data;
-            totalCount = products.length;
+            productsList = response.data;
+            count = productsList.length;
           }
           
-          // Set products regardless of format
-          setProducts(products);
+          setProducts(productsList);
+          setTotalCount(count);
           
-          // Calculate total pages
-          const pageSize = params.limit || 50;
-          const calculatedPages = Math.max(Math.ceil(totalCount / pageSize), 1);
-          console.log('Pagination Debug:', { totalCount, pageSize, calculatedPages });
-          setTotalPages(calculatedPages);
+          const pageSize = 20;
+          setTotalPages(Math.max(Math.ceil(count / pageSize), 1));
           setError(null);
         } else {
-          // If no data in the response
-          console.error('No data in API response:', response);
           setProducts([]);
           setTotalPages(1);
           setError('No data received from server');
@@ -123,7 +115,7 @@ const AdminProducts: React.FC = () => {
         console.error('Error fetching products:', err);
         if (err.response) {
           console.error('Error response:', err.response.data);
-          setError(err.response.data.detail || 'Failed to load products');
+          setError(err.response.data.detail || err.response.data.error || 'Failed to load products');
         } else {
           setError('Failed to load products');
         }
@@ -138,17 +130,16 @@ const AdminProducts: React.FC = () => {
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to first page on search
+    setCurrentPage(1);
   };
   
   const handleToggleActive = async (id: number, isActive: boolean) => {
     try {
       await adminAPI.toggleProductActive(id);
-      
-      // Update the product in the local state
       setProducts(products.map(product => 
         product.id === id ? { ...product, is_active: !isActive } : product
       ));
+      showToast('Product status updated', 'success');
     } catch (err) {
       console.error('Error toggling product status:', err);
       showToast('Failed to update product status', 'error');
@@ -159,8 +150,8 @@ const AdminProducts: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
         await adminAPI.deleteProduct(id);
-        // Remove the product from the local state
         setProducts(products.filter(product => product.id !== id));
+        showToast('Product deleted successfully', 'success');
       } catch (err) {
         console.error('Error deleting product:', err);
         showToast('Failed to delete product', 'error');
@@ -170,195 +161,337 @@ const AdminProducts: React.FC = () => {
   
   if (loading && products.length === 0) {
     return (
-      <div className="admin-loader">
-        <div className="spinner"></div>
+      <div className="admin-loading-state">
+        <div className="admin-loader"></div>
         <p>Loading products...</p>
       </div>
     );
   }
   
   return (
-    <div className="admin-products">
-      <div className="admin-header-actions">
-        <h2>Products</h2>
-        <Link to="/admin/products/new" className="admin-btn primary">
-          <span className="material-symbols-outlined">add</span>
-          Add New Product
-        </Link>
+    <div className="admin-page">
+      {/* Page Header */}
+      <div className="admin-page-header">
+        <div className="admin-page-title">
+          <span className="material-symbols-outlined">inventory_2</span>
+          <div>
+            <h1>Products Management</h1>
+            <p className="admin-page-subtitle">Manage your product catalog, variants, and inventory</p>
+          </div>
+        </div>
+        <div className="admin-page-actions">
+          <Link to="/admin/products/new" className="admin-modern-btn primary">
+            <span className="material-symbols-outlined">add</span>
+            Add New Product
+          </Link>
+        </div>
       </div>
       
       {/* Filters */}
-      <div className="admin-filters">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-input">
+      <div className="admin-filters-bar">
+        <form onSubmit={handleSearch} className="admin-search-form">
+          <div className="admin-search-input">
+            <span className="material-symbols-outlined">search</span>
             <input
               type="text"
-              placeholder="Search products..."
+              placeholder="Search products by name, category..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <button type="submit">
-              <span className="material-symbols-outlined">search</span>
-            </button>
           </div>
+          <button type="submit" className="admin-modern-btn secondary">
+            Search
+          </button>
         </form>
         
-        <div className="filter-selects">
-          <div className="filter-group">
-            <select
-              value={filterCategory}
-              onChange={(e) => {
-                setFilterCategory(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
-          </div>
+        <div className="admin-filters-group">
+          <select
+            value={filterCategory}
+            onChange={(e) => {
+              setFilterCategory(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="admin-form-select"
+          >
+            <option value="">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
           
-          <div className="filter-group">
-            <select
-              value={filterStock}
-              onChange={(e) => {
-                setFilterStock(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="">All Stock</option>
-              <option value="in_stock">In Stock</option>
-              <option value="out_of_stock">Out of Stock</option>
-              <option value="low_stock">Low Stock</option>
-            </select>
-          </div>
+          <select
+            value={filterStock}
+            onChange={(e) => {
+              setFilterStock(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="admin-form-select"
+          >
+            <option value="">All Stock</option>
+            <option value="low_stock">Low Stock</option>
+          </select>
           
-          <div className="filter-group">
-            <select
-              value={filterActive}
-              onChange={(e) => {
-                setFilterActive(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="">All Status</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </div>
+          <select
+            value={filterActive}
+            onChange={(e) => {
+              setFilterActive(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="admin-form-select"
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
         </div>
       </div>
       
       {/* Error message */}
       {error && (
-        <div className="admin-error-message">
+        <div className="admin-alert error">
           <span className="material-symbols-outlined">error</span>
-          {error}
+          <div className="admin-alert-content">
+            <strong>Error</strong>
+            <p>{error}</p>
+          </div>
         </div>
       )}
       
-      {/* Products table */}
-      <div className="admin-table-container">
-        <table className="admin-table responsive-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Product</th>
-              <th>SKU</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="responsive-row">
-                <td className="product-image" data-label="Image">
-                  {product.main_image_url ? (
-                    <img src={product.main_image_url} alt={product.title} className="admin-thumb" />
-                  ) : (
-                    <div className="no-image">
-                      <span className="material-symbols-outlined">image_not_supported</span>
-                    </div>
-                  )}
-                </td>
-                <td className='' data-label="Product">
-                  <Link to={`/admin/products/${product.id}`}>{product.title}</Link>
-                </td>
-                <td data-label="SKU">{product.sku}</td>
-                <td data-label="Price">
-                  ${formatCurrency(product.price)}
-                  {product.old_price && (
-                    <span className="old-price">${formatCurrency(product.old_price)}</span>
-                  )}
-                </td>
-                <td className={`stock-qty ${product.stock_quantity === 0 ? 'out-of-stock' : product.stock_quantity < 10 ? 'low-stock' : ''}`} data-label="Stock">
-                  {product.stock_quantity}
-                </td>
-                <td data-label="Category">{product.category_name}</td>
-                <td data-label="Status">
-                  <button 
-                    className={`status-toggle ${product.is_active ? 'active' : 'inactive'}`}
-                    onClick={() => handleToggleActive(product.id, product.is_active)}
-                  >
-                    {product.is_active ? 'Active' : 'Inactive'}
-                  </button>
-                </td>
-                
-                <td className="actions" data-label="Actions">
-                  <Link to={`/admin/products/${product.id}`} className="edit-btn">
-                    <span className="material-symbols-outlined">edit</span>
-                  </Link>
-                  <button 
-                    className="delete-btn"
-                    onClick={() => handleDeleteProduct(product.id)}
-                  >
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
-                </td>
-              </tr>
-            ))}
-            
-            {products.length === 0 && !loading && (
+      {/* Products Table */}
+      <div className="admin-modern-card">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="admin-modern-table">
+            <thead>
               <tr>
-                <td colSpan={9} className="empty-table">
-                  <div>
-                    <span className="material-symbols-outlined">inventory_2</span>
-                    <p>No products found</p>
-                    <Link to="/admin/products/new" className="admin-btn secondary">
-                      Add New Product
-                    </Link>
-                  </div>
-                </td>
+                <th style={{ width: '80px' }}>Image</th>
+                <th>Product</th>
+                <th style={{ width: '120px' }}>Price</th>
+                <th style={{ width: '80px', textAlign: 'center' }}>Stock</th>
+                <th style={{ width: '200px' }}>Variants</th>
+                <th style={{ width: '150px' }}>Category</th>
+                <th style={{ width: '100px' }}>Status</th>
+                <th style={{ width: '180px', textAlign: 'center' }}>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td>
+                    {product.main_image ? (
+                      <img 
+                        src={product.main_image} 
+                        alt={product.title} 
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '1px solid #f0f0f0'
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '8px',
+                        border: '1px solid #f0f0f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#f9f9f9'
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#ccc' }}>
+                          image_not_supported
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <div>
+                      <Link 
+                        to={`/admin/products/${product.id}`} 
+                        style={{ 
+                          color: '#ff6f00', 
+                          fontWeight: '600', 
+                          textDecoration: 'none',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {product.title}
+                      </Link>
+                      {product.is_featured && (
+                        <span style={{
+                          marginLeft: '8px',
+                          padding: '2px 8px',
+                          background: '#fef3c7',
+                          color: '#f59e0b',
+                          fontSize: '11px',
+                          borderRadius: '12px',
+                          fontWeight: '600'
+                        }}>
+                          Featured
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '14px' }}>
+                        ${formatCurrency(product.price)}
+                      </div>
+                      {product.old_price && (
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#888', 
+                          textDecoration: 'line-through' 
+                        }}>
+                          ${formatCurrency(product.old_price)}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span style={{
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      color: product.total_stock === 0 ? '#ef4444' : product.total_stock < 10 ? '#f59e0b' : '#067d62'
+                    }}>
+                      {product.total_stock || 0}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '500' }}>
+                        {product.variant_count || 0} variants
+                      </span>
+                      {product.variants && product.variants.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {product.variants.slice(0, 3).map((v) => (
+                            <span
+                              key={v.id}
+                              style={{
+                                fontSize: '11px',
+                                padding: '2px 6px',
+                                background: '#f5f5f5',
+                                borderRadius: '4px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title={`${v.color.name} ${v.size || ''} ${v.pattern || ''} - Stock: ${v.stock_quantity}`}
+                            >
+                              {v.color.hex_code && (
+                                <span
+                                  style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    border: '1px solid #ddd',
+                                    backgroundColor: v.color.hex_code,
+                                    display: 'inline-block'
+                                  }}
+                                ></span>
+                              )}
+                              {v.color.name}
+                            </span>
+                          ))}
+                          {product.variants.length > 3 && (
+                            <span style={{ fontSize: '11px', color: '#666' }}>
+                              +{product.variants.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '13px' }}>{product.category}</div>
+                  </td>
+                  <td>
+                    <span className={`admin-status-badge ${product.is_active ? 'success' : 'inactive'}`}>
+                      {product.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px', 
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}>
+                      <button 
+                        className={`admin-modern-btn ${product.is_active ? 'warning' : 'success'} icon-only`}
+                        onClick={() => handleToggleActive(product.id, product.is_active)}
+                        title={product.is_active ? 'Deactivate' : 'Activate'}
+                      >
+                        <span className="material-symbols-outlined">
+                          {product.is_active ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                      <Link to={`/admin/products/${product.id}`} className="admin-modern-btn secondary icon-only">
+                        <span className="material-symbols-outlined">edit</span>
+                      </Link>
+                      <button 
+                        className="admin-modern-btn danger icon-only"
+                        onClick={() => handleDeleteProduct(product.id)}
+                      >
+                        <span className="material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              
+              {products.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="admin-empty-state">
+                      <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#ccc' }}>
+                        inventory_2
+                      </span>
+                      <h3>No products found</h3>
+                      <p>Start by adding your first product to the catalog</p>
+                      <Link to="/admin/products/new" className="admin-modern-btn primary">
+                        <span className="material-symbols-outlined">add</span>
+                        Add New Product
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
       
-      {/* Pagination - Always visible */}
-      <div className="admin-pagination">
-        <button 
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          <span className="material-symbols-outlined">chevron_left</span>
-        </button>
-        
-        <span className="page-info">
-          Page {currentPage} of {totalPages || 1}
-        </span>
-        
-        <button 
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages || 1))}
-          disabled={currentPage === totalPages || totalPages === 0}
-        >
-          <span className="material-symbols-outlined">chevron_right</span>
-        </button>
-      </div>
+      {/* Pagination */}
+      {totalCount > 0 && (
+        <div className="admin-pagination">
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="admin-modern-btn secondary"
+          >
+            <span className="material-symbols-outlined">chevron_left</span>
+            Previous
+          </button>
+          
+          <div className="admin-pagination-info">
+            Page <strong>{currentPage}</strong> of <strong>{totalPages || 1}</strong> 
+            <span style={{ margin: '0 8px', color: '#ddd' }}>|</span> 
+            <strong>{totalCount}</strong> total products
+          </div>
+          
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages || 1))}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className="admin-modern-btn secondary"
+          >
+            Next
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

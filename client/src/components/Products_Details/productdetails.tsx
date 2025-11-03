@@ -352,35 +352,35 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
           <h4 className={styles.offersTitle}>Available Offers</h4>
           <ul className={styles.offers}>
-            <li>
-              <BsTagFill className={styles.greenIcon} />
-              10% off on using XYZ card
-            </li>
-            <li>
-              <BsTagFill className={styles.greenIcon} />
-              Shipping on orders above ₹20,000
-            </li>
-            <li>
-              <FaCheckCircle className={styles.greenIcon} /> Free Delivery{" "}
-              <AiOutlineInfoCircle
-                className={styles.infoIcon}
-                onClick={() => handleOpenModal("delivery")}
-              />
-            </li>
-            <li>
-              <FaCheckCircle className={styles.greenIcon} /> 7 Days Replacement{" "}
-              <AiOutlineInfoCircle
-                className={styles.infoIcon}
-                onClick={() => handleOpenModal("replacement")}
-              />
-            </li>
-            <li>
-              <FaCheckCircle className={styles.greenIcon} /> Secure Transaction{" "}
-              <AiOutlineInfoCircle
-                className={styles.infoIcon}
-                onClick={() => handleOpenModal("secure")}
-              />
-            </li>
+            {/* Screen Offers from Product */}
+            {product?.screen_offer && Array.isArray(product.screen_offer) && product.screen_offer.length > 0 && (
+              <>
+                {product.screen_offer.map((offer: string, index: number) => (
+                  <li key={`screen-offer-${index}`}>
+                    <BsTagFill className={styles.greenIcon} />
+                    {offer}
+                  </li>
+                ))}
+              </>
+            )}
+            
+            {/* Default offers if no screen offers exist or as additional offers */}
+            {/* {(!product?.screen_offer || !Array.isArray(product.screen_offer) || product.screen_offer.length === 0) && (
+              <>
+                <li>
+                  <BsTagFill className={styles.greenIcon} />
+                  10% off on using XYZ card
+                </li>
+                <li>
+                  <BsTagFill className={styles.greenIcon} />
+                  Shipping on orders above ₹20,000
+                </li>
+              </>
+            )} */}
+            
+            
+           
+            
           </ul>
 
           {/* Options */}

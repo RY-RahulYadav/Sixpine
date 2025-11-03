@@ -83,6 +83,7 @@ interface Product {
   variant_title?: string;
   product_title?: string;
   available_colors?: string[];
+  variant_count?: number; // Number of variants for this product
 }
 
 const ProductListPage: React.FC = () => {
@@ -93,6 +94,11 @@ const ProductListPage: React.FC = () => {
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [hasNext, setHasNext] = useState<boolean>(false);
+  const [hasPrevious, setHasPrevious] = useState<boolean>(false);
   const [selectedFilters, setSelectedFilters] = useState({
     category: '' as string,
     subcategory: '' as string,
@@ -116,17 +122,23 @@ const ProductListPage: React.FC = () => {
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
 
   const [sortBy, setSortBy] = useState('featured');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // Only list/tile view is supported now — default to 'list'
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // Fetch filter options only once on component mount
   useEffect(() => {
     fetchFilterOptions();
   }, []);
 
-  // Fetch products when filters, search, or sort changes
+  // Reset to page 1 when filters, search, or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchParams, sortBy, selectedFilters]);
+
+  // Fetch products when filters, search, sort, or page changes
   useEffect(() => {
     fetchProducts();
-  }, [searchParams, sortBy, selectedFilters]);
+  }, [searchParams, sortBy, selectedFilters, currentPage, pageSize]);
 
   const fetchFilterOptions = async () => {
     try {
@@ -233,18 +245,28 @@ const ProductListPage: React.FC = () => {
           break;
       }
 
-      // Request variant expansion - show each variant as separate product card
-      params.expand_variants = 'true';
+      // Add pagination parameters
+      params.page = currentPage;
+      params.page_size = pageSize;
 
+      // Get products without expanding variants - backend returns all products with variants included
       console.log('Fetching products with params:', params);
       const response = await productAPI.getProducts(params);
-      setProducts(response.data.results || response.data);
-      // Update total count (includes expanded variants)
+      const productsList = response.data.results || response.data;
+      
+      setProducts(productsList);
+      // Update total count and pagination info
       if (response.data.count !== undefined) {
         setTotalProducts(response.data.count);
+        setTotalPages(Math.ceil(response.data.count / pageSize));
       } else {
-        setTotalProducts(Array.isArray(response.data.results || response.data) ? (response.data.results || response.data).length : 0);
+        setTotalProducts(Array.isArray(productsList) ? productsList.length : 0);
+        setTotalPages(1);
       }
+      
+      // Update pagination navigation
+      setHasNext(!!response.data.next);
+      setHasPrevious(!!response.data.previous);
     } catch (error) {
       console.error('Fetch products error:', error);
     } finally {
@@ -252,10 +274,20 @@ const ProductListPage: React.FC = () => {
     }
   };
 
+  // Helper function to get first variant or null
+  const getFirstVariant = (product: Product) => {
+    if (product.variants && product.variants.length > 0) {
+      return product.variants[0];
+    }
+    return null;
+  };
+
   const handleAddToCart = async (product: Product) => {
     try {
-      const productId = typeof product.id === 'string' && product.product_id ? product.product_id : Number(product.id);
-      const variantId = product.variant_id || product.variant?.id;
+      const productId = Number(product.id);
+      // Use first variant if product has variants, otherwise no variant
+      const firstVariant = getFirstVariant(product);
+      const variantId = firstVariant?.id || null;
       
       await addToCart(productId, 1, variantId);
       // Sidebar will open automatically via context
@@ -265,10 +297,22 @@ const ProductListPage: React.FC = () => {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
   const handleBuyNow = async (product: Product) => {
     try {
-      const productId = typeof product.id === 'string' && product.product_id ? product.product_id : Number(product.id);
-      const variantId = product.variant_id || product.variant?.id;
+      const productId = Number(product.id);
+      // Use first variant if product has variants, otherwise no variant
+      const firstVariant = getFirstVariant(product);
+      const variantId = firstVariant?.id || null;
       
       // Add to cart then navigate to cart/checkout
       await addToCart(productId, 1, variantId);
@@ -365,21 +409,6 @@ const ProductListPage: React.FC = () => {
                 </div>
                 
                 <div className="right-actions">
-                  <div className="view-toggle">
-                    <button 
-                      className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                      onClick={() => setViewMode('grid')}
-                    >
-                      <i className="bi bi-grid-3x3-gap"></i>
-                    </button>
-                    <button 
-                      className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                      onClick={() => setViewMode('list')}
-                    >
-                      <i className="bi bi-list"></i>
-                    </button>
-                  </div>
-                  
                   <select
                     className="sort-select"
                     value={sortBy}
@@ -691,122 +720,300 @@ const ProductListPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className={`products-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
-                      {products.map((product) => (
-                        <div key={product.id} className="product-card-modern">
-                          <div className="product-image-wrapper">
-                            {product.discount_percentage > 0 && (
-                              <span className="discount-badge">
-                                {product.discount_percentage}% OFF
-                              </span>
-                            )}
-                            <Link to={`/products-details/${product.slug}`}>
-                              <img
-                                src={product.main_image || '/placeholder-image.jpg'}
-                                alt={product.title}
-                                className="product-image"
-                              />
-                            </Link>
-                            <button 
-                              className="btn-wishlist"
-                              title="Add to Wishlist"
-                            >
-                              <i className="bi bi-heart"></i>
-                            </button>
-                          </div>
-                          
-                          <div className="product-info">
-                            <Link 
-                              to={`/products-details/${product.slug}${product.variant_id ? `?variant=${product.variant_id}` : ''}`} 
-                              className="product-link"
-                            >
-                              <h3 className="product-name">
-                                {product.product_title || product.title}
-                                {product.variant_title && (
-                                  <span className="text-muted" style={{ fontSize: '0.9em' }}>
-                                    {' '}- {product.variant_title}
+                      {products.map((product) => {
+                        // Get first variant for display
+                        const firstVariant = getFirstVariant(product);
+                        const displayImage = firstVariant?.image || firstVariant?.images?.[0]?.image || product.main_image || '/placeholder-image.jpg';
+                        const displayPrice = firstVariant?.price || product.price;
+                        const displayOldPrice = firstVariant?.old_price || product.old_price;
+                        const isOutOfStock = firstVariant ? !firstVariant.is_in_stock : false;
+
+                        return (
+                          <div key={product.id} className="product-card-modern">
+                            <div className="product-image-wrapper">
+                              {product.discount_percentage > 0 && (
+                                <span className="discount-badge">
+                                  {product.discount_percentage}% OFF
+                                </span>
+                              )}
+                              <Link to={`/products-details/${product.slug}`}>
+                                <img
+                                  src={displayImage}
+                                  alt={product.title}
+                                  className="product-image"
+                                />
+                              </Link>
+                              <button 
+                                className="btn-wishlist"
+                                title="Add to Wishlist"
+                              >
+                                <i className="bi bi-heart"></i>
+                              </button>
+                            </div>
+                            
+                            <div className="product-info">
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                                <Link 
+                                  to={`/products-details/${product.slug}`} 
+                                  className="product-link"
+                                  style={{ flex: 1, minWidth: 0 }}
+                                >
+                                  <h3 className="product-name">
+                                    {product.title}
+                                  </h3>
+                                </Link>
+                                {/* Out of Stock Indicator - Right side of title */}
+                                {isOutOfStock && (
+                                  <span className="badge bg-danger" style={{ 
+                                    fontSize: '0.75em', 
+                                    padding: '4px 8px',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                  }}>
+                                    Out of Stock
                                   </span>
                                 )}
-                              </h3>
-                            </Link>
-                            
-                            {/* Variant Information */}
-                            {(product.variant || product.variant_title) && (
-                              <div className="product-variant-info mb-2">
-                                <small className="text-muted d-flex flex-wrap gap-2 align-items-center">
-                                  {product.variant?.color && (
-                                    <span>
-                                      <strong>Color:</strong> {product.variant.color.name}
-                                      {product.variant.color.hex_code && (
-                                        <span 
-                                          className="ms-1"
-                                          style={{
-                                            display: 'inline-block',
-                                            width: '12px',
-                                            height: '12px',
-                                            backgroundColor: product.variant.color.hex_code,
-                                            border: '1px solid #ccc',
-                                            borderRadius: '2px',
-                                            verticalAlign: 'middle'
-                                          }}
-                                          title={product.variant.color.name}
-                                        />
-                                      )}
-                                    </span>
-                                  )}
-                                  {product.variant?.size && (
-                                    <span><strong>Size:</strong> {product.variant.size}</span>
-                                  )}
-                                  {product.variant?.pattern && (
-                                    <span><strong>Pattern:</strong> {product.variant.pattern}</span>
-                                  )}
-                                </small>
                               </div>
-                            )}
-                            
-                            <p className="product-description">
-                              {product.short_description}
-                            </p>
-                            
-                            <div className="product-rating">
-                              <div className="stars">
-                                {renderStars(product.average_rating)}
+                              
+                              {/* Variant Information - Show first variant details */}
+                              {firstVariant && (
+                                <div className="product-variant-info">
+                                  <small className="text-muted d-flex flex-wrap gap-2 align-items-center">
+                                    {firstVariant.color && (
+                                      <span>
+                                        <strong>Color:</strong> {firstVariant.color.name}
+                                        {firstVariant.color.hex_code && (
+                                          <span 
+                                            className="ms-1"
+                                            style={{
+                                              display: 'inline-block',
+                                              width: '12px',
+                                              height: '12px',
+                                              backgroundColor: firstVariant.color.hex_code,
+                                              border: '1px solid #ccc',
+                                              borderRadius: '2px',
+                                              verticalAlign: 'middle'
+                                            }}
+                                            title={firstVariant.color.name}
+                                          />
+                                        )}
+                                      </span>
+                                    )}
+                                    {firstVariant.size && (
+                                      <span><strong>Size:</strong> {firstVariant.size}</span>
+                                    )}
+                                    {firstVariant.pattern && (
+                                      <span><strong>Pattern:</strong> {firstVariant.pattern}</span>
+                                    )}
+                                  </small>
+                                </div>
+                              )}
+                              
+                              <p className="product-description">
+                                {product.short_description}
+                              </p>
+                              
+                              <div className="product-rating">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <div className="stars">
+                                    {renderStars(product.average_rating)}
+                                  </div>
+                                  <span className="review-count">({product.review_count} reviews)</span>
+                                  {/* More Variants Available Note - Right after reviews text */}
+                                  {product.variant_count && product.variant_count > 1 && (
+                                    <small className="text-primary" style={{ 
+                                      fontSize: '0.8em', 
+                                      fontStyle: 'italic',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      marginLeft: '8px'
+                                    }}>
+                                      <i className="bi bi-info-circle" style={{ fontSize: '0.85em' }}></i>
+                                      {product.variant_count - 1} more variant{product.variant_count - 1 > 1 ? 's' : ''}
+                                    </small>
+                                  )}
+                                </div>
                               </div>
-                              <span className="review-count">({product.review_count} reviews)</span>
-                            </div>
 
-                            <div className="product-pricing">
-                              <div className="price-info">
-                                <span className="current-price">₹{product.price.toLocaleString()}</span>
-                                {product.old_price && product.old_price > product.price && (
-                                  <>
-                                    <span className="original-price">₹{product.old_price.toLocaleString()}</span>
-                                    <span className="save-amount">Save ₹{(product.old_price - product.price).toLocaleString()}</span>
-                                  </>
-                                )}
+                              <div className="product-pricing">
+                                <div className="price-info">
+                                  <span className="current-price">₹{displayPrice.toLocaleString()}</span>
+                                  {displayOldPrice && displayOldPrice > displayPrice && (
+                                    <>
+                                      <span className="original-price">₹{displayOldPrice.toLocaleString()}</span>
+                                      <span className="save-amount">Save ₹{(displayOldPrice - displayPrice).toLocaleString()}</span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="product-action-row">
-                              <button
-                                className="btn-add-to-cart btn-buy-now"
-                                onClick={() => handleBuyNow(product)}
-                                disabled={loading || (product.variant && !product.variant.is_in_stock)}
-                              >
-                                Buy Now
-                              </button>
+                              <div className="product-action-row">
+                                <button
+                                  className="btn-add-to-cart btn-buy-now"
+                                  onClick={() => handleBuyNow(product)}
+                                  disabled={loading || isOutOfStock}
+                                >
+                                  Buy Now
+                                </button>
 
-                              <button
-                                className="btn-cart-icon"
-                                onClick={() => handleAddToCart(product)}
-                                title="Add to cart"
-                                disabled={loading || (product.variant && !product.variant.is_in_stock)}
-                              >
-                                <i className="bi bi-cart-plus"></i>
-                              </button>
+                                <button
+                                  className="btn-cart-icon"
+                                  onClick={() => handleAddToCart(product)}
+                                  title="Add to cart"
+                                  disabled={loading || isOutOfStock}
+                                >
+                                  <i className="bi bi-cart-plus"></i>
+                                </button>
+                              </div>
                             </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Pagination Component */}
+                  {totalPages > 0 && (
+                    <div className="pagination-wrapper" style={{ marginTop: '40px', marginBottom: '20px' }}>
+                      <div className="pagination-container" style={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        gap: '10px',
+                        flexWrap: 'wrap'
+                      }}>
+                        {/* Page Size Selector */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '20px' }}>
+                          <label style={{ fontSize: '14px', color: '#666' }}>Items per page:</label>
+                          <select
+                            value={pageSize}
+                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid #ddd',
+                              fontSize: '14px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value={12}>12</option>
+                            <option value={20}>20</option>
+                            <option value={40}>40</option>
+                            <option value={60}>60</option>
+                          </select>
                         </div>
-                      ))}
+
+                        {/* Page Info */}
+                        <div style={{ fontSize: '14px', color: '#666', marginRight: '20px' }}>
+                          Page {currentPage} of {totalPages} ({totalProducts} total)
+                        </div>
+
+                        {/* Previous Button */}
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={!hasPrevious}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            border: '1px solid #ddd',
+                            backgroundColor: hasPrevious ? '#fff' : '#f5f5f5',
+                            color: hasPrevious ? '#333' : '#999',
+                            cursor: hasPrevious ? 'pointer' : 'not-allowed',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (hasPrevious) {
+                              e.currentTarget.style.backgroundColor = '#f8f9fa';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (hasPrevious) {
+                              e.currentTarget.style.backgroundColor = '#fff';
+                            }
+                          }}
+                        >
+                          <i className="bi bi-chevron-left"></i> Previous
+                        </button>
+
+                        {/* Page Numbers */}
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum: number;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                style={{
+                                  padding: '8px 14px',
+                                  borderRadius: '6px',
+                                  border: currentPage === pageNum ? '2px solid var(--sixpine-primary)' : '1px solid #ddd',
+                                  backgroundColor: currentPage === pageNum ? 'var(--sixpine-primary)' : '#fff',
+                                  color: currentPage === pageNum ? '#fff' : '#333',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: currentPage === pageNum ? '600' : '400',
+                                  transition: 'all 0.2s',
+                                  minWidth: '40px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (currentPage !== pageNum) {
+                                    e.currentTarget.style.backgroundColor = '#f8f9fa';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (currentPage !== pageNum) {
+                                    e.currentTarget.style.backgroundColor = '#fff';
+                                  }
+                                }}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Next Button */}
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={!hasNext}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            border: '1px solid #ddd',
+                            backgroundColor: hasNext ? '#fff' : '#f5f5f5',
+                            color: hasNext ? '#333' : '#999',
+                            cursor: hasNext ? 'pointer' : 'not-allowed',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (hasNext) {
+                              e.currentTarget.style.backgroundColor = '#f8f9fa';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (hasNext) {
+                              e.currentTarget.style.backgroundColor = '#fff';
+                            }
+                          }}
+                        >
+                          Next <i className="bi bi-chevron-right"></i>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

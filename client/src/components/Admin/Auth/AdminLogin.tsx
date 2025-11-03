@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '../../../context/AppContext';
 import API from '../../../services/api';
 
 const AdminLogin: React.FC = () => {
@@ -6,6 +8,8 @@ const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { dispatch } = useApp();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +32,23 @@ const AdminLogin: React.FC = () => {
       
       // Store authentication data
       const { token, user } = response.data;
+      
+      // Verify user has admin privileges
+      if (!user.is_staff) {
+        setError('Access denied. Admin privileges required.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        return;
+      }
+      
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      // Manually dispatch the login success action to update app context
-      // This avoids calling login() again which would make another API call
-      window.location.href = '/admin';
+      // Update app context
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      
+      // Navigate to admin dashboard
+      navigate('/admin', { replace: true });
       
     } catch (err: any) {
       console.error('Admin login error:', err);

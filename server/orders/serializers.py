@@ -79,7 +79,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['order_id', 'user', 'status', 'payment_status', 'payment_method', 'subtotal', 'shipping_cost',
-                 'tax_amount', 'total_amount', 'shipping_address', 'tracking_number',
+                 'platform_fee', 'tax_amount', 'total_amount', 'shipping_address', 'tracking_number',
                  'estimated_delivery', 'delivered_at', 'order_notes', 'items', 'status_history',
                  'items_count', 'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature',
                  'created_at', 'updated_at']
@@ -115,19 +115,21 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             product = Product.objects.get(id=item_data['product_id'])
             subtotal += product.price * item_data['quantity']
         
-        # Simple tax and shipping calculation
-        tax_amount = subtotal * Decimal('0.05')  # 5% Tax
-        shipping_cost = Decimal('50.00') if subtotal < Decimal('500.00') else Decimal('0.00')
-        total_amount = subtotal + tax_amount + shipping_cost
+        from .utils import calculate_order_totals
+        
+        # Calculate totals with platform fee (default to None/COD if not specified)
+        payment_method = validated_data.get('payment_method', 'COD')
+        totals = calculate_order_totals(subtotal, payment_method)
         
         # Create order
         order = Order.objects.create(
             user=user,
             shipping_address_id=shipping_address_id,
-            subtotal=subtotal,
-            shipping_cost=shipping_cost,
-            tax_amount=tax_amount,
-            total_amount=total_amount,
+            subtotal=totals['subtotal'],
+            shipping_cost=totals['shipping_cost'],
+            platform_fee=totals['platform_fee'],
+            tax_amount=totals['tax_amount'],
+            total_amount=totals['total_amount'],
             **validated_data
         )
         

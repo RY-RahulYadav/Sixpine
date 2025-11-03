@@ -7,7 +7,7 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localh
 // Create axios instance with base configuration
 const API = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased default timeout to 30 seconds
   headers: {
     'Content-Type': 'application/json',
   },
@@ -217,6 +217,8 @@ export const orderAPI = {
     razorpay_signature?: string;
     payment_method?: string;
   }) => API.post('/orders/complete-payment/', data),
+  
+  getPaymentCharges: () => API.get('/payment-charges/'),
 };
 
 export default API;

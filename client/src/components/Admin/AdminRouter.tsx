@@ -13,14 +13,23 @@ import AdminUsers from './Users/AdminUsers';
 import AdminUserDetail from './Users/AdminUserDetail';
 import AdminCategories from './Categories/AdminCategories';
 import AdminCategoryDetail from './Categories/AdminCategoryDetail';
+import AdminColors from './Colors/AdminColors';
+import AdminMaterials from './Materials/AdminMaterials';
+import AdminDiscounts from './Discounts/AdminDiscounts';
+import AdminFilterOptions from './FilterOptions/AdminFilterOptions';
+import AdminPaymentCharges from './PaymentCharges/AdminPaymentCharges';
 import AdminSettings from './Settings/AdminSettings';
+import BrandAnalytics from './Analytics/BrandAnalytics';
+import AdminContactQueries from './ContactQueries/AdminContactQueries';
+import AdminBulkOrders from './BulkOrders/AdminBulkOrders';
+import AdminLogs from './Logs/AdminLogs';
 
 const AdminRouter = () => {
   const { state } = useApp();
   const location = useLocation();
   
   // Check if user is authenticated and is admin
-  const isAdmin = state.isAuthenticated && state.user?.is_staff;
+  const isAdmin = state.isAuthenticated && state.user?.is_staff === true;
   const isInitializing = state.loading;
   
   // Wait for initial authentication check to complete
@@ -55,9 +64,18 @@ const AdminRouter = () => {
         <Route path="orders/:id" element={<AdminOrderDetail />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="users/:id" element={<AdminUserDetail />} />
+        <Route path="analytics" element={<BrandAnalytics />} />
         <Route path="categories" element={<AdminCategories />} />
         <Route path="categories/:id" element={<AdminCategoryDetail />} />
+        <Route path="colors" element={<AdminColors />} />
+        <Route path="materials" element={<AdminMaterials />} />
+        <Route path="discounts" element={<AdminDiscounts />} />
+        <Route path="filter-options" element={<AdminFilterOptions />} />
+        <Route path="payment-charges" element={<AdminPaymentCharges />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="contact-queries" element={<AdminContactQueries />} />
+        <Route path="bulk-orders" element={<AdminBulkOrders />} />
+        <Route path="logs" element={<AdminLogs />} />
       </Route>
     </Routes>
   );

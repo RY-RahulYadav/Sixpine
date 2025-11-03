@@ -13,4 +13,5 @@ urlpatterns = [
     path('orders/razorpay/verify-payment/', views.verify_razorpay_payment, name='verify-razorpay-payment'),
     path('orders/checkout/cod/', views.checkout_with_cod, name='checkout-cod'),
     path('orders/complete-payment/', views.complete_payment, name='complete-payment'),
+    path('payment-charges/', views.get_payment_charges, name='get-payment-charges'),
 ]

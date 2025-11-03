@@ -90,6 +90,9 @@ class ProductListSerializer(serializers.ModelSerializer):
     # Available colors for filtering
     available_colors = serializers.SerializerMethodField()
     
+    # Variant count for frontend
+    variant_count = serializers.SerializerMethodField()
+    
     # Real review data
     review_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
@@ -101,13 +104,17 @@ class ProductListSerializer(serializers.ModelSerializer):
             'price', 'old_price', 'is_on_sale', 'discount_percentage',
             'average_rating', 'review_count', 'category', 'subcategory',
             'brand', 'material', 'images', 'variants', 'available_colors',
-            'is_featured', 'created_at'
+            'variant_count', 'is_featured', 'created_at'
         ]
     
     def get_available_colors(self, obj):
         """Get unique colors available for this product"""
         colors = obj.variants.filter(is_active=True).values_list('color__name', flat=True).distinct()
         return list(colors)
+    
+    def get_variant_count(self, obj):
+        """Get count of active variants for this product"""
+        return obj.variants.filter(is_active=True).count()
     
     def get_review_count(self, obj):
         """Get actual review count from database"""
@@ -157,6 +164,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'main_image', 'price', 'old_price', 'is_on_sale', 'discount_percentage',
             'average_rating', 'review_count', 'review_percentages', 'category', 'subcategory',
             'brand', 'material', 'dimensions', 'weight', 'warranty', 'assembly_required',
+            'screen_offer', 'user_guide', 'care_instructions',
             'images', 'variants', 'specifications', 'features', 'offers',
             'buy_with_products', 'inspired_products', 'frequently_viewed_products',
             'similar_products', 'recommended_products',

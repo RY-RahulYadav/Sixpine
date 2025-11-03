@@ -76,6 +76,7 @@ class Order(models.Model):
     # Pricing
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    platform_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text='Payment gateway platform fee based on payment method')
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     

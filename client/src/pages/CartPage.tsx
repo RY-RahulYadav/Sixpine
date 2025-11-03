@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { cartAPI } from '../services/api';
+import { cartAPI, orderAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -28,6 +28,7 @@ const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const { state, fetchCart } = useApp();
   const [loading, setLoading] = useState(false);
+  const [taxRate, setTaxRate] = useState<number>(5); // Default to 5%
 
   useEffect(() => {
     if (!state.isAuthenticated) {
@@ -35,7 +36,19 @@ const CartPage: React.FC = () => {
       return;
     }
     fetchCart();
+    fetchTaxRate();
   }, [state.isAuthenticated]);
+
+  const fetchTaxRate = async () => {
+    try {
+      const response = await orderAPI.getPaymentCharges();
+      const rate = parseFloat(response.data.tax_rate || '5');
+      setTaxRate(rate);
+    } catch (err) {
+      console.error('Error fetching tax rate:', err);
+      // Keep default 5% if fetch fails
+    }
+  };
 
   const handleCheckout = () => {
     if (!state.cart || state.cart.items.length === 0) {
@@ -214,13 +227,13 @@ const CartPage: React.FC = () => {
                   <span className="text-success">Free</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2">
-                  <span>Tax (5%)</span>
-                  <span>₹{(state.cart.total_price * 0.05).toLocaleString()}</span>
+                  <span>Tax ({taxRate}%)</span>
+                  <span>₹{(state.cart.total_price * (taxRate / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <hr />
                 <div className="d-flex justify-content-between mb-3">
                   <strong>Total</strong>
-                  <strong>₹{(state.cart.total_price * 1.05).toLocaleString()}</strong>
+                  <strong>₹{(state.cart.total_price * (1 + taxRate / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                 </div>
                 <button
                   onClick={handleCheckout}

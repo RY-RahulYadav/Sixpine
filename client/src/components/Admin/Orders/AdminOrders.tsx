@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import adminAPI from '../../../services/adminApi';
 import { formatCurrency } from '../utils/adminUtils';
+import '../../../styles/admin-theme.css';
 
 interface Order {
   id: number;
@@ -15,14 +16,16 @@ interface Order {
 }
 
 const AdminOrders: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
-  const [filterPayment, setFilterPayment] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || '');
+  const [filterPayment, setFilterPayment] = useState<string>(searchParams.get('payment_status') || '');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>(searchParams.get('payment_method') || '');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   
@@ -30,14 +33,16 @@ const AdminOrders: React.FC = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const params = {
+        const params: any = {
           page: currentPage,
           search: searchTerm,
-          status: filterStatus,
-          payment_status: filterPayment,
           date_from: dateFrom,
           date_to: dateTo,
         };
+        
+        if (filterStatus) params.status = filterStatus;
+        if (filterPayment) params.payment_status = filterPayment;
+        if (filterPaymentMethod) params.payment_method = filterPaymentMethod;
         
         const response = await adminAPI.getOrders(params);
         setOrders(response.data.results);
@@ -52,7 +57,7 @@ const AdminOrders: React.FC = () => {
     };
     
     fetchOrders();
-  }, [currentPage, searchTerm, filterStatus, filterPayment, dateFrom, dateTo]);
+  }, [currentPage, searchTerm, filterStatus, filterPayment, filterPaymentMethod, dateFrom, dateTo]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,109 +66,117 @@ const AdminOrders: React.FC = () => {
   
   if (loading && orders.length === 0) {
     return (
-      <div className="admin-loader">
-        <div className="spinner"></div>
+      <div className="admin-loading-state">
+        <div className="admin-loader"></div>
         <p>Loading orders...</p>
       </div>
     );
   }
   
   return (
-    <div className="admin-orders">
-      <div className="admin-header-actions">
-        <h2>Orders</h2>
+    <div className="admin-page">
+      {/* Page Header */}
+      <div className="admin-page-header">
+        <div className="admin-page-title">
+          <span className="material-symbols-outlined">shopping_bag</span>
+          <div>
+            <h1>Orders Management</h1>
+            <p className="admin-page-subtitle">View and manage customer orders and shipments</p>
+          </div>
+        </div>
       </div>
       
       {/* Filters */}
-      <div className="admin-filters">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-input">
+      <div className="admin-filters-bar">
+        <form onSubmit={handleSearch} className="admin-search-form">
+          <div className="admin-search-input">
+            <span className="material-symbols-outlined">search</span>
             <input
               type="text"
-              placeholder="Search orders..."
+              placeholder="Search orders by ID, customer name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <button type="submit">
-              <span className="material-symbols-outlined">search</span>
-            </button>
           </div>
+          <button type="submit" className="admin-modern-btn secondary">
+            Search
+          </button>
         </form>
         
-        <div className="filter-selects">
-          <div className="filter-group">
-            <select
-              value={filterStatus}
+        <div className="admin-filters-group">
+          <select
+            value={filterStatus}
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="admin-form-select"
+          >
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="returned">Returned</option>
+          </select>
+          
+          <select
+            value={filterPayment}
+            onChange={(e) => {
+              setFilterPayment(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="admin-form-select"
+          >
+            <option value="">All Payments</option>
+            <option value="pending">Pending</option>
+            <option value="paid">Paid</option>
+            <option value="failed">Failed</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          
+          <div className="date-range-filter">
+            <input
+              type="date"
+              placeholder="From"
+              value={dateFrom}
               onChange={(e) => {
-                setFilterStatus(e.target.value);
+                setDateFrom(e.target.value);
                 setCurrentPage(1);
               }}
-            >
-              <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="processing">Processing</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="returned">Returned</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <select
-              value={filterPayment}
+              className="admin-form-input"
+            />
+            <span>to</span>
+            <input
+              type="date"
+              placeholder="To"
+              value={dateTo}
               onChange={(e) => {
-                setFilterPayment(e.target.value);
+                setDateTo(e.target.value);
                 setCurrentPage(1);
               }}
-            >
-              <option value="">All Payments</option>
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
-              <option value="failed">Failed</option>
-              <option value="refunded">Refunded</option>
-            </select>
-          </div>
-          
-          <div className="date-filters">
-            <div className="filter-group">
-              <input
-                type="date"
-                placeholder="From"
-                value={dateFrom}
-                onChange={(e) => {
-                  setDateFrom(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-            <div className="filter-group">
-              <input
-                type="date"
-                placeholder="To"
-                value={dateTo}
-                onChange={(e) => {
-                  setDateTo(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
+              className="admin-form-input"
+            />
           </div>
         </div>
       </div>
       
       {/* Error message */}
       {error && (
-        <div className="admin-error-message">
+        <div className="admin-alert error">
           <span className="material-symbols-outlined">error</span>
-          {error}
+          <div className="admin-alert-content">
+            <strong>Error</strong>
+            <p>{error}</p>
+          </div>
         </div>
       )}
       
       {/* Orders table */}
-      <div className="admin-table-container">
-        <table className="admin-table responsive-table">
+      <div className="admin-modern-card">
+        <table className="admin-modern-table">
           <thead>
             <tr>
               <th>Order ID</th>
@@ -178,24 +191,37 @@ const AdminOrders: React.FC = () => {
           </thead>
           <tbody>
             {orders.map((order) => (
-              <tr key={order.id} className="responsive-row">
-                <td data-label="Order ID">{order.order_id.substring(0, 8)}...</td>
+              <tr key={order.id}>
+                <td data-label="Order ID">
+                  <code className="order-id">{order.order_id.substring(0, 8)}...</code>
+                </td>
                 <td data-label="Date">{new Date(order.created_at).toLocaleDateString()}</td>
                 <td data-label="Customer">{order.customer_name}</td>
                 <td data-label="Status">
-                  <span className={`status-badge ${order.status}`}>
+                  <span className={`admin-status-badge ${
+                    order.status === 'delivered' ? 'success' :
+                    order.status === 'cancelled' || order.status === 'returned' ? 'error' :
+                    order.status === 'processing' || order.status === 'shipped' ? 'info' :
+                    'warning'
+                  }`}>
                     {order.status}
                   </span>
                 </td>
                 <td data-label="Payment">
-                  <span className={`status-badge ${order.payment_status}`}>
+                  <span className={`admin-status-badge ${
+                    order.payment_status === 'paid' ? 'success' :
+                    order.payment_status === 'failed' || order.payment_status === 'refunded' ? 'error' :
+                    'warning'
+                  }`}>
                     {order.payment_status}
                   </span>
                 </td>
                 <td data-label="Items">{order.items_count}</td>
-                <td data-label="Total">${formatCurrency(order.total_amount)}</td>
+                <td data-label="Total">
+                  <strong>${formatCurrency(order.total_amount)}</strong>
+                </td>
                 <td className="actions" data-label="Actions">
-                  <Link to={`/admin/orders/${order.id}`} className="view-btn">
+                  <Link to={`/admin/orders/${order.id}`} className="admin-modern-btn secondary icon-only">
                     <span className="material-symbols-outlined">visibility</span>
                   </Link>
                 </td>
@@ -204,10 +230,11 @@ const AdminOrders: React.FC = () => {
             
             {orders.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="empty-table">
+                <td colSpan={8} className="admin-empty-state">
                   <div>
                     <span className="material-symbols-outlined">receipt_long</span>
-                    <p>No orders found</p>
+                    <h3>No orders found</h3>
+                    <p>Orders will appear here once customers make purchases</p>
                   </div>
                 </td>
               </tr>
@@ -222,18 +249,22 @@ const AdminOrders: React.FC = () => {
           <button 
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
+            className="admin-modern-btn secondary"
           >
             <span className="material-symbols-outlined">chevron_left</span>
+            Previous
           </button>
           
-          <span className="page-info">
+          <span className="admin-pagination-info">
             Page {currentPage} of {totalPages}
           </span>
           
           <button 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
+            className="admin-modern-btn secondary"
           >
+            Next
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
         </div>

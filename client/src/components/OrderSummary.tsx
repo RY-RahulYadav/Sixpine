@@ -1,20 +1,37 @@
 import { useApp } from '../context/AppContext';
+import { useState, useEffect } from 'react';
+import { calculateOrderTotals } from '../utils/orderCalculations';
+import { orderAPI } from '../services/api';
 import styles from './OrderSummary.module.css';
 
 interface OrderSummaryProps {
   onPaymentClick?: () => void;
   paymentDisabled?: boolean;
+  selectedPaymentMethod?: string | null;
 }
 
-const OrderSummary: React.FC<OrderSummaryProps> = ({ onPaymentClick, paymentDisabled }) => {
+const OrderSummary: React.FC<OrderSummaryProps> = ({ onPaymentClick, paymentDisabled, selectedPaymentMethod }) => {
   const { state } = useApp();
+  const [platformFees, setPlatformFees] = useState<any>(null);
+
+  // Fetch platform fees on mount
+  useEffect(() => {
+    const fetchPlatformFees = async () => {
+      try {
+        const response = await orderAPI.getPaymentCharges();
+        setPlatformFees(response.data);
+      } catch (err) {
+        console.error('Error fetching platform fees:', err);
+        // Use defaults if fetch fails
+      }
+    };
+    fetchPlatformFees();
+  }, []);
 
   // Calculate totals
   const subtotal = state.cart?.total_price || 0;
   const totalItems = state.cart?.total_items || 0;
-  const shippingCost = subtotal >= 500 ? 0 : 50;
-  const tax = subtotal * 0.05;
-  const total = subtotal + shippingCost + tax;
+  const totals = calculateOrderTotals(subtotal, selectedPaymentMethod, platformFees);
 
   const handlePaymentClick = () => {
     if (paymentDisabled) return;
@@ -38,17 +55,19 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ onPaymentClick, paymentDisa
           <span>Items ({totalItems}):</span>
           <span>₹{subtotal.toFixed(2)}</span>
         </div>
+        {totals.platformFee > 0 && (
+          <div className={styles.summaryLine}>
+            <span>Platform Fee:</span>
+            <span>₹{totals.platformFee.toFixed(2)}</span>
+          </div>
+        )}
         <div className={styles.summaryLine}>
-          <span>Delivery:</span>
-          <span>{shippingCost === 0 ? 'Free' : `₹${shippingCost.toFixed(2)}`}</span>
-        </div>
-        <div className={styles.summaryLine}>
-          <span>Tax (5%):</span>
-          <span>₹{tax.toFixed(2)}</span>
+          <span>Tax ({platformFees?.tax_rate || 5}%):</span>
+          <span>₹{totals.tax.toFixed(2)}</span>
         </div>
         <div className={`${styles.summaryLine} ${styles.orderTotal}`}>
           <span>Order Total:</span>
-          <span>₹{total.toFixed(2)}</span>
+          <span>₹{totals.total.toFixed(2)}</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import adminAPI from '../../../services/adminApi';
+import '../../../styles/admin-theme.css';
 
 interface Category {
   id: number;
@@ -180,52 +181,65 @@ const AdminCategories: React.FC = () => {
   
   if (loading && categories.length === 0 && hierarchicalCategories.length === 0) {
     return (
-      <div className="admin-loader">
-        <div className="spinner"></div>
+      <div className="admin-loading-state">
+        <div className="admin-loader"></div>
         <p>Loading categories...</p>
       </div>
     );
   }
   
   return (
-    <div className="admin-categories">
-      <div className="admin-header-actions">
-        <h2>Categories</h2>
-        <Link to="/admin/categories/new" className="admin-btn primary">
-          <span className="material-symbols-outlined">add_circle</span>
-          Add New Category
-        </Link>
+    <div className="admin-page">
+      {/* Page Header */}
+      <div className="admin-page-header">
+        <div className="admin-page-title">
+          <span className="material-symbols-outlined">category</span>
+          <div>
+            <h1>Categories Management</h1>
+            <p className="admin-page-subtitle">Organize products into categories and subcategories</p>
+          </div>
+        </div>
+        <div className="admin-page-actions">
+          <Link to="/admin/categories/new" className="admin-modern-btn primary">
+            <span className="material-symbols-outlined">add</span>
+            Add New Category
+          </Link>
+        </div>
       </div>
       
       {/* Filters */}
-      <div className="admin-filters">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-input">
+      <div className="admin-filters-bar">
+        <form onSubmit={handleSearch} className="admin-search-form">
+          <div className="admin-search-input">
+            <span className="material-symbols-outlined">search</span>
             <input
               type="text"
               placeholder="Search categories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <button type="submit">
-              <span className="material-symbols-outlined">search</span>
-            </button>
           </div>
+          <button type="submit" className="admin-modern-btn secondary">
+            Search
+          </button>
         </form>
       </div>
       
       {/* Error message */}
       {error && (
-        <div className="admin-error-message">
+        <div className="admin-alert error">
           <span className="material-symbols-outlined">error</span>
-          {error}
+          <div className="admin-alert-content">
+            <strong>Error</strong>
+            <p>{error}</p>
+          </div>
         </div>
       )}
       
       {/* Categories display */}
       {viewMode === 'flat' ? (
-        <div className="admin-table-container">
-          <table className="admin-table">
+        <div className="admin-modern-card">
+          <table className="admin-modern-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -248,7 +262,7 @@ const AdminCategories: React.FC = () => {
                           className="category-thumbnail" 
                         />
                       )}
-                      <span className="category-name">{category.name}</span>
+                      <strong className="category-name">{category.name}</strong>
                     </div>
                   </td>
                   <td className="description-cell">
@@ -259,41 +273,54 @@ const AdminCategories: React.FC = () => {
                   <td>{category.product_count}</td>
                   <td>
                     {category.parent !== null ? (
-                      <Link to={`/admin/categories/${category.parent}`}>
+                      <Link to={`/admin/categories/${category.parent}`} className="admin-link">
                         Parent #{category.parent}
                       </Link>
                     ) : (
-                      'None'
+                      <span className="text-muted">None</span>
                     )}
                   </td>
                   <td>
-                    <button 
-                      className={`status-toggle ${category.is_active ? 'active' : 'inactive'}`}
-                      onClick={() => handleToggleActive(category.id, category.is_active)}
-                    >
+                    <span className={`admin-status-badge ${category.is_active ? 'success' : 'inactive'}`}>
                       {category.is_active ? 'Active' : 'Inactive'}
-                    </button>
+                    </span>
                   </td>
                   <td className="actions">
-                    <Link to={`/admin/categories/${category.id}`} className="edit-btn">
-                      <span className="material-symbols-outlined">edit</span>
-                    </Link>
-                    <button 
-                      className="delete-btn"
-                      onClick={() => handleDeleteCategory(category.id)}
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
+                    <div className="admin-action-buttons">
+                      <button 
+                        className={`admin-modern-btn ${category.is_active ? 'warning' : 'success'} icon-only`}
+                        onClick={() => handleToggleActive(category.id, category.is_active)}
+                        title={category.is_active ? 'Deactivate' : 'Activate'}
+                      >
+                        <span className="material-symbols-outlined">
+                          {category.is_active ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                      <Link to={`/admin/categories/${category.id}`} className="admin-modern-btn secondary icon-only">
+                        <span className="material-symbols-outlined">edit</span>
+                      </Link>
+                      <button 
+                        className="admin-modern-btn danger icon-only"
+                        onClick={() => handleDeleteCategory(category.id)}
+                      >
+                        <span className="material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               
               {categories.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="empty-table">
+                  <td colSpan={6} className="admin-empty-state">
                     <div>
                       <span className="material-symbols-outlined">category</span>
-                      <p>No categories found</p>
+                      <h3>No categories found</h3>
+                      <p>Create categories to organize your products</p>
+                      <Link to="/admin/categories/new" className="admin-modern-btn primary">
+                        <span className="material-symbols-outlined">add</span>
+                        Add New Category
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -306,9 +333,10 @@ const AdminCategories: React.FC = () => {
           {hierarchicalCategories.length > 0 ? (
             <CategoryTree categories={hierarchicalCategories} />
           ) : (
-            <div className="empty-tree">
+            <div className="admin-empty-state">
               <span className="material-symbols-outlined">category</span>
-              <p>No categories found</p>
+              <h3>No categories found</h3>
+              <p>Create categories to organize your products</p>
             </div>
           )}
         </div>
@@ -320,18 +348,22 @@ const AdminCategories: React.FC = () => {
           <button 
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
+            className="admin-modern-btn secondary"
           >
             <span className="material-symbols-outlined">chevron_left</span>
+            Previous
           </button>
           
-          <span className="page-info">
+          <span className="admin-pagination-info">
             Page {currentPage} of {totalPages}
           </span>
           
           <button 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
+            className="admin-modern-btn secondary"
           >
+            Next
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
         </div>

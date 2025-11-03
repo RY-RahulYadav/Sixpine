@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, OTPVerification, PasswordResetToken
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder
 
 
 @admin.register(User)
@@ -44,3 +44,25 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
     search_fields = ('user__email', 'user__username', 'token')
     readonly_fields = ('token', 'created_at', 'expires_at')
     ordering = ('-created_at',)
+
+
+@admin.register(ContactQuery)
+class ContactQueryAdmin(admin.ModelAdmin):
+    """Contact Query admin"""
+    list_display = ('full_name', 'phone_number', 'email', 'pincode', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('full_name', 'phone_number', 'email', 'pincode')
+    readonly_fields = ('created_at', 'updated_at', 'resolved_at')
+    ordering = ('-created_at',)
+    list_editable = ('status',)
+
+
+@admin.register(BulkOrder)
+class BulkOrderAdmin(admin.ModelAdmin):
+    """Bulk Order admin"""
+    list_display = ('company_name', 'contact_person', 'email', 'project_type', 'status', 'created_at')
+    list_filter = ('status', 'project_type', 'created_at')
+    search_fields = ('company_name', 'contact_person', 'email', 'phone_number')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-created_at',)
+    list_editable = ('status',)

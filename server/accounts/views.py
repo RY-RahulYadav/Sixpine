@@ -11,12 +11,13 @@ from django.core.mail import send_mail
 from django.conf import settings
 import random
 import string
-from .models import User, OTPVerification, PasswordResetToken
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder
 from .serializers import (
     UserLoginSerializer, UserRegistrationSerializer, UserSerializer,
     OTPRequestSerializer, OTPVerificationSerializer, OTPResendSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer, ContactQuerySerializer, ContactQueryCreateSerializer,
+    BulkOrderSerializer, BulkOrderCreateSerializer
 )
 from .gmail_oauth_service import GmailOAuth2Service
 from .whatsapp_service import WhatsAppService
@@ -444,4 +445,54 @@ def change_password_view(request):
         return Response({
             'success': False,
             'error': f'Password change failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def contact_form_submit(request):
+    """Submit contact form from home page"""
+    try:
+        serializer = ContactQueryCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            contact_query = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Thank you for contacting us! Our team will reach out to you soon.',
+                'data': ContactQuerySerializer(contact_query).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'error': 'Invalid data provided',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to submit contact form: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def bulk_order_submit(request):
+    """Submit bulk order inquiry"""
+    try:
+        serializer = BulkOrderCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            bulk_order = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Thank you for your inquiry! Our sales team will contact you shortly.',
+                'data': BulkOrderSerializer(bulk_order).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'error': 'Invalid data provided',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to submit bulk order: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -11,7 +11,7 @@ import OrdersPage from './pages/OrdersPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminRouter from './components/Admin/AdminRouter';
 import './App.css';
-import './styles/admin.css';
+import './styles/admin-theme.css';
 import './styles/auth.css';
 import NewProductDetails from './pages/productdetails';
 import AboutPage from './pages/about';

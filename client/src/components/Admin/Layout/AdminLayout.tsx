@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../../context/AppContext';
-import '../../../styles/admin.css';
+import '../../../styles/admin-theme.css';
 
 const AdminLayout: React.FC = () => {
   const { state, logout } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Start open on desktop
   
   // Handle responsive sidebar behavior
   useEffect(() => {
@@ -27,7 +27,7 @@ const AdminLayout: React.FC = () => {
   
   // Close sidebar on mobile when route changes
   useEffect(() => {
-    if (window.innerWidth < 1024) {
+    if (window.innerWidth < 768) {
       setSidebarOpen(false);
     }
   }, [location.pathname]);
@@ -45,157 +45,232 @@ const AdminLayout: React.FC = () => {
   };
   
   const menuItems = [
-    { path: '/admin', icon: 'dashboard', label: 'Dashboard', exact: true },
-    { path: '/admin/products', icon: 'inventory_2', label: 'Products' },
-    { path: '/admin/orders', icon: 'shopping_bag', label: 'Orders' },
-    { path: '/admin/users', icon: 'people', label: 'Customers' },
-    // { path: '/admin/categories', icon: 'category', label: 'Categories' },
-    // { path: '/admin/analytics', icon: 'analytics', label: 'Analytics' },
-    // { path: '/admin/settings', icon: 'settings', label: 'Settings' },
+    { path: '/admin', icon: 'dashboard', label: 'Dashboard', exact: true, section: 'main' },
+    { path: '/admin/products', icon: 'inventory_2', label: 'Products', section: 'main' },
+    { path: '/admin/orders', icon: 'shopping_bag', label: 'Orders', section: 'main' },
+    { path: '/admin/users', icon: 'people', label: 'Customers', section: 'main' },
+    { path: '/admin/analytics', icon: 'analytics', label: 'Brand Analytics', section: 'analytics' },
+    { path: '/admin/contact-queries', icon: 'contact_support', label: 'Contact Queries', section: 'management' },
+    { path: '/admin/bulk-orders', icon: 'local_shipping', label: 'Bulk Orders', section: 'management' },
+    { path: '/admin/logs', icon: 'list_alt', label: 'Activity Logs', section: 'management' },
+    { path: '/admin/filter-options', icon: 'tune', label: 'Filter Options', section: 'settings' },
+    { path: '/admin/payment-charges', icon: 'payments', label: 'Payment & Charges', section: 'settings' },
+    { path: '/admin/settings', icon: 'settings', label: 'Settings', section: 'settings' },
   ];
   
+  const groupedMenuItems = {
+    main: menuItems.filter(item => item.section === 'main'),
+    analytics: menuItems.filter(item => item.section === 'analytics'),
+    management: menuItems.filter(item => item.section === 'management'),
+    settings: menuItems.filter(item => item.section === 'settings'),
+  };
+  
   return (
-    <div className="tw-min-h-screen tw-bg-gray-50">
+    <div style={{ minHeight: '100vh', background: 'var(--admin-bg)' }}>
       {/* Modern Header */}
-      <header className="tw-sticky tw-top-0 tw-z-50 tw-bg-white tw-border-b tw-border-gray-200 tw-shadow-sm">
-        <div className="tw-flex tw-items-center tw-justify-between tw-px-3 sm:tw-px-4 md:tw-px-6 tw-h-14 sm:tw-h-16">
-          {/* Left Section */}
-          <div className="tw-flex tw-items-center tw-gap-2 sm:tw-gap-4">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="tw-p-2 tw-rounded-lg tw-text-gray-600 hover:tw-bg-gray-100 tw-transition-colors"
-              aria-label="Toggle sidebar"
-            >
-              <span className="material-symbols-outlined tw-text-xl sm:tw-text-2xl">
-                {sidebarOpen ? 'menu_open' : 'menu'}
-              </span>
+      <header className="admin-modern-header">
+        <div className="admin-header-left">
+          {/* <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="admin-header-btn"
+            aria-label="Toggle sidebar"
+            style={{ marginRight: '8px' }}
+          >
+            <span className="material-symbols-outlined">
+              {sidebarOpen ? 'menu_open' : 'menu'}
+            </span>
+          </button> */}
+          <Link to="/admin" className="admin-header-logo">
+            <div className="admin-logo-icon">SP</div>
+            <div className="admin-logo-text">
+              <h1>Sixpine Admin</h1>
+              <p>E-Commerce Dashboard</p>
+            </div>
+          </Link>
+        </div>
+        
+        <div className="admin-header-right">
+          {/* Search - Hidden on mobile */}
+          {/* <div className="admin-header-search" style={{ display: window.innerWidth < 768 ? 'none' : 'flex' }}>
+            <span className="material-symbols-outlined">search</span>
+            <input 
+              type="text" 
+              placeholder="Search anything..." 
+            />
+          </div> */}
+          
+          {/* Notifications */}
+          {/* <div className="admin-header-actions">
+            <button className="admin-header-btn" title="Notifications">
+              <span className="material-symbols-outlined">notifications</span>
+              <span className="badge">3</span>
             </button>
-            <div className="tw-flex tw-items-center tw-gap-2 sm:tw-gap-3">
-              <div className="tw-w-8 tw-h-8 sm:tw-w-10 sm:tw-h-10 tw-bg-gradient-to-br tw-from-blue-600 tw-to-purple-600 tw-rounded-lg tw-flex tw-items-center tw-justify-center">
-                <span className="tw-text-white tw-font-bold tw-text-sm sm:tw-text-lg">SP</span>
+          </div> */}
+          
+          {/* User Menu */}
+          <div className="admin-header-user">
+            <div className="admin-user-avatar">
+              {(state.user?.first_name || state.user?.username || 'A').charAt(0).toUpperCase()}
+            </div>
+            <div className="admin-user-info">
+              <div className="admin-user-name">
+                {state.user?.first_name || state.user?.username || 'Admin'}
               </div>
-              <div className="tw-hidden sm:tw-block">
-                <h1 className="tw-text-base sm:tw-text-xl tw-font-bold tw-text-gray-900">Sixpine Admin</h1>
-                <p className="tw-text-xs tw-text-gray-500 tw-hidden md:tw-block">Dashboard</p>
-              </div>
+              <div className="admin-user-role">Administrator</div>
             </div>
           </div>
           
-          {/* Right Section */}
-          <div className="tw-flex tw-items-center tw-gap-2 sm:tw-gap-3">
-            {/* Search - Hidden on mobile */}
-            <div className="tw-hidden lg:tw-flex tw-items-center tw-gap-2 tw-bg-gray-100 tw-px-3 tw-py-2 tw-rounded-lg">
-              <span className="material-symbols-outlined tw-text-gray-400 tw-text-xl">search</span>
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="tw-bg-transparent tw-border-none tw-outline-none tw-text-sm tw-w-32 lg:tw-w-48"
-              />
-            </div>
-            
-            {/* User Menu */}
-            <div className="tw-flex tw-items-center tw-gap-2 sm:tw-gap-3 tw-ml-2 sm:tw-ml-3 tw-pl-2 sm:tw-pl-3 tw-border-l tw-border-gray-200">
-              <div className="tw-hidden lg:tw-block tw-text-right">
-                <p className="tw-text-sm tw-font-semibold tw-text-gray-900">
-                  {state.user?.first_name || state.user?.username || 'Admin'}
-                </p>
-                <p className="tw-text-xs tw-text-gray-500">Administrator</p>
-              </div>
-              <div className="tw-w-8 tw-h-8 sm:tw-w-10 sm:tw-h-10 tw-bg-gradient-to-br tw-from-purple-500 tw-to-pink-500 tw-rounded-full tw-flex tw-items-center tw-justify-center">
-                <span className="tw-text-white tw-font-semibold tw-text-sm sm:tw-text-base">
-                  {(state.user?.first_name || state.user?.username || 'A').charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="tw-p-1.5 sm:tw-p-2 tw-rounded-lg tw-text-gray-600 hover:tw-bg-red-50 hover:tw-text-red-600 tw-transition-colors"
-                title="Logout"
-                aria-label="Logout"
-              >
-                <span className="material-symbols-outlined tw-text-xl sm:tw-text-2xl">logout</span>
-              </button>
-            </div>
-          </div>
+          <button 
+            onClick={handleLogout}
+            className="admin-header-btn"
+            title="Logout"
+            aria-label="Logout"
+          >
+            <span className="material-symbols-outlined">logout</span>
+          </button>
         </div>
       </header>
       
-      <div className="tw-flex">
+      <div style={{ display: 'flex', height: `calc(100vh - var(--admin-header-height))` }}>
         {/* Modern Sidebar */}
-        <aside className={`tw-fixed tw-inset-y-0 tw-left-0 tw-z-40 tw-w-64 sm:tw-w-72 lg:tw-w-64 tw-bg-white tw-border-r tw-border-gray-200 tw-transition-transform tw-duration-300 tw-mt-14 sm:tw-mt-16 ${sidebarOpen ? 'tw-translate-x-0' : 'tw--translate-x-full'}`}>
-          <nav className="tw-h-full tw-overflow-y-auto tw-py-3 sm:tw-py-4">
-            <ul className="tw-space-y-1 tw-px-2 sm:tw-px-3">
-              {menuItems.map((item) => {
+        <aside className={`admin-modern-sidebar ${sidebarOpen ? 'open' : ''}`}>
+          <nav className="admin-sidebar-menu">
+            {/* Main Section */}
+            <div className="admin-menu-section">
+              <div className="admin-menu-title">Main Menu</div>
+              {groupedMenuItems.main.map((item) => {
                 const active = item.exact ? location.pathname === item.path : isActive(item.path);
                 return (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      className={`tw-flex tw-items-center tw-gap-2 sm:tw-gap-3 tw-px-3 sm:tw-px-4 tw-py-2.5 sm:tw-py-3 tw-rounded-lg tw-text-sm tw-font-medium tw-transition-all tw-duration-200 ${
-                        active
-                          ? 'tw-bg-gradient-to-r tw-from-blue-600 tw-to-purple-600 tw-text-white tw-shadow-md'
-                          : 'tw-text-gray-700 hover:tw-bg-gray-100'
-                      }`}
-                    >
-                      <span className={`material-symbols-outlined tw-text-lg sm:tw-text-xl ${active ? 'tw-font-bold' : ''}`}>
-                        {item.icon}
-                      </span>
-                      <span className="tw-text-sm sm:tw-text-base">{item.label}</span>
-                      {active && (
-                        <span className="tw-ml-auto tw-w-2 tw-h-2 tw-bg-white tw-rounded-full tw-animate-pulse"></span>
-                      )}
-                    </Link>
-                  </li>
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`admin-menu-item ${active ? 'active' : ''}`}
+                  >
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                    <span className="admin-menu-text">{item.label}</span>
+                  </Link>
                 );
               })}
-              
-              {/* Divider */}
-              <li className="tw-my-4">
-                <div className="tw-h-px tw-bg-gray-200"></div>
-              </li>
-              
-              {/* Store Link */}
-              <li>
-                <Link
-                  to="/"
-                  target="_blank"
-                  className="tw-flex tw-items-center tw-gap-2 sm:tw-gap-3 tw-px-3 sm:tw-px-4 tw-py-2.5 sm:tw-py-3 tw-rounded-lg tw-text-sm tw-font-medium tw-text-gray-700 hover:tw-bg-gray-100 tw-transition-all"
-                >
-                  <span className="material-symbols-outlined tw-text-lg sm:tw-text-xl">storefront</span>
-                  <span className="tw-text-sm sm:tw-text-base">Visit Store</span>
-                  <span className="material-symbols-outlined tw-ml-auto tw-text-gray-400 tw-text-sm">open_in_new</span>
-                </Link>
-              </li>
-            </ul>
+            </div>
             
-            {/* Sidebar Footer */}
-            <div className="tw-mt-auto tw-p-3 sm:tw-p-4 tw-mx-2 sm:tw-mx-3 tw-mt-6 sm:tw-mt-8 tw-bg-gradient-to-br tw-from-blue-50 tw-to-purple-50 tw-rounded-lg tw-border tw-border-blue-100">
-              <div className="tw-flex tw-items-start tw-gap-2 sm:tw-gap-3">
-                <span className="material-symbols-outlined tw-text-blue-600 tw-text-lg sm:tw-text-xl">lightbulb</span>
+            {/* Analytics Section */}
+            <div className="admin-menu-section">
+              <div className="admin-menu-title">Analytics</div>
+              {groupedMenuItems.analytics.map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`admin-menu-item ${active ? 'active' : ''}`}
+                  >
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                    <span className="admin-menu-text">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            
+            {/* Management Section */}
+            <div className="admin-menu-section">
+              <div className="admin-menu-title">Management</div>
+              {groupedMenuItems.management.map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`admin-menu-item ${active ? 'active' : ''}`}
+                  >
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                    <span className="admin-menu-text">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            
+            {/* Settings Section */}
+            <div className="admin-menu-section">
+              <div className="admin-menu-title">Settings</div>
+              {groupedMenuItems.settings.map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`admin-menu-item ${active ? 'active' : ''}`}
+                  >
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                    <span className="admin-menu-text">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            
+            {/* Store Link */}
+            <div className="admin-menu-section" style={{ borderTop: '1px solid var(--admin-border)', paddingTop: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
+              <Link
+                to="/"
+                target="_blank"
+                className="admin-menu-item"
+                style={{ background: 'linear-gradient(135deg, rgba(255, 111, 0, 0.08) 0%, rgba(53, 122, 189, 0.08) 100%)' }}
+              >
+                <span className="material-symbols-outlined">storefront</span>
+                <span className="admin-menu-text">Visit Store</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', marginLeft: 'auto' }}>open_in_new</span>
+              </Link>
+            </div>
+          </nav>
+          
+          {/* Sidebar Footer */}
+          <div className="admin-sidebar-footer">
+            <div className="admin-sidebar-card">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-sm)' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--admin-primary)', fontSize: '24px' }}>help</span>
                 <div>
-                  <p className="tw-text-xs sm:tw-text-sm tw-font-semibold tw-text-gray-900">Need Help?</p>
-                  <p className="tw-text-xs tw-text-gray-600 tw-mt-1 tw-hidden sm:tw-block">Check our documentation</p>
-                  <button className="tw-mt-1 sm:tw-mt-2 tw-text-xs tw-font-medium tw-text-blue-600 hover:tw-underline">
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--admin-dark)', marginBottom: '4px' }}>
+                    Need Help?
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--admin-text-light)', marginBottom: '8px' }}>
+                    Check our documentation
+                  </div>
+                  <a 
+                    href="#" 
+                    style={{ fontSize: '12px', color: 'var(--admin-primary)', fontWeight: '600', textDecoration: 'none' }}
+                  >
                     Learn More →
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
-          </nav>
+          </div>
         </aside>
         
         {/* Overlay for mobile */}
-        {sidebarOpen && (
+        {sidebarOpen && window.innerWidth < 768 && (
           <div 
-            className="tw-fixed tw-inset-0 tw-bg-black tw-bg-opacity-50 tw-z-30 tw-mt-14 sm:tw-mt-16 lg:tw-hidden"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 'var(--z-dropdown)',
+              top: 'var(--admin-header-height)'
+            }}
             onClick={() => setSidebarOpen(false)}
-          ></div>
+          />
         )}
         
         {/* Main Content */}
-        <main className={`tw-flex-1 tw-min-h-screen tw-mt-14 sm:tw-mt-16 tw-transition-all tw-duration-300 ${sidebarOpen ? 'lg:tw-ml-64' : 'lg:tw-ml-64'}`}>
-          <div className="tw-px-3 sm:tw-px-4 md:tw-px-6 tw-py-3 sm:tw-py-4 tw-w-full">
-            <Outlet />
-          </div>
+        <main 
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: 'var(--admin-content-padding)',
+            background: 'var(--admin-bg)',
+            transition: 'var(--transition)'
+          }}
+        >
+          <Outlet />
         </main>
       </div>
     </div>

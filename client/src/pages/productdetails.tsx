@@ -32,16 +32,14 @@ const NewProductDetails: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Fetch product details
+        // Fetch product details (includes recommendations)
         const productResponse = await productAPI.getProductDetail(slug);
-        setProduct(productResponse.data);
-        
-        // Fetch recommendations
-        const recommendationsResponse = await productAPI.getProductRecommendations(slug);
-        const rawRecommendations = recommendationsResponse.data;
+        const productData = productResponse.data;
+        setProduct(productData);
         
         // Transform recommendation data to match slider component format
         const transformProducts = (products: any[]) => {
+          if (!products || products.length === 0) return [];
           return products.map(product => ({
             img: product.main_image || product.images?.[0]?.image || '',
             title: product.title,
@@ -49,9 +47,36 @@ const NewProductDetails: React.FC = () => {
             rating: parseFloat(product.average_rating) || 0,
             reviews: product.review_count || 0,
             oldPrice: product.old_price ? `₹${product.old_price}` : '',
-            newPrice: product.price ? `₹${product.price}` : ''
+            newPrice: product.price ? `₹${product.price}` : '',
+            slug: product.slug,
+            id: product.id
           }));
         };
+        
+        // Use recommendations from product data if available, otherwise fetch separately
+        let rawRecommendations = {
+          buy_with: productData.buy_with_products || [],
+          inspired_by: productData.inspired_products || [],
+          frequently_viewed: productData.frequently_viewed_products || [],
+          similar: productData.similar_products || [],
+          recommended: productData.recommended_products || []
+        };
+        
+        // If no recommendations in product data, try fetching from recommendations endpoint
+        const hasRecommendations = rawRecommendations.buy_with.length > 0 || 
+                                   rawRecommendations.inspired_by.length > 0 ||
+                                   rawRecommendations.frequently_viewed.length > 0 ||
+                                   rawRecommendations.similar.length > 0 ||
+                                   rawRecommendations.recommended.length > 0;
+        
+        if (!hasRecommendations) {
+          try {
+            const recommendationsResponse = await productAPI.getProductRecommendations(slug);
+            rawRecommendations = recommendationsResponse.data;
+          } catch (recErr) {
+            console.warn('Could not fetch recommendations:', recErr);
+          }
+        }
         
         const transformedRecommendations = {
           buy_with: rawRecommendations.buy_with ? transformProducts(rawRecommendations.buy_with) : [],

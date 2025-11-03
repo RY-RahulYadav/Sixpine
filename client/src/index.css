@@ -43,6 +43,11 @@
   box-sizing: border-box;
 }
 
+/* Smooth scrolling for in-page anchor navigation */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--text-dark);

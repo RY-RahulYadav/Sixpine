@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, OTPVerification, PasswordResetToken
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -81,8 +81,8 @@ class UserSerializer(serializers.ModelSerializer):
     """Serializer for user profile"""
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'mobile', 'is_verified', 'date_joined')
-        read_only_fields = ('id', 'is_verified', 'date_joined')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'mobile', 'is_verified', 'is_staff', 'is_superuser', 'date_joined')
+        read_only_fields = ('id', 'is_verified', 'is_staff', 'is_superuser', 'date_joined')
 
 
 class OTPRequestSerializer(serializers.Serializer):
@@ -177,3 +177,77 @@ class ChangePasswordSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError("Old password is incorrect")
         return value
+
+
+class ContactQuerySerializer(serializers.ModelSerializer):
+    """Serializer for contact form submissions"""
+    class Meta:
+        model = ContactQuery
+        fields = ['id', 'full_name', 'pincode', 'phone_number', 'email', 'message', 
+                  'status', 'admin_notes', 'created_at', 'updated_at', 'resolved_at']
+        read_only_fields = ['id', 'status', 'admin_notes', 'created_at', 'updated_at', 'resolved_at']
+
+
+class ContactQueryCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating contact queries (user submission)"""
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    message = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    
+    class Meta:
+        model = ContactQuery
+        fields = ['full_name', 'pincode', 'phone_number', 'email', 'message']
+    
+    def validate_email(self, value):
+        """Convert empty string to None"""
+        return value if value else None
+    
+    def validate_message(self, value):
+        """Convert empty string to None"""
+        return value if value else None
+
+
+class BulkOrderSerializer(serializers.ModelSerializer):
+    """Serializer for bulk orders"""
+    assigned_to_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BulkOrder
+        fields = ['id', 'company_name', 'contact_person', 'email', 'phone_number', 
+                  'address', 'city', 'state', 'pincode', 'country', 'project_type',
+                  'estimated_quantity', 'estimated_budget', 'delivery_date',
+                  'special_requirements', 'status', 'admin_notes', 'quoted_price',
+                  'assigned_to', 'assigned_to_name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'status', 'admin_notes', 'quoted_price', 'assigned_to', 'created_at', 'updated_at']
+    
+    def get_assigned_to_name(self, obj):
+        if obj.assigned_to:
+            return f"{obj.assigned_to.first_name} {obj.assigned_to.last_name}".strip() or obj.assigned_to.email
+        return None
+
+
+class BulkOrderCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating bulk orders (user submission)"""
+    estimated_quantity = serializers.IntegerField(required=False, allow_null=True)
+    estimated_budget = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    delivery_date = serializers.DateField(required=False, allow_null=True)
+    special_requirements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    country = serializers.CharField(required=False, default='India')
+    
+    class Meta:
+        model = BulkOrder
+        fields = ['company_name', 'contact_person', 'email', 'phone_number', 
+                  'address', 'city', 'state', 'pincode', 'country', 'project_type',
+                  'estimated_quantity', 'estimated_budget', 'delivery_date',
+                  'special_requirements']
+    
+    def validate_estimated_quantity(self, value):
+        """Convert empty string or zero to None"""
+        return value if value else None
+    
+    def validate_estimated_budget(self, value):
+        """Convert empty string or zero to None"""
+        return value if value else None
+    
+    def validate_special_requirements(self, value):
+        """Convert empty string to None"""
+        return value if value else None

@@ -1,498 +1,384 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../../../context/AppContext';
 import adminAPI from '../../../services/adminApi';
-
-interface Settings {
-  site_name: string;
-  site_description: string;
-  contact_email: string;
-  customer_service_phone: string;
-  enable_guest_checkout: boolean;
-  enable_reviews: boolean;
-  show_out_of_stock_products: boolean;
-  products_per_page: number;
-  default_currency: string;
-  tax_rate: number;
-  shipping_flat_rate: number;
-  free_shipping_threshold: number;
-  smtp_host: string;
-  smtp_port: number;
-  smtp_username: string;
-  smtp_password: string;
-  smtp_use_tls: boolean;
-  google_analytics_id: string;
-  maintenance_mode: boolean;
-  maintenance_message: string;
-}
+import { showToast } from '../utils/adminUtils';
 
 const AdminSettings: React.FC = () => {
-  const [settings, setSettings] = useState<Settings>({
-    site_name: '',
-    site_description: '',
-    contact_email: '',
-    customer_service_phone: '',
-    enable_guest_checkout: true,
-    enable_reviews: true,
-    show_out_of_stock_products: true,
-    products_per_page: 20,
-    default_currency: 'USD',
-    tax_rate: 0,
-    shipping_flat_rate: 0,
-    free_shipping_threshold: 0,
-    smtp_host: '',
-    smtp_port: 587,
-    smtp_username: '',
-    smtp_password: '',
-    smtp_use_tls: true,
-    google_analytics_id: '',
-    maintenance_mode: false,
-    maintenance_message: '',
+  const { state } = useApp();
+  const currentUser = state.user;
+  
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
   });
   
-  const [activeTab, setActiveTab] = useState<string>('general');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [lowStockThreshold, setLowStockThreshold] = useState<number>(100);
+  const [loadingThreshold, setLoadingThreshold] = useState<boolean>(true);
+  const [savingThreshold, setSavingThreshold] = useState<boolean>(false);
+  
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
+  // Load low stock threshold on mount
   useEffect(() => {
-    const fetchSettings = async () => {
+    const loadThreshold = async () => {
       try {
-        setLoading(true);
-        // Using adminAPI
-        const response = await adminAPI.getSettings();
-        setSettings(response.data);
-        setError(null);
+        setLoadingThreshold(true);
+        const response = await adminAPI.getGlobalSettings();
+        const threshold = response.data?.low_stock_threshold || response.data?.['low_stock_threshold'] || 100;
+        setLowStockThreshold(parseInt(String(threshold), 10) || 100);
       } catch (err) {
-        console.error('Error fetching settings:', err);
-        setError('Failed to load settings');
+        console.error('Error loading low stock threshold:', err);
+        // Default to 100 if error
+        setLowStockThreshold(100);
       } finally {
-        setLoading(false);
+        setLoadingThreshold(false);
       }
     };
     
-    fetchSettings();
+    loadThreshold();
   }, []);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    
-    // Handle different input types
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setSettings({ ...settings, [name]: checked });
-    } else if (type === 'number') {
-      const numberValue = parseFloat(value);
-      setSettings({ ...settings, [name]: numberValue });
-    } else {
-      setSettings({ ...settings, [name]: value });
-    }
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordForm({ ...passwordForm, [name]: value });
+    setError(null);
+    setSuccessMessage(null);
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!passwordForm.current_password || !passwordForm.new_password || !passwordForm.confirm_password) {
+      setError('All fields are required');
+      return;
+    }
+    
+    if (passwordForm.new_password.length < 8) {
+      setError('New password must be at least 8 characters long');
+      return;
+    }
+    
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setError('New password and confirm password do not match');
+      return;
+    }
+    
+    if (!currentUser?.id) {
+      setError('User information not available');
+      return;
+    }
     
     try {
       setSaving(true);
-      // Using adminAPI
-      await adminAPI.updateSettings(settings);
-      
-      setSuccessMessage('Settings saved successfully');
-      setTimeout(() => setSuccessMessage(null), 5000);
       setError(null);
-    } catch (err) {
-      console.error('Error saving settings:', err);
-      setError('Failed to save settings');
-      setSuccessMessage(null);
+      
+      // First verify current password by attempting to get user details
+      // Then update password using reset_password endpoint
+      await adminAPI.resetUserPassword(currentUser.id, passwordForm.new_password);
+      
+      setSuccessMessage('Password changed successfully');
+      setPasswordForm({
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+      
+      showToast('Password changed successfully', 'success');
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Error changing password:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to change password';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setSaving(false);
     }
   };
   
-  if (loading) {
-    return (
-      <div className="admin-loader">
-        <div className="spinner"></div>
-        <p>Loading settings...</p>
-      </div>
-    );
-  }
+  const handleThresholdSave = async () => {
+    if (lowStockThreshold < 0) {
+      showToast('Threshold must be a positive number', 'error');
+      return;
+    }
+    
+    try {
+      setSavingThreshold(true);
+      await adminAPI.updateGlobalSetting(
+        'low_stock_threshold',
+        lowStockThreshold,
+        'Global low stock threshold. Products with total stock (sum of all variants) below this value will be considered low stock.'
+      );
+      showToast('Low stock threshold updated successfully', 'success');
+    } catch (err: any) {
+      console.error('Error updating threshold:', err);
+      const errorMessage = err.response?.data?.error || 'Failed to update threshold';
+      showToast(errorMessage, 'error');
+    } finally {
+      setSavingThreshold(false);
+    }
+  };
   
   return (
-    <div className="admin-settings">
-      <div className="admin-header-actions">
-        <h2>Store Settings</h2>
+    <div className="admin-settings-simple">
+      <div className="admin-header-actions tw-mb-6">
+        <h2 className="tw-flex tw-items-center tw-gap-3 tw-text-3xl tw-font-bold tw-text-gray-800">
+          <span className="material-symbols-outlined tw-text-4xl tw-text-orange-600">settings</span>
+          Admin Settings
+        </h2>
       </div>
       
       {/* Success message */}
       {successMessage && (
-        <div className="admin-success-message">
-          <span className="material-symbols-outlined">check_circle</span>
-          {successMessage}
+        <div className="tw-mb-6 tw-p-4 tw-bg-green-50 tw-border-l-4 tw-border-green-500 tw-rounded-lg tw-flex tw-items-center tw-gap-3 tw-shadow-md">
+          <span className="material-symbols-outlined tw-text-green-600 tw-text-2xl">check_circle</span>
+          <span className="tw-text-green-800 tw-font-medium">{successMessage}</span>
         </div>
       )}
       
       {/* Error message */}
       {error && (
-        <div className="admin-error-message">
-          <span className="material-symbols-outlined">error</span>
-          {error}
+        <div className="tw-mb-6 tw-p-4 tw-bg-red-50 tw-border-l-4 tw-border-red-500 tw-rounded-lg tw-flex tw-items-center tw-gap-3 tw-shadow-md">
+          <span className="material-symbols-outlined tw-text-red-600 tw-text-2xl">error</span>
+          <span className="tw-text-red-800 tw-font-medium">{error}</span>
         </div>
       )}
       
-      {/* Settings tabs */}
-      <div className="admin-tabs">
-        <button 
-          className={`tab-button ${activeTab === 'general' ? 'active' : ''}`}
-          onClick={() => setActiveTab('general')}
-        >
-          <span className="material-symbols-outlined">settings</span>
-          General
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'store' ? 'active' : ''}`}
-          onClick={() => setActiveTab('store')}
-        >
-          <span className="material-symbols-outlined">store</span>
-          Store
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'email' ? 'active' : ''}`}
-          onClick={() => setActiveTab('email')}
-        >
-          <span className="material-symbols-outlined">email</span>
-          Email
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'advanced' ? 'active' : ''}`}
-          onClick={() => setActiveTab('advanced')}
-        >
-          <span className="material-symbols-outlined">code</span>
-          Advanced
-        </button>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="admin-form">
-        {/* General Settings */}
-        {activeTab === 'general' && (
-          <div className="admin-card">
-            <h3>General Settings</h3>
-            
-            <div className="form-group">
-              <label htmlFor="site_name">Site Name</label>
-              <input
-                type="text"
-                id="site_name"
-                name="site_name"
-                value={settings.site_name}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="site_description">Site Description</label>
-              <textarea
-                id="site_description"
-                name="site_description"
-                value={settings.site_description}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="contact_email">Contact Email</label>
-                <input
-                  type="email"
-                  id="contact_email"
-                  name="contact_email"
-                  value={settings.contact_email}
-                  onChange={handleChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="customer_service_phone">Customer Service Phone</label>
-                <input
-                  type="text"
-                  id="customer_service_phone"
-                  name="customer_service_phone"
-                  value={settings.customer_service_phone}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            
-            <div className="form-group checkbox">
-              <input
-                type="checkbox"
-                id="maintenance_mode"
-                name="maintenance_mode"
-                checked={settings.maintenance_mode}
-                onChange={handleChange}
-              />
-              <label htmlFor="maintenance_mode">Maintenance Mode</label>
-            </div>
-            
-            {settings.maintenance_mode && (
-              <div className="form-group">
-                <label htmlFor="maintenance_message">Maintenance Message</label>
-                <textarea
-                  id="maintenance_message"
-                  name="maintenance_message"
-                  value={settings.maintenance_message}
-                  onChange={handleChange}
-                  rows={3}
-                />
-              </div>
-            )}
+      <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
+        {/* Admin Information Card */}
+        <div className="tw-bg-white tw-rounded-xl tw-shadow-lg tw-border-2 tw-border-orange-100 tw-overflow-hidden hover:tw-shadow-xl tw-transition-all">
+          <div className="tw-bg-gradient-to-r tw-from-orange-50 tw-via-orange-100 tw-to-orange-50 tw-px-6 tw-py-4 tw-border-b-2 tw-border-orange-200">
+            <h3 className="tw-flex tw-items-center tw-gap-3 tw-text-xl tw-font-bold tw-text-gray-800">
+              <span className="material-symbols-outlined tw-text-orange-600 tw-text-2xl">person</span>
+              Admin Information
+            </h3>
           </div>
-        )}
+          
+          <div className="tw-p-6 tw-space-y-5">
+            <div className="tw-flex tw-items-start tw-gap-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200">
+              <div className="tw-p-2 tw-bg-orange-100 tw-rounded-lg">
+                <span className="material-symbols-outlined tw-text-orange-600 tw-text-xl">email</span>
+              </div>
+              <div className="tw-flex-1">
+                <label className="tw-block tw-text-sm tw-font-semibold tw-text-gray-600 tw-mb-1">Email Address</label>
+                <div className="tw-text-base tw-font-medium tw-text-gray-800">
+                  {currentUser?.email || 'N/A'}
+                </div>
+              </div>
+            </div>
+            
+            <div className="tw-flex tw-items-start tw-gap-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200">
+              <div className="tw-p-2 tw-bg-blue-100 tw-rounded-lg">
+                <span className="material-symbols-outlined tw-text-blue-600 tw-text-xl">badge</span>
+              </div>
+              <div className="tw-flex-1">
+                <label className="tw-block tw-text-sm tw-font-semibold tw-text-gray-600 tw-mb-1">Username</label>
+                <div className="tw-text-base tw-font-medium tw-text-gray-800">
+                  {currentUser?.username || 'N/A'}
+                </div>
+              </div>
+            </div>
+            
+            {currentUser?.first_name || currentUser?.last_name ? (
+              <div className="tw-flex tw-items-start tw-gap-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200">
+                <div className="tw-p-2 tw-bg-purple-100 tw-rounded-lg">
+                  <span className="material-symbols-outlined tw-text-purple-600 tw-text-xl">account_circle</span>
+                </div>
+                <div className="tw-flex-1">
+                  <label className="tw-block tw-text-sm tw-font-semibold tw-text-gray-600 tw-mb-1">Full Name</label>
+                  <div className="tw-text-base tw-font-medium tw-text-gray-800">
+                    {`${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || 'N/A'}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
         
-        {/* Store Settings */}
-        {activeTab === 'store' && (
-          <div className="admin-card">
-            <h3>Store Settings</h3>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="products_per_page">Products Per Page</label>
-                <input
-                  type="number"
-                  id="products_per_page"
-                  name="products_per_page"
-                  value={settings.products_per_page}
-                  onChange={handleChange}
-                  min={1}
-                />
+        {/* Global Settings Card */}
+        <div className="tw-bg-white tw-rounded-xl tw-shadow-lg tw-border-2 tw-border-blue-100 tw-overflow-hidden hover:tw-shadow-xl tw-transition-all">
+          <div className="tw-bg-gradient-to-r tw-from-blue-50 tw-via-blue-100 tw-to-blue-50 tw-px-6 tw-py-4 tw-border-b-2 tw-border-blue-200">
+            <h3 className="tw-flex tw-items-center tw-gap-3 tw-text-xl tw-font-bold tw-text-gray-800">
+              <span className="material-symbols-outlined tw-text-blue-600 tw-text-2xl">settings</span>
+              Global Settings
+            </h3>
+          </div>
+          
+          <div className="tw-p-6">
+            <div className="tw-space-y-4">
+              <div className="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                <div className="tw-p-2 tw-bg-green-100 tw-rounded-lg">
+                  <span className="material-symbols-outlined tw-text-green-600 tw-text-xl">inventory</span>
+                </div>
+                <label htmlFor="low_stock_threshold" className="tw-text-base tw-font-semibold tw-text-gray-700">
+                  Low Stock Threshold
+                </label>
               </div>
               
-              <div className="form-group">
-                <label htmlFor="default_currency">Default Currency</label>
-                <select
-                  id="default_currency"
-                  name="default_currency"
-                  value={settings.default_currency}
-                  onChange={handleChange}
-                >
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="JPY">JPY (¥)</option>
-                  <option value="INR">INR (₹)</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="form-group checkbox">
-              <input
-                type="checkbox"
-                id="enable_guest_checkout"
-                name="enable_guest_checkout"
-                checked={settings.enable_guest_checkout}
-                onChange={handleChange}
-              />
-              <label htmlFor="enable_guest_checkout">Enable Guest Checkout</label>
-            </div>
-            
-            <div className="form-group checkbox">
-              <input
-                type="checkbox"
-                id="enable_reviews"
-                name="enable_reviews"
-                checked={settings.enable_reviews}
-                onChange={handleChange}
-              />
-              <label htmlFor="enable_reviews">Enable Product Reviews</label>
-            </div>
-            
-            <div className="form-group checkbox">
-              <input
-                type="checkbox"
-                id="show_out_of_stock_products"
-                name="show_out_of_stock_products"
-                checked={settings.show_out_of_stock_products}
-                onChange={handleChange}
-              />
-              <label htmlFor="show_out_of_stock_products">Show Out of Stock Products</label>
-            </div>
-            
-            <h4>Tax & Shipping</h4>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="tax_rate">Tax Rate (%)</label>
-                <input
-                  type="number"
-                  id="tax_rate"
-                  name="tax_rate"
-                  value={settings.tax_rate}
-                  onChange={handleChange}
-                  min={0}
-                  step={0.01}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="shipping_flat_rate">Flat Rate Shipping ($)</label>
-                <input
-                  type="number"
-                  id="shipping_flat_rate"
-                  name="shipping_flat_rate"
-                  value={settings.shipping_flat_rate}
-                  onChange={handleChange}
-                  min={0}
-                  step={0.01}
-                />
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="free_shipping_threshold">Free Shipping Threshold ($)</label>
               <input
                 type="number"
-                id="free_shipping_threshold"
-                name="free_shipping_threshold"
-                value={settings.free_shipping_threshold}
-                onChange={handleChange}
-                min={0}
-                step={0.01}
+                id="low_stock_threshold"
+                name="low_stock_threshold"
+                value={lowStockThreshold}
+                onChange={(e) => setLowStockThreshold(parseInt(e.target.value, 10) || 0)}
+                placeholder="Enter threshold (e.g., 100)"
+                min="0"
+                disabled={loadingThreshold || savingThreshold}
+                className="tw-w-full tw-px-4 tw-py-3 tw-text-lg tw-border-2 tw-border-gray-300 tw-rounded-lg focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-transparent disabled:tw-bg-gray-100 disabled:tw-cursor-not-allowed tw-font-medium"
               />
-              <small className="form-helper">Set to 0 to disable free shipping</small>
+              
+              <div className="tw-p-4 tw-bg-blue-50 tw-rounded-lg tw-border tw-border-blue-200">
+                <p className="tw-text-sm tw-text-blue-800 tw-flex tw-items-start tw-gap-2">
+                  <span className="material-symbols-outlined tw-text-base tw-mt-0.5">info</span>
+                  <span>Products with total stock (sum of all variants) below this value will be marked as low stock</span>
+                </p>
+              </div>
+              
+              <button
+                type="button"
+                className="tw-w-full tw-px-6 tw-py-3 tw-bg-blue-600 tw-text-white tw-rounded-lg hover:tw-bg-blue-700 hover:tw-shadow-lg tw-transition-all tw-duration-200 tw-font-semibold tw-text-base tw-flex tw-items-center tw-justify-center tw-gap-2 disabled:tw-bg-gray-400 disabled:tw-cursor-not-allowed hover:tw-scale-[1.02] active:tw-scale-95"
+                onClick={handleThresholdSave}
+                disabled={loadingThreshold || savingThreshold}
+              >
+                {savingThreshold ? (
+                  <>
+                    <span className="spinner-small"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">save</span>
+                    Save Threshold
+                  </>
+                )}
+              </button>
             </div>
           </div>
-        )}
+        </div>
         
-        {/* Email Settings */}
-        {activeTab === 'email' && (
-          <div className="admin-card">
-            <h3>Email Settings</h3>
-            
-            <div className="form-group">
-              <label htmlFor="smtp_host">SMTP Host</label>
-              <input
-                type="text"
-                id="smtp_host"
-                name="smtp_host"
-                value={settings.smtp_host}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="smtp_port">SMTP Port</label>
+        {/* Change Password Card - Full Width */}
+        <div className="lg:tw-col-span-2 tw-bg-white tw-rounded-xl tw-shadow-lg tw-border-2 tw-border-purple-100 tw-overflow-hidden hover:tw-shadow-xl tw-transition-all">
+          <div className="tw-bg-gradient-to-r tw-from-purple-50 tw-via-purple-100 tw-to-purple-50 tw-px-6 tw-py-4 tw-border-b-2 tw-border-purple-200">
+            <h3 className="tw-flex tw-items-center tw-gap-3 tw-text-xl tw-font-bold tw-text-gray-800">
+              <span className="material-symbols-outlined tw-text-purple-600 tw-text-2xl">lock</span>
+              Change Password
+            </h3>
+          </div>
+          
+          <form onSubmit={handlePasswordSubmit} className="tw-p-6">
+            <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-6">
+              <div className="tw-space-y-2">
+                <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                  <span className="material-symbols-outlined tw-text-purple-600">key</span>
+                  <label htmlFor="current_password" className="tw-text-sm tw-font-semibold tw-text-gray-700">
+                    Current Password
+                  </label>
+                </div>
                 <input
-                  type="number"
-                  id="smtp_port"
-                  name="smtp_port"
-                  value={settings.smtp_port}
-                  onChange={handleChange}
+                  type="password"
+                  id="current_password"
+                  name="current_password"
+                  value={passwordForm.current_password}
+                  onChange={handlePasswordChange}
+                  placeholder="Enter current password"
+                  required
+                  disabled={saving}
+                  className="tw-w-full tw-px-4 tw-py-3 tw-border-2 tw-border-gray-300 tw-rounded-lg focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-purple-500 focus:tw-border-transparent disabled:tw-bg-gray-100 disabled:tw-cursor-not-allowed"
                 />
               </div>
               
-              <div className="form-group checkbox">
+              <div className="tw-space-y-2">
+                <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                  <span className="material-symbols-outlined tw-text-purple-600">lock_reset</span>
+                  <label htmlFor="new_password" className="tw-text-sm tw-font-semibold tw-text-gray-700">
+                    New Password
+                  </label>
+                </div>
                 <input
-                  type="checkbox"
-                  id="smtp_use_tls"
-                  name="smtp_use_tls"
-                  checked={settings.smtp_use_tls}
-                  onChange={handleChange}
+                  type="password"
+                  id="new_password"
+                  name="new_password"
+                  value={passwordForm.new_password}
+                  onChange={handlePasswordChange}
+                  placeholder="Min. 8 characters"
+                  required
+                  minLength={8}
+                  disabled={saving}
+                  className="tw-w-full tw-px-4 tw-py-3 tw-border-2 tw-border-gray-300 tw-rounded-lg focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-purple-500 focus:tw-border-transparent disabled:tw-bg-gray-100 disabled:tw-cursor-not-allowed"
                 />
-                <label htmlFor="smtp_use_tls">Use TLS</label>
+                <small className="tw-text-xs tw-text-gray-500 tw-flex tw-items-center tw-gap-1">
+                  <span className="material-symbols-outlined tw-text-xs">info</span>
+                  At least 8 characters
+                </small>
+              </div>
+              
+              <div className="tw-space-y-2">
+                <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                  <span className="material-symbols-outlined tw-text-purple-600">lock_reset</span>
+                  <label htmlFor="confirm_password" className="tw-text-sm tw-font-semibold tw-text-gray-700">
+                    Confirm Password
+                  </label>
+                </div>
+                <input
+                  type="password"
+                  id="confirm_password"
+                  name="confirm_password"
+                  value={passwordForm.confirm_password}
+                  onChange={handlePasswordChange}
+                  placeholder="Confirm new password"
+                  required
+                  minLength={8}
+                  disabled={saving}
+                  className="tw-w-full tw-px-4 tw-py-3 tw-border-2 tw-border-gray-300 tw-rounded-lg focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-purple-500 focus:tw-border-transparent disabled:tw-bg-gray-100 disabled:tw-cursor-not-allowed"
+                />
               </div>
             </div>
             
-            <div className="form-group">
-              <label htmlFor="smtp_username">SMTP Username</label>
-              <input
-                type="text"
-                id="smtp_username"
-                name="smtp_username"
-                value={settings.smtp_username}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="smtp_password">SMTP Password</label>
-              <input
-                type="password"
-                id="smtp_password"
-                name="smtp_password"
-                value={settings.smtp_password}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div className="form-actions">
+            <div className="tw-flex tw-gap-4 tw-mt-6">
               <button
-                type="button"
-                className="admin-btn secondary"
-                onClick={() => alert('This would send a test email')}
+                type="submit"
+                className="tw-flex-1 tw-px-6 tw-py-3 tw-bg-purple-600 tw-text-white tw-rounded-lg hover:tw-bg-purple-700 hover:tw-shadow-lg tw-transition-all tw-duration-200 tw-font-semibold tw-text-base tw-flex tw-items-center tw-justify-center tw-gap-2 disabled:tw-bg-gray-400 disabled:tw-cursor-not-allowed hover:tw-scale-[1.02] active:tw-scale-95"
+                disabled={saving || !passwordForm.current_password || !passwordForm.new_password || !passwordForm.confirm_password}
               >
-                <span className="material-symbols-outlined">email</span>
-                Send Test Email
+                {saving ? (
+                  <>
+                    <span className="spinner-small"></span>
+                    Changing Password...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">save</span>
+                    Change Password
+                  </>
+                )}
               </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Advanced Settings */}
-        {activeTab === 'advanced' && (
-          <div className="admin-card">
-            <h3>Advanced Settings</h3>
-            
-            <div className="form-group">
-              <label htmlFor="google_analytics_id">Google Analytics ID</label>
-              <input
-                type="text"
-                id="google_analytics_id"
-                name="google_analytics_id"
-                value={settings.google_analytics_id}
-                onChange={handleChange}
-                placeholder="UA-XXXXX-Y or G-XXXXXXXX"
-              />
-            </div>
-            
-            <div className="form-actions">
+              
               <button
                 type="button"
-                className="admin-btn danger"
+                className="tw-px-6 tw-py-3 tw-bg-gray-200 tw-text-gray-700 tw-rounded-lg hover:tw-bg-gray-300 hover:tw-shadow-md tw-transition-all tw-duration-200 tw-font-semibold tw-text-base tw-flex tw-items-center tw-justify-center tw-gap-2 disabled:tw-cursor-not-allowed"
                 onClick={() => {
-                  if (window.confirm('Are you sure you want to clear the cache? This might temporarily affect site performance.')) {
-                    alert('Cache cleared successfully');
-                  }
+                  setPasswordForm({
+                    current_password: '',
+                    new_password: '',
+                    confirm_password: ''
+                  });
+                  setError(null);
+                  setSuccessMessage(null);
                 }}
+                disabled={saving}
               >
-                <span className="material-symbols-outlined">cleaning_services</span>
-                Clear Cache
+                <span className="material-symbols-outlined">close</span>
+                Clear
               </button>
             </div>
-          </div>
-        )}
-        
-        {/* Form actions */}
-        <div className="form-actions">
-          <button
-            type="submit"
-            className="admin-btn primary"
-            disabled={saving}
-          >
-            {saving ? (
-              <>
-                <span className="spinner-small"></span>
-                Saving...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined">save</span>
-                Save Settings
-              </>
-            )}
-          </button>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

@@ -44,6 +44,10 @@ const CheckoutPage: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentModalType, setPaymentModalType] = useState<'success' | 'failed'>('success');
   const [paymentModalMessage, setPaymentModalMessage] = useState<string>('');
+  const [paymentSettings, setPaymentSettings] = useState<{
+    razorpay_enabled: boolean;
+    cod_enabled: boolean;
+  }>({ razorpay_enabled: true, cod_enabled: true });
 
   useEffect(() => {
     if (!state.isAuthenticated) {
@@ -58,7 +62,31 @@ const CheckoutPage: React.FC = () => {
 
     fetchCart();
     fetchAddresses();
+    fetchPaymentSettings();
   }, [state.isAuthenticated]);
+
+  const fetchPaymentSettings = async () => {
+    try {
+      const response = await orderAPI.getPaymentCharges();
+      const settings = {
+        razorpay_enabled: response.data.razorpay_enabled !== false, // Default to true if not set
+        cod_enabled: response.data.cod_enabled !== false // Default to true if not set
+      };
+      setPaymentSettings(settings);
+      
+      // Set default payment method based on availability
+      if (!selectedPaymentMethod) {
+        if (settings.razorpay_enabled) {
+          setSelectedPaymentMethod('CC');
+        } else if (settings.cod_enabled) {
+          setSelectedPaymentMethod('COD');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching payment settings:', err);
+      // Keep defaults if fetch fails
+    }
+  };
 
   const fetchAddresses = async () => {
     try {
@@ -169,10 +197,19 @@ const CheckoutPage: React.FC = () => {
         }
       } else {
         // Handle Razorpay payment
+        // Fetch platform fees for calculation
+        let platformFees = null;
+        try {
+          const feesResponse = await orderAPI.getPaymentCharges();
+          platformFees = feesResponse.data;
+        } catch (err) {
+          console.error('Error fetching platform fees:', err);
+        }
+        
+        const { calculateOrderTotals } = await import('../utils/orderCalculations');
         const subtotal = state.cart?.total_price || 0;
-        const shippingCost = subtotal >= 500 ? 0 : 50;
-        const tax = subtotal * 0.05;
-        const total = subtotal + shippingCost + tax;
+        const totals = calculateOrderTotals(subtotal, selectedPaymentMethod, platformFees);
+        const total = totals.total;
 
         // Validate totals
         if (total <= 0) {
@@ -370,6 +407,8 @@ const CheckoutPage: React.FC = () => {
             />
             <NewPaymentMethod 
               onPaymentMethodChange={handlePaymentMethodChange}
+              razorpayEnabled={paymentSettings.razorpay_enabled}
+              codEnabled={paymentSettings.cod_enabled}
             />
             <ReviewItems />
             <OrderConfirmation />
@@ -378,6 +417,7 @@ const CheckoutPage: React.FC = () => {
             <OrderSummary 
               onPaymentClick={handlePayment}
               paymentDisabled={processing || !selectedAddressId || !selectedPaymentMethod}
+              selectedPaymentMethod={selectedPaymentMethod}
             />
           </div>
         </div>

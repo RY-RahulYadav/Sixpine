@@ -1,30 +1,32 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    AdminUserViewSet,
-    AdminProductViewSet,
-    AdminOrderViewSet,
-    AdminCategoryViewSet,
-    AdminDashboardStatsView,
-    AdminLogViewSet
+    dashboard_stats, AdminUserViewSet, AdminCategoryViewSet,
+    AdminSubcategoryViewSet, AdminColorViewSet, AdminMaterialViewSet,
+    AdminProductViewSet, AdminOrderViewSet, AdminDiscountViewSet,
+    payment_charges_settings, global_settings,
+    AdminContactQueryViewSet, AdminBulkOrderViewSet, AdminLogViewSet
 )
 from .auth import admin_login_view
 
-# Create a router for ViewSets
 router = DefaultRouter()
-router.register(r'users', AdminUserViewSet)
-router.register(r'products', AdminProductViewSet)
-router.register(r'orders', AdminOrderViewSet)
-router.register(r'categories', AdminCategoryViewSet)
-router.register(r'logs', AdminLogViewSet)
+router.register(r'users', AdminUserViewSet, basename='admin-users')
+router.register(r'categories', AdminCategoryViewSet, basename='admin-categories')
+router.register(r'subcategories', AdminSubcategoryViewSet, basename='admin-subcategories')
+router.register(r'colors', AdminColorViewSet, basename='admin-colors')
+router.register(r'materials', AdminMaterialViewSet, basename='admin-materials')
+router.register(r'products', AdminProductViewSet, basename='admin-products')
+router.register(r'orders', AdminOrderViewSet, basename='admin-orders')
+router.register(r'discounts', AdminDiscountViewSet, basename='admin-discounts')
+router.register(r'contact-queries', AdminContactQueryViewSet, basename='admin-contact-queries')
+router.register(r'bulk-orders', AdminBulkOrderViewSet, basename='admin-bulk-orders')
+router.register(r'logs', AdminLogViewSet, basename='admin-logs')
 
 urlpatterns = [
-    # Router URLs
-    path('', include(router.urls)),
-    
-    # Dashboard stats
-    path('dashboard/stats/', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),
-    
-    # Admin auth endpoints
     path('auth/login/', admin_login_view, name='admin-login'),
+    path('dashboard/stats/', dashboard_stats, name='admin-dashboard-stats'),
+    path('payment-charges/', payment_charges_settings, name='admin-payment-charges'),
+    path('global-settings/', global_settings, name='admin-global-settings'),
+    path('', include(router.urls)),
 ]
+
