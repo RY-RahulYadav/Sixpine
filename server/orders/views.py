@@ -263,29 +263,40 @@ def create_razorpay_order(request):
             )
         
         # Get or create Razorpay customer for token saving
-        from accounts.models import PaymentPreference
-        preference, _ = PaymentPreference.objects.get_or_create(user=request.user)
-        customer_id = preference.razorpay_customer_id
+        # Use User model to store customer_id - created ON FIRST PAYMENT ATTEMPT (not at login)
+        # Uses logged-in user's email, name, and phone to create customer
+        # This prevents creating new customer_id when user enters different address/name/phone during checkout
+        import logging
+        logger = logging.getLogger(__name__)
         
-        # Validate and create customer if needed
+        # IMPORTANT: Get customer_id from User model ONLY (not PaymentPreference)
+        customer_id = request.user.razorpay_customer_id
+        print(f'[RAZORPAY] User {request.user.email} - Current razorpay_customer_id from User model: {customer_id}')
+        logger.info(f'User {request.user.email} - Current razorpay_customer_id from User model: {customer_id}')
+        
+        # Create customer if it doesn't exist (only on first payment attempt)
         if not customer_id or not customer_id.strip():
-            # Create customer in Razorpay
+            # Create customer in Razorpay using logged-in user's email, name, and phone
             try:
                 customer_data = {
                     'name': f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email,
                     'email': request.user.email,
                     'contact': request.user.mobile or ''
                 }
+                print(f'[RAZORPAY] Creating Razorpay customer for {request.user.email} with data: {customer_data}')
+                logger.info(f'Creating Razorpay customer for {request.user.email} with data: {customer_data}')
                 customer = razorpay_client.customer.create(customer_data)
                 customer_id = customer['id']
-                preference.razorpay_customer_id = customer_id
-                preference.save()
+                # Store in User model (not PaymentPreference)
+                request.user.razorpay_customer_id = customer_id
+                request.user.save(update_fields=['razorpay_customer_id'])
+                print(f'[RAZORPAY] ✅ Created Razorpay customer {customer_id} for user {request.user.email} - Stored in User.razorpay_customer_id')
+                logger.info(f'✅ Created Razorpay customer {customer_id} for user {request.user.email} - Stored in User.razorpay_customer_id')
             except Exception as e:
                 # If customer creation fails, continue without customer_id
                 # Card saving won't work but payment will proceed
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.warning(f'Failed to create Razorpay customer: {str(e)}')
+                logger.error(f'Customer creation error details: {str(e)}', exc_info=True)
                 customer_id = None
         else:
             # Verify customer exists in Razorpay
@@ -304,8 +315,9 @@ def create_razorpay_order(request):
                     }
                     customer = razorpay_client.customer.create(customer_data)
                     customer_id = customer['id']
-                    preference.razorpay_customer_id = customer_id
-                    preference.save()
+                    # Store in User model (not PaymentPreference)
+                    request.user.razorpay_customer_id = customer_id
+                    request.user.save(update_fields=['razorpay_customer_id'])
                 except Exception as e2:
                     logger.error(f'Failed to create new customer: {str(e2)}')
                     customer_id = None
@@ -324,8 +336,17 @@ def create_razorpay_order(request):
         # Add customer_id to enable card saving (only if valid)
         if customer_id and customer_id.strip():
             order_data['customer_id'] = customer_id.strip()
+            print(f'[RAZORPAY] ✅ Adding customer_id {customer_id.strip()} (from User model) to Razorpay order for user {request.user.email}')
+            logger.info(f'✅ Adding customer_id {customer_id.strip()} to Razorpay order for user {request.user.email}')
+        else:
+            print(f'[RAZORPAY] ⚠️  No customer_id available in User model - card saving will not work for user {request.user.email}')
+            logger.warning(f'⚠️  No customer_id available - card saving will not work for user {request.user.email}')
         
+        print(f'[RAZORPAY] Creating Razorpay order with data: {order_data}')
+        logger.info(f'Creating Razorpay order with data: {order_data}')
         razorpay_order = razorpay_client.order.create(order_data)
+        print(f'[RAZORPAY] ✅ Created Razorpay order {razorpay_order.get("id")} for user {request.user.email}')
+        logger.info(f'✅ Created Razorpay order {razorpay_order.get("id")} for user {request.user.email}')
         
         razorpay_key_id = getattr(settings, 'RAZORPAY_KEY_ID', '')
         
@@ -333,14 +354,39 @@ def create_razorpay_order(request):
         saved_tokens = []
         if customer_id and customer_id.strip():
             try:
-                # Fetch active tokens from Razorpay
-                tokens_url = f'/customers/{customer_id.strip()}/tokens'
-                tokens_response = razorpay_client.request('GET', tokens_url)
-                tokens = tokens_response.get('items', [])
+                # Fetch active tokens from Razorpay using proper API call
+                # Fix for 'Session' object has no attribute 'GET' error
+                import requests
+                import base64
+                razorpay_key_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '').strip()
+                tokens_url = f'https://api.razorpay.com/v1/customers/{customer_id.strip()}/tokens'
+                # Use requests library directly to avoid Session.GET error
+                # Razorpay uses Basic auth with key:secret
+                auth_string = f'{razorpay_key_id}:{razorpay_key_secret}'
+                auth_bytes = auth_string.encode('utf-8')
+                auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+                headers = {
+                    'Authorization': f'Basic {auth_b64}',
+                    'Content-Type': 'application/json'
+                }
+                response = requests.get(tokens_url, headers=headers)
+                response.raise_for_status()
+                tokens_data = response.json()
+                tokens = tokens_data.get('items', [])
+                
+                # Log all token statuses for debugging
+                print(f'[RAZORPAY] Fetched {len(tokens)} tokens from checkout API: https://api.razorpay.com/v1/customers/{customer_id.strip()}/tokens')
+                for idx, token in enumerate(tokens):
+                    token_status = token.get('status', 'unknown')
+                    token_method = token.get('method', 'unknown')
+                    token_id = token.get('id', 'unknown')
+                    print(f'[RAZORPAY] Token {idx+1}: id={token_id}, method={token_method}, status={token_status}')
                 
                 # Filter only active card tokens
                 for token in tokens:
-                    if token.get('method') == 'card' and token.get('status', '').lower() in ['active', 'activated']:
+                    token_status = token.get('status', '').lower()
+                    token_method = token.get('method', '')
+                    if token_method == 'card' and token_status in ['active', 'activated']:
                         saved_tokens.append({
                             'token_id': token.get('id'),
                             'last4': token.get('card', {}).get('last4', ''),
@@ -360,12 +406,19 @@ def create_razorpay_order(request):
             'key': razorpay_key_id
         }
         
-        # Only include customer_id if it's valid
+        # Only include customer_id if it's valid (from User model)
         if customer_id and customer_id.strip():
             response_data['customer_id'] = customer_id.strip()
+            print(f'[RAZORPAY] ✅ Returning customer_id {customer_id.strip()} (from User model) to frontend for user {request.user.email}')
+            logger.info(f'✅ Returning customer_id {customer_id.strip()} to frontend for user {request.user.email}')
             # Include saved tokens for checkout display
             if saved_tokens:
                 response_data['saved_tokens'] = saved_tokens
+                print(f'[RAZORPAY] ✅ Returning {len(saved_tokens)} saved tokens to frontend')
+                logger.info(f'✅ Returning {len(saved_tokens)} saved tokens to frontend')
+        else:
+            print(f'[RAZORPAY] ⚠️  No customer_id in User model for user {request.user.email} - card saving will not be available')
+            logger.warning(f'⚠️  No customer_id available for user {request.user.email} - card saving will not be available')
         
         return Response(response_data, status=status.HTTP_200_OK)
         
@@ -577,6 +630,9 @@ def verify_razorpay_payment(request):
             cart_item.variant.save()
     
     # Fetch payment details to get token_id and customer_id if card was saved
+    saved_card_info = None
+    token_id = None
+    payment_method = None
     try:
         payment = razorpay_client.payment.fetch(razorpay_payment_id)
         
@@ -586,13 +642,18 @@ def verify_razorpay_payment(request):
         logger = logging.getLogger(__name__)
         preference, _ = PaymentPreference.objects.get_or_create(user=request.user)
         
-        # Update Razorpay customer ID if not set
-        if not preference.razorpay_customer_id:
+        # Update Razorpay customer ID in User model if not set
+        # Use User model to store customer_id (not PaymentPreference)
+        if not request.user.razorpay_customer_id:
             if payment.get('customer_id'):
-                preference.razorpay_customer_id = payment['customer_id']
+                request.user.razorpay_customer_id = payment['customer_id']
+                request.user.save(update_fields=['razorpay_customer_id'])
             elif payment.get('notes', {}).get('customer_id'):
-                preference.razorpay_customer_id = payment['notes']['customer_id']
-            preference.save()
+                request.user.razorpay_customer_id = payment['notes']['customer_id']
+                request.user.save(update_fields=['razorpay_customer_id'])
+        
+        # Get customer_id from User model
+        customer_id = request.user.razorpay_customer_id
         
         # Check if payment has token_id (card was saved during checkout)
         token_id = payment.get('token_id')
@@ -600,76 +661,141 @@ def verify_razorpay_payment(request):
         payment_customer_id = payment.get('customer_id')
         payment_card = payment.get('card', {})
         
-        logger.info(f'Payment details - method: {payment_method}, token_id: {token_id}, customer_id: {payment_customer_id}')
+        # Log full payment details for debugging
+        print(f'[RAZORPAY] 🔍 Payment details for user {request.user.email}:')
+        print(f'[RAZORPAY]    - Payment ID: {razorpay_payment_id}')
+        print(f'[RAZORPAY]    - Method: {payment_method}')
+        print(f'[RAZORPAY]    - Token ID: {token_id}')
+        print(f'[RAZORPAY]    - Payment Customer ID: {payment_customer_id}')
+        print(f'[RAZORPAY]    - User Customer ID (from User model): {request.user.razorpay_customer_id}')
+        print(f'[RAZORPAY]    - Card details: {payment_card}')
+        logger.info(f'🔍 Payment details for user {request.user.email}:')
+        logger.info(f'   - Payment ID: {razorpay_payment_id}')
+        logger.info(f'   - Method: {payment_method}')
+        logger.info(f'   - Token ID: {token_id}')
+        logger.info(f'   - Payment Customer ID: {payment_customer_id}')
+        logger.info(f'   - User Customer ID (from User model): {request.user.razorpay_customer_id}')
+        logger.info(f'   - Card details: {payment_card}')
         
         if token_id and payment_method == 'card':
             # Card was saved - token_id is available
-            logger.info(f'Card was saved with token_id: {token_id}')
-            
-            # Verify token is active by fetching it from Razorpay
+            # IMPORTANT: Verify token is active before saving to database
             try:
-                token = razorpay_client.request('GET', f'/customers/{payment_customer_id or preference.razorpay_customer_id}/tokens/{token_id}')
-                token_status = token.get('status', '').lower()
-                
-                # Only save if token is active
-                if token_status in ['active', 'activated']:
-                    # Store card details in SavedCard model
-                    from accounts.models import SavedCard
-                    card_last4 = payment_card.get('last4', '')
-                    card_network = payment_card.get('network', '')
-                    card_type = payment_card.get('type', '')
-                    card_issuer = payment_card.get('issuer', '')
-                    
-                    # Create or update saved card
-                    saved_card, created = SavedCard.objects.update_or_create(
-                        token_id=token_id,
-                        defaults={
-                            'user': request.user,
-                            'customer_id': payment_customer_id or preference.razorpay_customer_id,
-                            'card_last4': card_last4,
-                            'card_network': card_network,
-                            'card_type': card_type,
-                            'card_issuer': card_issuer,
-                        }
-                    )
-                    
-                    if created:
-                        logger.info(f'Created new saved card: {card_network} ****{card_last4} (status: {token_status})')
-                    else:
-                        logger.info(f'Updated existing saved card: {card_network} ****{card_last4} (status: {token_status})')
-                    
-                    # Set as preferred if user doesn't have one set
-                    if not preference.preferred_card_token_id:
-                        preference.preferred_card_token_id = token_id
-                        preference.preferred_method = 'card'
-                        saved_card.is_default = True
-                        saved_card.save()
-                        preference.save()
-                        logger.info(f'Set token_id {token_id} as preferred card')
-                else:
-                    logger.warning(f'Token {token_id} has status "{token_status}" - not saving (only active tokens are saved)')
-            except Exception as token_error:
-                logger.error(f'Failed to verify token {token_id}: {str(token_error)}')
-                # Still save card info even if token verification fails
-                from accounts.models import SavedCard
-                card_last4 = payment_card.get('last4', '')
-                card_network = payment_card.get('network', '')
-                card_type = payment_card.get('type', '')
-                card_issuer = payment_card.get('issuer', '')
-                
-                SavedCard.objects.update_or_create(
-                    token_id=token_id,
-                    defaults={
-                        'user': request.user,
-                        'customer_id': payment_customer_id or preference.razorpay_customer_id,
-                        'card_last4': card_last4,
-                        'card_network': card_network,
-                        'card_type': card_type,
-                        'card_issuer': card_issuer,
+                # Fetch token details from Razorpay to verify status
+                customer_id_for_token = payment_customer_id or request.user.razorpay_customer_id
+                if customer_id_for_token:
+                    import requests
+                    import base64
+                    razorpay_key_id_local = getattr(settings, 'RAZORPAY_KEY_ID', '').strip()
+                    razorpay_key_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '').strip()
+                    token_url = f'https://api.razorpay.com/v1/customers/{customer_id_for_token}/tokens/{token_id}'
+                    auth_string = f'{razorpay_key_id_local}:{razorpay_key_secret}'
+                    auth_bytes = auth_string.encode('utf-8')
+                    auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+                    headers = {
+                        'Authorization': f'Basic {auth_b64}',
+                        'Content-Type': 'application/json'
                     }
-                )
+                    token_response = requests.get(token_url, headers=headers)
+                    token_response.raise_for_status()
+                    token_data = token_response.json()
+                    token_status = token_data.get('status', '').lower()
+                    
+                    print(f'[RAZORPAY] Token {token_id} status from Razorpay: {token_status}')
+                    logger.info(f'Token {token_id} status from Razorpay: {token_status}')
+                    
+                    # Only save card if token status is active
+                    if token_status in ['active', 'activated']:
+                        print(f'[RAZORPAY] ✅ Token is ACTIVE - saving card to database')
+                        logger.info(f'Token is active - saving card to database')
+                        
+                        # Store card details in SavedCard model
+                        from accounts.models import SavedCard
+                        card_last4 = payment_card.get('last4', '')
+                        card_network = payment_card.get('network', '')
+                        card_type = payment_card.get('type', '')
+                        card_issuer = payment_card.get('issuer', '')
+                        
+                        # Create or update saved card - ONLY FOR ACTIVE TOKENS
+                        saved_card, created = SavedCard.objects.update_or_create(
+                            token_id=token_id,
+                            defaults={
+                                'user': request.user,
+                                'customer_id': customer_id_for_token,
+                                'card_last4': card_last4,
+                                'card_network': card_network,
+                                'card_type': card_type,
+                                'card_issuer': card_issuer,
+                            }
+                        )
+                    else:
+                        print(f'[RAZORPAY] ⚠️  Token status is {token_status} (not active) - NOT saving to database')
+                        logger.warning(f'Token status is {token_status} (not active) - NOT saving card to database')
+                        saved_card = None
+                        created = False
+                else:
+                    print(f'[RAZORPAY] ⚠️  No customer_id available - cannot verify token status')
+                    logger.warning(f'No customer_id available - cannot verify token status')
+                    saved_card = None
+                    created = False
+            except Exception as e:
+                print(f'[RAZORPAY] ⚠️  Failed to verify token status: {str(e)} - NOT saving card')
+                logger.warning(f'Failed to verify token status: {str(e)} - NOT saving card')
+                saved_card = None
+                created = False
+            
+            # Only process if card was saved (token is active)
+            if saved_card:
+            
+                if created:
+                    print(f'[RAZORPAY] ✅ Created new saved card: {saved_card.card_network} ****{saved_card.card_last4}')
+                    logger.info(f'Created new saved card: {saved_card.card_network} ****{saved_card.card_last4}')
+                else:
+                    print(f'[RAZORPAY] ✅ Updated existing saved card: {saved_card.card_network} ****{saved_card.card_last4}')
+                    logger.info(f'Updated existing saved card: {saved_card.card_network} ****{saved_card.card_last4}')
+                
+                # Set as preferred if user doesn't have one set
+                if not preference.preferred_card_token_id:
+                    preference.preferred_card_token_id = token_id
+                    preference.preferred_method = 'card'
+                    saved_card.is_default = True
+                    saved_card.save()
+                    preference.save()
+                    print(f'[RAZORPAY] ✅ Set token_id {token_id} as preferred card')
+                    logger.info(f'Set token_id {token_id} as preferred card')
+                
+                # Prepare saved card info for response
+                saved_card_info = {
+                    'token_id': saved_card.token_id,
+                    'card': {
+                        'last4': saved_card.card_last4,
+                        'network': saved_card.card_network,
+                        'type': saved_card.card_type,
+                        'issuer': saved_card.card_issuer,
+                    }
+                }
+            else:
+                saved_card_info = None
         else:
-            logger.warning(f'No token_id found in payment - method: {payment_method}, token_id: {token_id}')
+            # Card was not saved - log why
+            if not token_id:
+                print(f'[RAZORPAY] ⚠️  No token_id in payment response for user {request.user.email}')
+                print(f'[RAZORPAY]    - Payment method: {payment_method}')
+                print(f'[RAZORPAY]    - Possible reasons:')
+                print(f'[RAZORPAY]      1. User did not check "Save this card" checkbox in Razorpay checkout')
+                print(f'[RAZORPAY]      2. Tokenization not enabled in Razorpay account')
+                print(f'[RAZORPAY]      3. Customer ID was not passed correctly to Razorpay')
+                print(f'[RAZORPAY]      4. Flash Checkout not enabled')
+                logger.warning(f'⚠️  No token_id in payment response for user {request.user.email}')
+                logger.warning(f'   - Payment method: {payment_method}')
+                logger.warning(f'   - Possible reasons:')
+                logger.warning(f'     1. User did not check "Save this card" checkbox in Razorpay checkout')
+                logger.warning(f'     2. Tokenization not enabled in Razorpay account')
+                logger.warning(f'     3. Customer ID was not passed correctly to Razorpay')
+                logger.warning(f'     4. Flash Checkout not enabled')
+            elif payment_method != 'card':
+                print(f'[RAZORPAY] Payment method is {payment_method}, not card - token_id present but method mismatch')
+                logger.info(f'Payment method is {payment_method}, not card - token_id present but method mismatch')
         
     except Exception as e:
         # Log error but don't break order creation
@@ -693,10 +819,16 @@ def verify_razorpay_payment(request):
     
     # Return order details
     from .serializers import OrderDetailSerializer
-    return Response({
+    response_data = {
         'message': 'Order created successfully',
         'order': OrderDetailSerializer(order, context={'request': request}).data
-    }, status=status.HTTP_201_CREATED)
+    }
+    
+    # Include saved card info if card was saved during payment
+    if saved_card_info:
+        response_data['saved_card'] = saved_card_info
+    
+    return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

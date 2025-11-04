@@ -1,24 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './NewPaymentMethod.module.css';
 
 interface NewPaymentMethodProps {
   onPaymentMethodChange?: (method: string) => void;
   razorpayEnabled?: boolean;
   codEnabled?: boolean;
+  selectedPaymentMethod?: string;
 }
 
 const NewPaymentMethod: React.FC<NewPaymentMethodProps> = ({ 
   onPaymentMethodChange,
   razorpayEnabled = true,
-  codEnabled = true
+  codEnabled = true,
+  selectedPaymentMethod
 }) => {
-  const [selectedPayment, setSelectedPayment] = useState<string>('');
+  // Use parent's selectedPaymentMethod as the source of truth if provided
+  // Otherwise use local state for default selection
+  const [localSelectedPayment, setLocalSelectedPayment] = useState<string>('');
   const [, setPromoCode] = useState('');
   const [selectedBank, setSelectedBank] = useState('');
+  const isInitialized = useRef(false);
   
-  // Set default payment method based on availability
+  // Determine which value to use - prop takes precedence
+  const selectedPayment = selectedPaymentMethod !== undefined ? selectedPaymentMethod : localSelectedPayment;
+  
+  // Set default payment method only once on mount if no prop is provided
   useEffect(() => {
-    if (!selectedPayment) {
+    if (!isInitialized.current && selectedPaymentMethod === undefined && !localSelectedPayment) {
+      isInitialized.current = true;
       let defaultMethod = '';
       if (razorpayEnabled) {
         defaultMethod = 'CC'; // Default to Credit Card if Razorpay is enabled
@@ -26,27 +35,29 @@ const NewPaymentMethod: React.FC<NewPaymentMethodProps> = ({
         defaultMethod = 'COD'; // Fallback to COD if Razorpay is disabled
       }
       if (defaultMethod) {
-        setSelectedPayment(defaultMethod);
+        setLocalSelectedPayment(defaultMethod);
         if (onPaymentMethodChange) {
           onPaymentMethodChange(defaultMethod);
         }
       }
     }
-  }, [razorpayEnabled, codEnabled, selectedPayment, onPaymentMethodChange]);
+  }, []); // Only run once on mount
 
   const handlePaymentChange = (value: string) => {
-    setSelectedPayment(value);
-    if (onPaymentMethodChange) {
-      onPaymentMethodChange(value);
+    // If parent is controlling, notify parent; otherwise update local state
+    if (selectedPaymentMethod !== undefined) {
+      // Parent is controlling, just notify
+      if (onPaymentMethodChange) {
+        onPaymentMethodChange(value);
+      }
+    } else {
+      // We're controlling locally
+      setLocalSelectedPayment(value);
+      if (onPaymentMethodChange) {
+        onPaymentMethodChange(value);
+      }
     }
   };
-
-  useEffect(() => {
-    // Set default payment method on mount
-    if (onPaymentMethodChange && selectedPayment) {
-      onPaymentMethodChange(selectedPayment);
-    }
-  }, [selectedPayment, onPaymentMethodChange]);
 
   return (
     <div className={styles.paymentContainer}>

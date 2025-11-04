@@ -5,9 +5,6 @@ interface PaymentPreference {
   id?: number;
   preferred_method?: string;
   preferred_card_token_id?: string;
-  preferred_address_id?: number;
-  preferred_address?: any;
-  payment_nickname?: string;
 }
 
 interface SavedCard {
@@ -22,16 +19,20 @@ interface SavedCard {
     expiry_month: string;
     expiry_year: string;
   };
+  created_at?: number;
 }
 
 interface Address {
   id: number;
   type: string;
   full_name: string;
+  phone: string;
+  street_address: string;
   city: string;
   state: string;
   postal_code: string;
   country: string;
+  is_default: boolean;
 }
 
 interface ManagePaymentMethodsProps {
@@ -40,7 +41,6 @@ interface ManagePaymentMethodsProps {
   addresses?: Address[];
   onUpdateClick: () => void;
   onDeleteCard: (tokenId: string) => void;
-  onEditCard: (card: SavedCard) => void;
 }
 
 const ManagePaymentMethods: React.FC<ManagePaymentMethodsProps> = ({
@@ -48,21 +48,36 @@ const ManagePaymentMethods: React.FC<ManagePaymentMethodsProps> = ({
   savedCards = [],
   addresses = [],
   onUpdateClick,
-  onDeleteCard,
-  onEditCard
+  onDeleteCard
 }) => {
   const getPreferredAddress = () => {
-    if (preference?.preferred_address) {
-      const addr = preference.preferred_address;
-      return `${addr.city}, ${addr.state}`;
-    }
-    if (preference?.preferred_address_id && addresses) {
-      const addr = addresses.find(a => a.id === preference.preferred_address_id);
-      if (addr) {
-        return `${addr.city}, ${addr.country}`;
+    // Get default address from addresses API (same as Your Addresses page)
+    if (addresses && addresses.length > 0) {
+      const defaultAddr = addresses.find(a => a.is_default);
+      if (defaultAddr) {
+        return `${defaultAddr.city}, ${defaultAddr.state}`;
+      }
+      // If no default, use first address
+      if (addresses.length > 0) {
+        return `${addresses[0].city}, ${addresses[0].state}`;
       }
     }
     return 'Not set';
+  };
+
+  const getDefaultAddressName = () => {
+    // Get default address from addresses API (same as Your Addresses page)
+    if (addresses && addresses.length > 0) {
+      const defaultAddr = addresses.find(a => a.is_default);
+      if (defaultAddr) {
+        return defaultAddr.full_name;
+      }
+      // If no default, use first address
+      if (addresses.length > 0) {
+        return addresses[0].full_name;
+      }
+    }
+    return null;
   };
 
   const getPreferredMethod = () => {
@@ -102,7 +117,7 @@ const ManagePaymentMethods: React.FC<ManagePaymentMethodsProps> = ({
   };
 
   const preferredCard = getPreferredCard();
-  const nickname = preference?.payment_nickname || '';
+  const defaultAddressName = getDefaultAddressName();
 
   return (
     <div className={styles.container}>
@@ -138,10 +153,10 @@ const ManagePaymentMethods: React.FC<ManagePaymentMethodsProps> = ({
       
         <div className={styles.preferenceRow}>
           <div className={styles.colNickname}>
-            <div className={styles.colLabel}>Nickname</div>
+            <div className={styles.colLabel}>Name</div>
             <div className={styles.nicknameInline}>
-              {nickname ? (
-                <span>{nickname}</span>
+              {defaultAddressName ? (
+                <span>{defaultAddressName}</span>
               ) : (
                 <span style={{ color: '#565959' }}>Not set</span>
               )}
@@ -223,12 +238,6 @@ const ManagePaymentMethods: React.FC<ManagePaymentMethodsProps> = ({
                   onClick={() => onDeleteCard(card.token_id)}
                 >
                   Remove
-                </button>
-                <button 
-                  className={styles.editBtn}
-                  onClick={() => onEditCard(card)}
-                >
-                  Edit
                 </button>
               </div>
             </div>

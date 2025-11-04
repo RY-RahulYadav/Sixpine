@@ -5,8 +5,6 @@ interface PaymentPreference {
   id?: number;
   preferred_method?: string;
   preferred_card_token_id?: string;
-  preferred_address_id?: number;
-  payment_nickname?: string;
 }
 
 interface SavedCard {
@@ -37,13 +35,10 @@ interface PaymentPreferenceModalProps {
   preference: PaymentPreference | null;
   savedCards: SavedCard[];
   addresses: Address[];
-  editingCard?: SavedCard | null;
   onClose: () => void;
   onSave: (data: {
     preferred_method: string;
-    preferred_address_id?: number;
     preferred_card_token_id?: string;
-    payment_nickname?: string;
   }) => void;
 }
 
@@ -51,41 +46,21 @@ const PaymentPreferenceModal: React.FC<PaymentPreferenceModalProps> = ({
   preference,
   savedCards,
   addresses,
-  editingCard,
   onClose,
   onSave
 }) => {
   const [preferredMethod, setPreferredMethod] = useState(preference?.preferred_method || 'card');
-  const [selectedAddressId, setSelectedAddressId] = useState<number | undefined>(
-    preference?.preferred_address_id
-  );
-  const [selectedCardTokenId, setSelectedCardTokenId] = useState<string | undefined>(
-    preference?.preferred_card_token_id
-  );
-  const [nickname, setNickname] = useState(preference?.payment_nickname || '');
-
-  useEffect(() => {
-    if (editingCard) {
-      setSelectedCardTokenId(editingCard.token_id);
-      setPreferredMethod('card');
-      // Set nickname from preference if this card is preferred
-      if (preference?.preferred_card_token_id === editingCard.token_id) {
-        setNickname(preference.payment_nickname || '');
-      }
-    }
-  }, [editingCard, preference]);
+  // Auto-select first card if payment method is card and no card is selected
+  const selectedCardTokenId = preferredMethod === 'card' && savedCards.length > 0 
+    ? (preference?.preferred_card_token_id || savedCards[0].token_id)
+    : undefined;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const data: any = {
       preferred_method: preferredMethod,
-      payment_nickname: nickname || undefined
     };
-
-    if (selectedAddressId) {
-      data.preferred_address_id = selectedAddressId;
-    }
 
     if (preferredMethod === 'card' && selectedCardTokenId) {
       data.preferred_card_token_id = selectedCardTokenId;
@@ -115,9 +90,7 @@ const PaymentPreferenceModal: React.FC<PaymentPreferenceModalProps> = ({
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>
-            {editingCard ? 'Edit Payment Preference' : 'Set Payment Preference'}
-          </h2>
+          <h2 className={styles.modalTitle}>Set Payment Preference</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
 
@@ -129,12 +102,6 @@ const PaymentPreferenceModal: React.FC<PaymentPreferenceModalProps> = ({
               value={preferredMethod}
               onChange={(e) => {
                 setPreferredMethod(e.target.value);
-                if (e.target.value !== 'card') {
-                  setSelectedCardTokenId(undefined);
-                } else if (savedCards.length > 0 && !selectedCardTokenId) {
-                  // Auto-select first card if available
-                  setSelectedCardTokenId(savedCards[0].token_id);
-                }
               }}
               required
             >
@@ -146,70 +113,23 @@ const PaymentPreferenceModal: React.FC<PaymentPreferenceModalProps> = ({
             </select>
           </div>
 
-          {preferredMethod === 'card' && (
+          {preferredMethod === 'card' && savedCards.length === 0 && (
             <div className={styles.formGroup}>
-              <label className={styles.label}>Select Card</label>
-              {savedCards.length > 0 ? (
-                <select
-                  className={styles.select}
-                  value={selectedCardTokenId || ''}
-                  onChange={(e) => setSelectedCardTokenId(e.target.value || undefined)}
-                >
-                  <option value="">Select a card</option>
-                  {savedCards.map(card => (
-                    <option key={card.token_id} value={card.token_id}>
-                      {formatCardName(card)}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <>
-                  <p className={styles.helpText} style={{ color: '#b12704', marginTop: '4px' }}>
-                    No saved cards available.
-                  </p>
-                  <p className={styles.helpText}>
-                    Cards will be saved when you make a payment with "Save Card" option during checkout.
-                  </p>
-                </>
-              )}
+              <p className={styles.helpText} style={{ color: '#b12704', marginTop: '4px' }}>
+                No saved cards available.
+              </p>
+              <p className={styles.helpText}>
+                Cards will be saved when you make a payment with "Save Card" option during checkout.
+              </p>
             </div>
           )}
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Shipping Address</label>
-            {addresses.length > 0 ? (
-              <select
-                className={styles.select}
-                value={selectedAddressId || ''}
-                onChange={(e) => setSelectedAddressId(e.target.value ? parseInt(e.target.value) : undefined)}
-              >
-                <option value="">Select an address</option>
-                {addresses.map(address => (
-                  <option key={address.id} value={address.id}>
-                    {address.full_name} - {address.street_address}, {address.city}, {address.state} {address.postal_code}
-                    {address.is_default && ' (Default)'}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className={styles.helpText} style={{ color: '#b12704' }}>
-                No addresses found. Please add an address first.
-              </p>
-            )}
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Nickname (Optional)</label>
-            <input
-              type="text"
-              className={styles.input}
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="e.g., My Default Card, Work Address"
-              maxLength={100}
-            />
-            <p className={styles.helpText}>
-              Give your payment preference a nickname for easier identification.
+          <div className={styles.formGroup} style={{ marginTop: '24px', marginBottom: '20px' }}>
+            <p className={styles.helpText} style={{ fontSize: '13px', lineHeight: '1.5', color: '#565959' }}>
+              To update your delivery address or name, please visit your{' '}
+              <a href="/your-addresses" className={styles.infoLink}>
+                Addresses page
+              </a>.
             </p>
           </div>
 

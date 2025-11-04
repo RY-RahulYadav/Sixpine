@@ -99,6 +99,31 @@
   margin-bottom: 0;
 }
 
+.infoLink {
+  color: #007185;
+  text-decoration: none;
+  transition: color 0.2s, text-decoration 0.2s;
+}
+
+.infoLink:hover {
+  color: #c7511f;
+  text-decoration: underline;
+}
+
+.addressDisplay {
+  padding: 12px;
+  background-color: #f7f7f7;
+  border: 1px solid #d5d9d9;
+  border-radius: 4px;
+}
+
+.addressText {
+  font-size: 14px;
+  color: #0f1111;
+  margin: 0;
+  line-height: 1.5;
+}
+
 .modalActions {
   display: flex;
   justify-content: flex-end;

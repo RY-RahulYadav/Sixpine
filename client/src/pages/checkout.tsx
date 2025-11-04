@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { orderAPI, addressAPI, cartAPI } from "../services/api";
+import { orderAPI, addressAPI, cartAPI, paymentPreferencesAPI } from "../services/api";
 import OrderConfirmation from '../components/OrderConfirmation';
 import ReviewItems from '../components/ReviewItems';
 import DeliveryAddress from '../components/DeliveryAddress';
@@ -48,6 +48,8 @@ const CheckoutPage: React.FC = () => {
     razorpay_enabled: boolean;
     cod_enabled: boolean;
   }>({ razorpay_enabled: true, cod_enabled: true });
+  const paymentMethodInitialized = useRef(false);
+  const [savedCards, setSavedCards] = useState<any[]>([]);
 
   useEffect(() => {
     if (!state.isAuthenticated) {
@@ -60,9 +62,18 @@ const CheckoutPage: React.FC = () => {
       return;
     }
 
+    // Reset initialization flag when component mounts
+    paymentMethodInitialized.current = false;
+
     fetchCart();
     fetchAddresses();
-    fetchPaymentSettings();
+    fetchSavedCards();
+    fetchPaymentSettings().then((settings) => {
+      // Fetch payment preference after settings are loaded
+      if (settings && !paymentMethodInitialized.current) {
+        fetchPaymentPreference(settings);
+      }
+    });
   }, [state.isAuthenticated]);
 
   const fetchPaymentSettings = async () => {
@@ -74,17 +85,92 @@ const CheckoutPage: React.FC = () => {
       };
       setPaymentSettings(settings);
       
-      // Set default payment method based on availability
-      if (!selectedPaymentMethod) {
-        if (settings.razorpay_enabled) {
-          setSelectedPaymentMethod('CC');
-        } else if (settings.cod_enabled) {
-          setSelectedPaymentMethod('COD');
-        }
-      }
+      return settings;
     } catch (err) {
       console.error('Error fetching payment settings:', err);
       // Keep defaults if fetch fails
+      return null;
+    }
+  };
+
+  const fetchPaymentPreference = async (settings?: { razorpay_enabled: boolean; cod_enabled: boolean }) => {
+    // Prevent multiple initializations
+    if (paymentMethodInitialized.current) {
+      return;
+    }
+
+    try {
+      const response = await paymentPreferencesAPI.getPaymentPreference();
+      // Use provided settings or fall back to state
+      const currentSettings = settings || paymentSettings;
+      
+      let methodToSet: string | null = null;
+      
+      if (response.data.success && response.data.data?.preferred_method) {
+        const preferredMethod = response.data.data.preferred_method;
+        
+        // Map backend payment method names to checkout payment method codes
+        const methodMapping: { [key: string]: string } = {
+          'card': 'CC',
+          'netbanking': 'NB',
+          'upi': 'UPI',
+          'cod': 'COD'
+        };
+        
+        const mappedMethod = methodMapping[preferredMethod];
+        
+        // Only auto-select if the method is available
+        if (mappedMethod) {
+          if (mappedMethod === 'COD' && currentSettings.cod_enabled) {
+            methodToSet = mappedMethod;
+          } else if (['CC', 'NB', 'UPI'].includes(mappedMethod) && currentSettings.razorpay_enabled) {
+            methodToSet = mappedMethod;
+          }
+        }
+      }
+      
+      // If no preference or preference not available, set default based on availability
+      if (!methodToSet) {
+        if (currentSettings.razorpay_enabled) {
+          methodToSet = 'CC';
+        } else if (currentSettings.cod_enabled) {
+          methodToSet = 'COD';
+        }
+      }
+
+      // Set the payment method only once
+      if (methodToSet && !paymentMethodInitialized.current) {
+        setSelectedPaymentMethod(methodToSet);
+        paymentMethodInitialized.current = true;
+      }
+    } catch (err) {
+      console.error('Error fetching payment preference:', err);
+      // Set default if fetch fails (only if not already initialized)
+      if (!paymentMethodInitialized.current) {
+        const currentSettings = settings || paymentSettings;
+        let methodToSet: string | null = null;
+        if (currentSettings.razorpay_enabled) {
+          methodToSet = 'CC';
+        } else if (currentSettings.cod_enabled) {
+          methodToSet = 'COD';
+        }
+        if (methodToSet) {
+          setSelectedPaymentMethod(methodToSet);
+          paymentMethodInitialized.current = true;
+        }
+      }
+    }
+  };
+
+  const fetchSavedCards = async () => {
+    try {
+      const response = await paymentPreferencesAPI.getSavedCards();
+      if (response.data.success && response.data.saved_cards) {
+        setSavedCards(response.data.saved_cards);
+      }
+    } catch (error) {
+      console.error('Error fetching saved cards:', error);
+      setSavedCards([]);
     }
   };
 
@@ -314,7 +400,8 @@ const CheckoutPage: React.FC = () => {
         // Validate customer_id format (should start with 'cust_')
         const isValidCustomerId = customerId && customerId.startsWith('cust_');
 
-        const options = {
+        // Build Razorpay options
+        const options: any = {
           key: razorpayResponse.data.key,
           amount: razorpayResponse.data.amount * 100, // Convert rupees to paise (Razorpay requires amount in smallest currency unit)
           currency: razorpayResponse.data.currency,
@@ -330,13 +417,18 @@ const CheckoutPage: React.FC = () => {
           handler: async function (response: any) {
             // Verify payment on backend and create order
             try {
-              await orderAPI.verifyRazorpayPayment({
+              const verifyResponse = await orderAPI.verifyRazorpayPayment({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 shipping_address_id: selectedAddressId,
                 payment_method: selectedPaymentMethod
               });
+
+              // Refresh saved cards if a card was saved during payment
+              if (verifyResponse.data?.saved_card) {
+                await fetchSavedCards();
+              }
 
               // Show success modal after Razorpay modal closes
               setPaymentModalType('success');
@@ -354,6 +446,7 @@ const CheckoutPage: React.FC = () => {
                 setPaymentModalMessage(errorMsg);
               }
               setShowPaymentModal(true);
+              setProcessing(false);
             }
           },
           prefill: {
@@ -373,11 +466,47 @@ const CheckoutPage: React.FC = () => {
           }
         };
 
+        // Add saved cards configuration if CC is selected and cards are available
+        if (selectedPaymentMethod === 'CC' && savedCards.length > 0 && isValidCustomerId) {
+          options.config = {
+            display: {
+              blocks: {
+                saved: {
+                  name: "Saved Cards",
+                  instruments: savedCards.map((c) => ({
+                    method: "card",
+                    token: c.token_id,
+                    card: { 
+                      last4: c.card?.last4 || '', 
+                      network: c.card?.network || '', 
+                      type: c.card?.type || '' 
+                    },
+                  })),
+                }
+              },
+              sequence: [ "block.saved"],
+              preferences: { show_default_blocks: true },
+            },
+          };
+        }
+
         const razorpay = new window.Razorpay(options);
-        razorpay.on('payment.failed', function () {
+        razorpay.on('payment.failed', function (response: any) {
+          // Handle payment failure
+          console.error('Payment failed:', response);
+          
+          // Extract error details if available
+          let errorMessage = 'Payment failed. Please try again.';
+          if (response.error) {
+            const errorDesc = response.error.description || response.error.reason || '';
+            if (errorDesc) {
+              errorMessage = `Payment failed: ${errorDesc}`;
+            }
+          }
+          
           // Show failed modal
           setPaymentModalType('failed');
-          setPaymentModalMessage('Payment failed. Please try again.');
+          setPaymentModalMessage(errorMessage);
           setShowPaymentModal(true);
           setProcessing(false);
         });
@@ -421,6 +550,7 @@ const CheckoutPage: React.FC = () => {
               onPaymentMethodChange={handlePaymentMethodChange}
               razorpayEnabled={paymentSettings.razorpay_enabled}
               codEnabled={paymentSettings.cod_enabled}
+              selectedPaymentMethod={selectedPaymentMethod}
             />
             <ReviewItems />
             <OrderConfirmation />

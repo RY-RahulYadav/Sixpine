@@ -16,9 +16,6 @@ interface PaymentPreference {
   id: number;
   preferred_method: string;
   preferred_card_token_id?: string;
-  preferred_address_id?: number;
-  preferred_address?: any;
-  payment_nickname?: string;
   razorpay_customer_id?: string;
 }
 
@@ -34,7 +31,7 @@ interface SavedCard {
     expiry_month: string;
     expiry_year: string;
   };
-  created_at: number;
+  created_at?: number;
 }
 
 interface Address {
@@ -58,7 +55,6 @@ const ManagePaymentPage: React.FC = () => {
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingCard, setEditingCard] = useState<SavedCard | null>(null);
 
   useEffect(() => {
     if (state.loading) return;
@@ -124,15 +120,12 @@ const ManagePaymentPage: React.FC = () => {
 
   const handleUpdatePreference = async (data: {
     preferred_method: string;
-    preferred_address_id?: number;
     preferred_card_token_id?: string;
-    payment_nickname?: string;
   }) => {
     try {
       await paymentPreferencesAPI.updatePaymentPreference(data);
       await fetchPaymentPreference();
       setShowModal(false);
-      setEditingCard(null);
       alert('Payment preference updated successfully');
     } catch (error: any) {
       console.error('Error updating preference:', error);
@@ -163,10 +156,6 @@ const ManagePaymentPage: React.FC = () => {
     }
   };
 
-  const handleEditCard = (card: SavedCard) => {
-    setEditingCard(card);
-    setShowModal(true);
-  };
 
   if (loading) {
     return (
@@ -201,7 +190,6 @@ const ManagePaymentPage: React.FC = () => {
           addresses={addresses || []}
           onUpdateClick={() => setShowModal(true)}
           onDeleteCard={handleDeleteCard}
-          onEditCard={handleEditCard}
         />
         
         {/* Product Suggestions */}
@@ -221,11 +209,7 @@ const ManagePaymentPage: React.FC = () => {
           preference={preference}
           savedCards={savedCards}
           addresses={addresses}
-          editingCard={editingCard}
-          onClose={() => {
-            setShowModal(false);
-            setEditingCard(null);
-          }}
+          onClose={() => setShowModal(false)}
           onSave={handleUpdatePreference}
         />
       )}

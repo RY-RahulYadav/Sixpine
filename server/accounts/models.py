@@ -9,6 +9,8 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     mobile = models.CharField(max_length=15, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
+    razorpay_customer_id = models.CharField(max_length=100, blank=True, null=True,
+                                            help_text='Razorpay customer ID - created automatically on FIRST PAYMENT ATTEMPT (not at login), using user email, name, and phone')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -190,10 +192,6 @@ class PaymentPreference(models.Model):
     preferred_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='card')
     preferred_card_token_id = models.CharField(max_length=100, blank=True, null=True, 
                                                 help_text='Razorpay token ID - card details stored only in Razorpay')
-    preferred_address_id = models.IntegerField(blank=True, null=True, 
-                                                help_text='Preferred shipping address ID')
-    payment_nickname = models.CharField(max_length=100, blank=True,
-                                         help_text='User nickname for this payment preference')
     razorpay_customer_id = models.CharField(max_length=100, blank=True, null=True,
                                             help_text='Razorpay customer ID for fetching saved cards')
     created_at = models.DateTimeField(auto_now_add=True)

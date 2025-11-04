@@ -202,8 +202,6 @@ export const paymentPreferencesAPI = {
   updatePaymentPreference: (data: {
     preferred_method?: string;
     preferred_card_token_id?: string;
-    preferred_address_id?: number;
-    payment_nickname?: string;
   }) => API.patch('/auth/payment-preferences/update/', data),
   
   getSavedCards: () => API.get('/auth/payment-preferences/saved-cards/'),

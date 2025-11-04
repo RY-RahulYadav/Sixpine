@@ -254,29 +254,15 @@ class BulkOrderCreateSerializer(serializers.ModelSerializer):
 
 
 class PaymentPreferenceSerializer(serializers.ModelSerializer):
-    """Serializer for payment preferences - returns address details if available"""
-    preferred_address = serializers.SerializerMethodField()
+    """Serializer for payment preferences - address is managed via Address table"""
     
     class Meta:
         model = PaymentPreference
         fields = [
             'id', 'preferred_method', 'preferred_card_token_id', 
-            'preferred_address_id', 'preferred_address', 'payment_nickname',
             'razorpay_customer_id', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'razorpay_customer_id', 'created_at', 'updated_at']
-    
-    def get_preferred_address(self, obj):
-        """Get preferred address details if available"""
-        if obj.preferred_address_id:
-            from orders.models import Address
-            try:
-                address = Address.objects.get(id=obj.preferred_address_id, user=obj.user)
-                from orders.serializers import AddressSerializer
-                return AddressSerializer(address).data
-            except Address.DoesNotExist:
-                return None
-        return None
 
 
 class SavedCardSerializer(serializers.ModelSerializer):
