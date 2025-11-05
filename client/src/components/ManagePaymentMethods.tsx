@@ -88,7 +88,6 @@ const ManagePaymentMethods: React.FC<ManagePaymentMethodsProps> = ({
       'card': 'Credit/Debit Card',
       'netbanking': 'Net Banking',
       'upi': 'UPI',
-      'wallet': 'Digital Wallet',
       'cod': 'Cash on Delivery'
     };
     return methodMap[preference.preferred_method] || preference.preferred_method;

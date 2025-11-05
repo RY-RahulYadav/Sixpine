@@ -15,7 +15,7 @@ import AdminCategories from './Categories/AdminCategories';
 import AdminCategoryDetail from './Categories/AdminCategoryDetail';
 import AdminColors from './Colors/AdminColors';
 import AdminMaterials from './Materials/AdminMaterials';
-import AdminDiscounts from './Discounts/AdminDiscounts';
+import AdminCoupons from './Coupons/AdminCoupons';
 import AdminFilterOptions from './FilterOptions/AdminFilterOptions';
 import AdminPaymentCharges from './PaymentCharges/AdminPaymentCharges';
 import AdminSettings from './Settings/AdminSettings';
@@ -69,7 +69,7 @@ const AdminRouter = () => {
         <Route path="categories/:id" element={<AdminCategoryDetail />} />
         <Route path="colors" element={<AdminColors />} />
         <Route path="materials" element={<AdminMaterials />} />
-        <Route path="discounts" element={<AdminDiscounts />} />
+        <Route path="coupons" element={<AdminCoupons />} />
         <Route path="filter-options" element={<AdminFilterOptions />} />
         <Route path="payment-charges" element={<AdminPaymentCharges />} />
         <Route path="settings" element={<AdminSettings />} />

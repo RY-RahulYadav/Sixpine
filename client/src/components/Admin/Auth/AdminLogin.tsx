@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../context/AppContext';
 import API from '../../../services/api';
+import '../../../styles/auth.css';
 
 const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -66,69 +67,66 @@ const AdminLogin: React.FC = () => {
   };
   
   return (
-    <div className="admin-login-container">
-      <div className="admin-login-card">
-        <div className="admin-login-header">
-          <h2>Admin Login</h2>
-          <p>Sign in to access the admin dashboard</p>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="admin-login-form">
+    <div className="sixpine-auth-page">
+      <div className="sixpine-auth-container">
+        <div className="sixpine-auth-card">
+          {/* Header with brand name */}
+          <div className="sixpine-brand">
+            <h1>Admin Portal</h1>
+          </div>
+          
+          {/* Error message */}
           {error && (
-            <div className="admin-error-message">
-              <span className="material-symbols-outlined">error</span>
+            <div className="sixpine-error-message">
               {error}
             </div>
           )}
-          
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <div className="input-with-icon">
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="sixpine-form">
+            <div className="sixpine-form-group">
+              <label>Email or Username</label>
               <input
                 type="text"
                 id="username"
+                name="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                placeholder="abc@gmail.com"
                 disabled={loading}
+                autoComplete="username"
+                required
               />
             </div>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="input-with-icon">
+
+            <div className="sixpine-form-group">
+              <label>Password</label>
               <input
                 type="password"
                 id="password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder="••••••"
                 disabled={loading}
+                autoComplete="current-password"
+                required
               />
             </div>
+
+            <button
+              type="submit"
+              className="sixpine-submit-btn"
+              disabled={loading}
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+
+          {/* Footer links */}
+          <div className="sixpine-footer-links">
+            <a href="/">Back to Store</a>
           </div>
-          
-          <button type="submit" className="admin-login-button" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="spinner-small"></span>
-                Signing in...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined">login</span>
-                Sign In
-              </>
-            )}
-          </button>
-        </form>
-        
-        <div className="admin-login-footer">
-          <a href="/" className="back-to-store">
-            <span className="material-symbols-outlined">arrow_back</span>
-            Back to Store
-          </a>
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ from accounts.models import User
 from products.models import (
     Category, Subcategory, Color, Material, Product, ProductImage, 
     ProductVariant, ProductVariantImage, ProductSpecification, ProductFeature, 
-    ProductOffer, Discount, ProductRecommendation
+    ProductOffer, Discount, ProductRecommendation, Coupon
 )
 from orders.models import Order, OrderItem, OrderStatusHistory, OrderNote
 from accounts.models import ContactQuery, BulkOrder
@@ -615,7 +615,7 @@ class AdminOrderDetailSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'order_id', 'order_number', 'user', 'customer', 'status', 'payment_status', 'payment_method',
-            'subtotal', 'shipping_cost', 'platform_fee', 'tax_amount', 'total_amount',
+            'subtotal', 'coupon', 'coupon_discount', 'shipping_cost', 'platform_fee', 'tax_amount', 'total_amount',
             'shipping_address', 'billing_address', 'tracking_number', 'estimated_delivery', 'delivered_at',
             'order_notes', 'items', 'items_count', 'status_history', 'notes',
             'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature',
@@ -629,15 +629,30 @@ class AdminOrderDetailSerializer(serializers.ModelSerializer):
         data['tax'] = data.get('tax_amount', 0)
         # Add 'total' as alias for 'total_amount' for frontend compatibility
         data['total'] = data.get('total_amount', 0)
-        # Calculate discount if needed (subtotal + tax + platform_fee + shipping - total_amount)
-        subtotal = float(data.get('subtotal', 0))
-        tax = float(data.get('tax_amount', 0))
-        platform_fee = float(data.get('platform_fee', 0))
-        shipping = float(data.get('shipping_cost', 0))
-        total = float(data.get('total_amount', 0))
-        calculated_total = subtotal + tax + platform_fee + shipping
-        discount_amount = max(0, calculated_total - total)
-        data['discount'] = discount_amount if discount_amount > 0 else 0
+        # Include coupon information
+        if instance.coupon:
+            data['coupon'] = {
+                'id': instance.coupon.id,
+                'code': instance.coupon.code,
+                'discount_type': instance.coupon.discount_type,
+                'discount_value': str(instance.coupon.discount_value),
+            }
+        else:
+            data['coupon'] = None
+        # Use coupon_discount from model, fallback to calculated if not present
+        coupon_discount = float(data.get('coupon_discount', 0))
+        if coupon_discount == 0:
+            # Calculate discount if needed (subtotal + tax + platform_fee + shipping - total_amount)
+            subtotal = float(data.get('subtotal', 0))
+            tax = float(data.get('tax_amount', 0))
+            platform_fee = float(data.get('platform_fee', 0))
+            shipping = float(data.get('shipping_cost', 0))
+            total = float(data.get('total_amount', 0))
+            calculated_total = subtotal + tax + platform_fee + shipping
+            discount_amount = max(0, calculated_total - total)
+            coupon_discount = discount_amount if discount_amount > 0 else 0
+        data['coupon_discount'] = coupon_discount
+        data['discount'] = coupon_discount  # For backward compatibility
         return data
     
     def get_user(self, obj):
@@ -722,7 +737,6 @@ class PaymentChargeSerializer(serializers.Serializer):
     platform_fee_upi = serializers.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text='Platform fee percentage for UPI payments (Razorpay: 0%)')
     platform_fee_card = serializers.DecimalField(max_digits=5, decimal_places=2, default=2.36, help_text='Platform fee percentage for Credit/Debit Card payments (Razorpay: 2.36% including GST)')
     platform_fee_netbanking = serializers.DecimalField(max_digits=5, decimal_places=2, default=2.36, help_text='Platform fee percentage for Net Banking payments (Razorpay: 2.36% including GST)')
-    platform_fee_wallet = serializers.DecimalField(max_digits=5, decimal_places=2, default=2.36, help_text='Platform fee percentage for Wallet payments (Razorpay: 2.36% including GST)')
     platform_fee_cod = serializers.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text='Platform fee percentage for COD payments (Cash on Delivery: 0%)')
     tax_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
     razorpay_enabled = serializers.BooleanField()
@@ -789,5 +803,29 @@ class AdminLogSerializer(serializers.ModelSerializer):
     def get_user_name(self, obj):
         if obj.user:
             return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.username
+        return None
+
+
+# ==================== Coupon Serializers ====================
+class AdminCouponSerializer(serializers.ModelSerializer):
+    is_valid_now = serializers.SerializerMethodField()
+    remaining_uses = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Coupon
+        fields = [
+            'id', 'code', 'description', 'discount_type', 'discount_value',
+            'min_order_amount', 'max_discount_amount', 'valid_from', 'valid_until',
+            'is_active', 'usage_limit', 'used_count', 'one_time_use_per_user',
+            'is_valid_now', 'remaining_uses', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'used_count']
+    
+    def get_is_valid_now(self, obj):
+        return obj.is_valid()
+    
+    def get_remaining_uses(self, obj):
+        if obj.usage_limit:
+            return obj.usage_limit - obj.used_count
         return None
 

@@ -764,40 +764,83 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #f8f9fa;
-  background-image: linear-gradient(to bottom right, var(--color-sky-light), #ffffff);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-login-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: float 20s infinite linear;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-50px, -50px) rotate(360deg); }
 }
 
 .admin-login-card {
   width: 100%;
-  max-width: 400px;
-  padding: 40px;
-  background-color: var(--admin-card-bg);
-  border-radius: 15px;
-  box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 25px;
-  transition: transform 0.3s ease;
+  max-width: 450px;
+  padding: 48px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .admin-login-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
 }
 
 .admin-login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
+}
+
+.admin-login-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.admin-login-logo .material-symbols-outlined {
+  font-size: 40px;
+  color: white;
 }
 
 .admin-login-header h2 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: var(--admin-secondary);
-  margin-bottom: 10px;
+  font-size: 2.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
   font-family: 'Poppins', sans-serif;
 }
 
 .admin-login-header p {
-  color: var(--admin-text-light);
+  color: #6b7280;
   margin: 0;
+  font-size: 0.95rem;
   font-family: 'Inter', sans-serif;
 }
 
@@ -824,94 +867,135 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--admin-text);
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-group label .material-symbols-outlined {
+  font-size: 18px;
+  color: #667eea;
 }
 
 .input-with-icon {
   display: flex;
   align-items: center;
-  border: 1px solid var(--admin-border);
-  border-radius: 30px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 3px 0px;
+  background: white;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .input-with-icon:focus-within {
-  border-color: var(--admin-primary);
-  box-shadow: 0 0 0 3px rgba(26, 59, 169, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }
 
-.input-with-icon .material-symbols-outlined {
-  padding: 0 15px;
-  color: var(--admin-text-light);
+.input-with-icon .input-icon {
+  padding: 0 16px;
+  color: #9ca3af;
+  font-size: 20px;
+}
+
+.input-with-icon:focus-within .input-icon {
+  color: #667eea;
 }
 
 .input-with-icon input {
   flex: 1;
-  padding: 12px 15px;
+  padding: 14px 16px;
   border: none;
   outline: none;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   font-family: 'Inter', sans-serif;
+  background: transparent;
+  color: #111827;
+}
+
+.input-with-icon input::placeholder {
+  color: #9ca3af;
+}
+
+.input-with-icon input:disabled {
+  background: #f9fafb;
+  cursor: not-allowed;
 }
 
 .admin-login-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px;
-  background-color: var(--admin-secondary);
+  gap: 10px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 30px;
+  border-radius: 12px;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: 'Inter', sans-serif;
-  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  margin-top: 8px;
+  width: 100%;
 }
 
-.admin-login-button:hover {
-  background-color: #101010;
-  transform: translateY(-3px);
+.admin-login-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.admin-login-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .admin-login-button:disabled {
-  background-color: var(--admin-text-light);
+  background: #d1d5db;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .admin-login-footer {
-  margin-top: 24px;
+  margin-top: 32px;
   text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .back-to-store {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--admin-text-light);
+  gap: 8px;
+  color: #6b7280;
   text-decoration: none;
-  font-size: 0.875rem;
-  transition: var(--admin-transition);
-  padding: 8px 15px;
-  border-radius: 20px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  padding: 10px 16px;
+  border-radius: 10px;
   font-family: 'Inter', sans-serif;
+  font-weight: 500;
 }
 
 .back-to-store:hover {
-  color: var(--admin-primary);
-  background-color: rgba(26, 59, 169, 0.05);
+  color: #667eea;
+  background-color: rgba(102, 126, 234, 0.1);
+  transform: translateX(-4px);
+}
+
+.back-to-store .material-symbols-outlined {
+  font-size: 18px;
 }
 
 /* Loading & Error States */
@@ -1939,7 +2023,20 @@
 .empty-list {
   text-align: center;
   color: var(--admin-text-light);
-  padding: 16px;
+  padding: 40px 16px;
+}
+
+.empty-list h3 {
+  margin: 16px 0 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.empty-list p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--admin-text-light);
 }
 
 .activity-list {

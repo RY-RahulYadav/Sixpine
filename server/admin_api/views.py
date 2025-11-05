@@ -17,16 +17,19 @@ from .serializers import (
     AdminProductListSerializer, AdminProductDetailSerializer,
     AdminOrderListSerializer, AdminOrderDetailSerializer, AdminDiscountSerializer,
     PaymentChargeSerializer, GlobalSettingsSerializer,
-    AdminContactQuerySerializer, AdminBulkOrderSerializer, AdminLogSerializer
+    AdminContactQuerySerializer, AdminBulkOrderSerializer, AdminLogSerializer,
+    AdminCouponSerializer
 )
 from accounts.models import User, ContactQuery, BulkOrder
 from products.models import (
     Category, Subcategory, Color, Material, Product, ProductImage,
     ProductVariant, ProductVariantImage, ProductSpecification, ProductFeature,
-    ProductOffer, Discount
+    ProductOffer, Discount, Coupon
 )
 from orders.models import Order, OrderItem, OrderStatusHistory, OrderNote
 from .models import AdminLog
+from .utils import create_admin_log
+from .mixins import AdminLoggingMixin
 
 User = get_user_model()
 
@@ -73,17 +76,23 @@ def dashboard_stats(request):
         'customer_name': Order.objects.get(id=order['id']).user.get_full_name() or Order.objects.get(id=order['id']).user.username
     } for order in recent_orders]
     
-    # Top selling products
+    # Top selling products with revenue calculation
+    from django.db.models import F, DecimalField
+    
     top_products = OrderItem.objects.values('product').annotate(
-        sold=Sum('quantity')
+        sold=Sum('quantity'),
+        revenue=Sum(F('quantity') * F('price'), output_field=DecimalField(max_digits=10, decimal_places=2))
     ).order_by('-sold')[:10]
     top_selling_products = []
     for item in top_products:
         product = Product.objects.get(id=item['product'])
+        # Calculate revenue: sum of (quantity * price) for all order items of this product
+        revenue = item.get('revenue') or Decimal('0.00')
         top_selling_products.append({
             'id': product.id,
             'title': product.title,
-            'sold': item['sold']
+            'sold': item['sold'],
+            'revenue': float(revenue)
         })
     
     # Sales by day (last 30 days)
@@ -122,7 +131,7 @@ def dashboard_stats(request):
 
 
 # ==================== User Management Views ====================
-class AdminUserViewSet(viewsets.ModelViewSet):
+class AdminUserViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for user management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = User.objects.all().order_by('-date_joined')
@@ -167,6 +176,17 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         user.is_active = not user.is_active
         user.save()
+        try:
+            create_admin_log(
+                request=request,
+                action_type='activate' if user.is_active else 'deactivate',
+                model_name='User',
+                object_id=user.id,
+                object_repr=str(user),
+                details={'is_active': user.is_active}
+            )
+        except Exception as e:
+            print(f"Error creating admin log: {e}")
         return Response({
             'id': user.id,
             'is_active': user.is_active,
@@ -201,7 +221,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 
 
 # ==================== Category Management Views ====================
-class AdminCategoryViewSet(viewsets.ModelViewSet):
+class AdminCategoryViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for category management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = Category.objects.all()
@@ -236,7 +256,7 @@ class AdminCategoryViewSet(viewsets.ModelViewSet):
         return Response(data)
 
 
-class AdminSubcategoryViewSet(viewsets.ModelViewSet):
+class AdminSubcategoryViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for subcategory management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = Subcategory.objects.all()
@@ -251,14 +271,14 @@ class AdminSubcategoryViewSet(viewsets.ModelViewSet):
 
 
 # ==================== Color & Material Management Views ====================
-class AdminColorViewSet(viewsets.ModelViewSet):
+class AdminColorViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for color management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = Color.objects.all()
     serializer_class = AdminColorSerializer
 
 
-class AdminMaterialViewSet(viewsets.ModelViewSet):
+class AdminMaterialViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for material management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = Material.objects.all()
@@ -266,7 +286,7 @@ class AdminMaterialViewSet(viewsets.ModelViewSet):
 
 
 # ==================== Product Management Views ====================
-class AdminProductViewSet(viewsets.ModelViewSet):
+class AdminProductViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for product management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     pagination_class = None  # We'll handle pagination manually or use default
@@ -337,6 +357,17 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         product = self.get_object()
         product.is_active = not product.is_active
         product.save()
+        try:
+            create_admin_log(
+                request=request,
+                action_type='activate' if product.is_active else 'deactivate',
+                model_name='Product',
+                object_id=product.id,
+                object_repr=str(product),
+                details={'is_active': product.is_active}
+            )
+        except Exception as e:
+            print(f"Error creating admin log: {e}")
         return Response({
             'id': product.id,
             'is_active': product.is_active,
@@ -566,11 +597,43 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 # ==================== Discount Management Views ====================
-class AdminDiscountViewSet(viewsets.ModelViewSet):
-    """Admin viewset for discount management"""
+# Note: Discounts are filter options for product pages, NOT payment discounts
+# Payment discounts are handled by Coupons. This endpoint is for Filter Options management only.
+class AdminDiscountViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
+    """Admin viewset for discount filter options management (used in Filter Options page)"""
     permission_classes = [IsAuthenticated, IsAdminUser]
-    queryset = Discount.objects.all()
+    queryset = Discount.objects.all().order_by('percentage')
     serializer_class = AdminDiscountSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        return queryset
+
+
+# ==================== Coupon Management Views ====================
+class AdminCouponViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
+    """Admin viewset for coupon management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Coupon.objects.all().order_by('-created_at')
+    serializer_class = AdminCouponSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        is_active = self.request.query_params.get('is_active', None)
+        search = self.request.query_params.get('search', None)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(code__icontains=search) |
+                Q(description__icontains=search)
+            )
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        
+        return queryset
 
 
 # ==================== Global Settings Views ====================
@@ -635,7 +698,6 @@ def payment_charges_settings(request):
             'platform_fee_upi': str(GlobalSettings.get_setting('platform_fee_upi', '0.00')),
             'platform_fee_card': str(GlobalSettings.get_setting('platform_fee_card', '2.36')),
             'platform_fee_netbanking': str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')),
-            'platform_fee_wallet': str(GlobalSettings.get_setting('platform_fee_wallet', '2.36')),
             'platform_fee_cod': str(GlobalSettings.get_setting('platform_fee_cod', '0.00')),
             'tax_rate': str(GlobalSettings.get_setting('tax_rate', '5.00')),
             'razorpay_enabled': get_setting_value('razorpay_enabled', True),
@@ -653,7 +715,6 @@ def payment_charges_settings(request):
         GlobalSettings.set_setting('platform_fee_upi', validated_data.get('platform_fee_upi', '0.00'), 'Platform fee percentage for UPI payments')
         GlobalSettings.set_setting('platform_fee_card', validated_data.get('platform_fee_card', '2.36'), 'Platform fee percentage for Credit/Debit Card payments')
         GlobalSettings.set_setting('platform_fee_netbanking', validated_data.get('platform_fee_netbanking', '2.36'), 'Platform fee percentage for Net Banking payments')
-        GlobalSettings.set_setting('platform_fee_wallet', validated_data.get('platform_fee_wallet', '2.36'), 'Platform fee percentage for Wallet payments')
         GlobalSettings.set_setting('platform_fee_cod', validated_data.get('platform_fee_cod', '0.00'), 'Platform fee percentage for COD payments')
         GlobalSettings.set_setting('tax_rate', validated_data.get('tax_rate', '5.00'), 'Tax rate percentage')
         GlobalSettings.set_setting('razorpay_enabled', str(validated_data.get('razorpay_enabled', True)), 'Enable Razorpay payment gateway')
@@ -667,7 +728,7 @@ def payment_charges_settings(request):
 
 
 # ==================== Contact Query Management Views ====================
-class AdminContactQueryViewSet(viewsets.ModelViewSet):
+class AdminContactQueryViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for contact query management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = ContactQuery.objects.all().order_by('-created_at')
@@ -714,7 +775,7 @@ class AdminContactQueryViewSet(viewsets.ModelViewSet):
 
 
 # ==================== Bulk Order Management Views ====================
-class AdminBulkOrderViewSet(viewsets.ModelViewSet):
+class AdminBulkOrderViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
     """Admin viewset for bulk order management"""
     permission_classes = [IsAuthenticated, IsAdminUser]
     queryset = BulkOrder.objects.all().order_by('-created_at')
@@ -810,4 +871,25 @@ class AdminLogViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(created_at__lte=date_to)
         
         return queryset
+    
+    def list(self, request, *args, **kwargs):
+        """Override list to provide pagination"""
+        from rest_framework.response import Response
+        from rest_framework.pagination import PageNumberPagination
+        
+        class AdminLogPagination(PageNumberPagination):
+            page_size = 20
+            page_size_query_param = 'page_size'
+            max_page_size = 100
+        
+        queryset = self.filter_queryset(self.get_queryset())
+        paginator = AdminLogPagination()
+        page = paginator.paginate_queryset(queryset, request)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 

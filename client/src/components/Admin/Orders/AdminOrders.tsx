@@ -218,7 +218,7 @@ const AdminOrders: React.FC = () => {
                 </td>
                 <td data-label="Items">{order.items_count}</td>
                 <td data-label="Total">
-                  <strong>${formatCurrency(order.total_amount)}</strong>
+                  <strong>{formatCurrency(order.total_amount)}</strong>
                 </td>
                 <td className="actions" data-label="Actions">
                   <Link to={`/admin/orders/${order.id}`} className="admin-modern-btn secondary icon-only">

@@ -256,9 +256,9 @@ const AdminOrderDetail: React.FC = () => {
       safeAmount = amount;
     }
     
-    return new Intl.NumberFormat('en-US', { 
+    return new Intl.NumberFormat('en-IN', { 
       style: 'currency', 
-      currency: 'USD' 
+      currency: 'INR' 
     }).format(safeAmount);
   };
   
@@ -421,25 +421,39 @@ const AdminOrderDetail: React.FC = () => {
                 <span>Subtotal</span>
                 <span>{formatCurrency(order?.subtotal || 0)}</span>
               </div>
-              {(Number(order.platform_fee) || 0) > 0 && (
+              {(Number(order.coupon_discount) || Number(order.discount) || 0) > 0 && (
+                <>
+                  <div className="summary-row discount-row" style={{ color: '#28a745' }}>
+                    <span>
+                      {order.coupon?.code ? `Coupon Discount (${order.coupon.code})` : 'Discount'}
+                    </span>
+                    <span>-{formatCurrency(order?.coupon_discount || order?.discount || 0)}</span>
+                  </div>
+                  {order.coupon && (
+                    <div className="summary-row" style={{ fontSize: '12px', color: '#666', fontStyle: 'italic', paddingTop: '4px' }}>
+                      <span>Coupon Applied:</span>
+                      <span>{order.coupon.code} ({order.coupon.discount_value}{order.coupon.discount_type === 'percentage' ? '%' : '₹'})</span>
+                    </div>
+                  )}
+                </>
+              )}
+              {(Number(order.shipping_cost) || 0) > 0 && (
                 <div className="summary-row">
-                  <span>Platform Fee</span>
-                  <span>{formatCurrency(order?.platform_fee || 0)}</span>
+                  <span>Shipping Cost</span>
+                  <span>{formatCurrency(order?.shipping_cost || 0)}</span>
                 </div>
               )}
               <div className="summary-row">
-                <span>Tax</span>
+                <span>Platform Fee</span>
+                <span>{formatCurrency(order?.platform_fee || 0)}</span>
+              </div>
+              <div className="summary-row">
+                <span>Tax ({order.tax_rate || '5.00'}%)</span>
                 <span>{formatCurrency(order?.tax_amount || order.tax || 0)}</span>
               </div>
-              {(Number(order.discount) || 0) > 0 && (
-                <div className="summary-row discount-row">
-                  <span>Discount</span>
-                  <span>-{formatCurrency(order?.discount || 0)}</span>
-                </div>
-              )}
               <div className="summary-row total-row">
-                <span>Total</span>
-                <span className="total-amount">{formatCurrency(order?.total_amount || order.total || 0)}</span>
+                <span><strong>Total Amount Paid</strong></span>
+                <span className="total-amount"><strong>{formatCurrency(order?.total_amount || order.total || 0)}</strong></span>
               </div>
             </div>
           </div>

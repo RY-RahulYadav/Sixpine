@@ -184,7 +184,6 @@ class PaymentPreference(models.Model):
         ('card', 'Credit/Debit Card'),
         ('netbanking', 'Net Banking'),
         ('upi', 'UPI'),
-        ('wallet', 'Digital Wallet'),
         ('cod', 'Cash on Delivery'),
     ]
     

@@ -656,7 +656,7 @@ const ProductListPage: React.FC = () => {
                           Discount
                         </h6>
                         <div className="discount-options">
-                          {((filterOptions.discounts && filterOptions.discounts.length) ? filterOptions.discounts : [{ percentage: 10, label: '10%' }, { percentage: 20, label: '20%' }, { percentage: 30, label: '30%' }, { percentage: 50, label: '50%' }]).map((opt: any) => {
+                          {((filterOptions.discounts && filterOptions.discounts.length) ? filterOptions.discounts : []).map((opt: any) => {
                             const pct = typeof opt === 'number' ? opt : opt.percentage;
                             const label = typeof opt === 'number' ? `${opt}%` : (opt.label || `${pct}%`);
                             return (

@@ -115,6 +115,13 @@ export const adminAPI = {
   // Logs
   getLogs: (params?: any) => API.get('/admin/logs/', { params }),
   getLog: (id: number) => API.get(`/admin/logs/${id}/`),
+  
+  // Coupons
+  getCoupons: (params?: any) => API.get('/admin/coupons/', { params }),
+  getCoupon: (id: number) => API.get(`/admin/coupons/${id}/`),
+  createCoupon: (couponData: any) => API.post('/admin/coupons/', couponData),
+  updateCoupon: (id: number, couponData: any) => API.put(`/admin/coupons/${id}/`, couponData),
+  deleteCoupon: (id: number) => API.delete(`/admin/coupons/${id}/`),
 };
 
 export default adminAPI;

@@ -340,7 +340,12 @@ class ProductOffer(models.Model):
 
 
 class Discount(models.Model):
-    """Predefined discount options (e.g., 10%, 20%, 30%, 50%)"""
+    """Predefined discount filter options for product pages (e.g., 10%, 20%, 30%, 50%)
+    
+    Note: This is NOT for payment discounts at checkout. 
+    For checkout discounts, use the Coupon model instead.
+    This model is used for filtering products by discount percentage on product listing pages.
+    """
     percentage = models.PositiveIntegerField(unique=True, validators=[MaxValueValidator(100)])
     label = models.CharField(max_length=50, blank=True)
     is_active = models.BooleanField(default=True)
@@ -348,6 +353,8 @@ class Discount(models.Model):
 
     class Meta:
         ordering = ['percentage']
+        verbose_name = "Discount Filter Option"
+        verbose_name_plural = "Discount Filter Options"
 
     def save(self, *args, **kwargs):
         if not self.label:
@@ -356,6 +363,81 @@ class Discount(models.Model):
 
     def __str__(self):
         return f"{self.percentage}%"
+
+
+class Coupon(models.Model):
+    """Coupon codes for discounts"""
+    DISCOUNT_TYPES = [
+        ('percentage', 'Percentage'),
+        ('fixed', 'Fixed Amount'),
+    ]
+    
+    code = models.CharField(max_length=50, unique=True, db_index=True)
+    description = models.TextField(blank=True)
+    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPES, default='percentage')
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    max_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
+    valid_from = models.DateTimeField()
+    valid_until = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    usage_limit = models.PositiveIntegerField(null=True, blank=True, help_text="Maximum number of times this coupon can be used")
+    used_count = models.PositiveIntegerField(default=0)
+    one_time_use_per_user = models.BooleanField(default=False, help_text="If True, each user can use this coupon only once")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Coupon"
+        verbose_name_plural = "Coupons"
+    
+    def __str__(self):
+        return f"{self.code} - {self.discount_value}{'%' if self.discount_type == 'percentage' else '₹'}"
+    
+    def is_valid(self):
+        """Check if coupon is currently valid"""
+        from django.utils import timezone
+        now = timezone.now()
+        return (
+            self.is_active and
+            self.valid_from <= now <= self.valid_until and
+            (self.usage_limit is None or self.used_count < self.usage_limit)
+        )
+    
+    def can_be_used_by_user(self, user):
+        """Check if coupon can be used by a specific user"""
+        if not self.is_valid():
+            return False, "Coupon is not valid"
+        
+        if self.one_time_use_per_user:
+            from orders.models import Order
+            # Check if user has already used this coupon
+            if Order.objects.filter(user=user, coupon=self).exists():
+                return False, "This coupon can only be used once per user"
+        
+        return True, "Valid"
+    
+    def calculate_discount(self, order_amount):
+        """Calculate discount amount for given order amount"""
+        from decimal import Decimal
+        
+        # Convert order_amount to Decimal to ensure proper calculation
+        if not isinstance(order_amount, Decimal):
+            order_amount = Decimal(str(order_amount))
+        
+        if order_amount < self.min_order_amount:
+            return Decimal('0'), f"Minimum order amount of ₹{self.min_order_amount} required"
+        
+        if self.discount_type == 'percentage':
+            # Both are now Decimal, so calculation is safe
+            discount = (order_amount * self.discount_value) / Decimal('100')
+            if self.max_discount_amount:
+                discount = min(discount, self.max_discount_amount)
+        else:
+            discount = min(self.discount_value, order_amount)
+        
+        return discount, "Discount applied"
 
 
 class BrowsingHistory(models.Model):

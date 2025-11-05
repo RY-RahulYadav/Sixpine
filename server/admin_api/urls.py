@@ -4,7 +4,7 @@ from .views import (
     dashboard_stats, AdminUserViewSet, AdminCategoryViewSet,
     AdminSubcategoryViewSet, AdminColorViewSet, AdminMaterialViewSet,
     AdminProductViewSet, AdminOrderViewSet, AdminDiscountViewSet,
-    payment_charges_settings, global_settings,
+    AdminCouponViewSet, payment_charges_settings, global_settings,
     AdminContactQueryViewSet, AdminBulkOrderViewSet, AdminLogViewSet
 )
 from .auth import admin_login_view
@@ -17,7 +17,8 @@ router.register(r'colors', AdminColorViewSet, basename='admin-colors')
 router.register(r'materials', AdminMaterialViewSet, basename='admin-materials')
 router.register(r'products', AdminProductViewSet, basename='admin-products')
 router.register(r'orders', AdminOrderViewSet, basename='admin-orders')
-router.register(r'discounts', AdminDiscountViewSet, basename='admin-discounts')
+router.register(r'discounts', AdminDiscountViewSet, basename='admin-discounts')  # For filter options only
+router.register(r'coupons', AdminCouponViewSet, basename='admin-coupons')
 router.register(r'contact-queries', AdminContactQueryViewSet, basename='admin-contact-queries')
 router.register(r'bulk-orders', AdminBulkOrderViewSet, basename='admin-bulk-orders')
 router.register(r'logs', AdminLogViewSet, basename='admin-logs')

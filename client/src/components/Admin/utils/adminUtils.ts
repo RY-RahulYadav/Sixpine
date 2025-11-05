@@ -3,21 +3,27 @@
  */
 
 /**
- * Safely format a value as currency
+ * Safely format a value as currency (INR - Rupee)
  * Handles both string and number inputs
  */
 export const formatCurrency = (value: number | string | undefined | null): string => {
   if (value === undefined || value === null) {
-    return '0.00';
+    return '₹0.00';
   }
   
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   
   if (isNaN(numValue)) {
-    return '0.00';
+    return '₹0.00';
   }
   
-  return numValue.toFixed(2);
+  // Format with Indian number system and add rupee symbol
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(numValue);
 };
 
 /**

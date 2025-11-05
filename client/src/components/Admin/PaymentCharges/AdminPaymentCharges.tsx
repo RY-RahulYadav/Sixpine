@@ -7,7 +7,6 @@ interface PaymentChargesSettings {
   platform_fee_upi: string;
   platform_fee_card: string;
   platform_fee_netbanking: string;
-  platform_fee_wallet: string;
   platform_fee_cod: string;
   tax_rate: string;
   razorpay_enabled: boolean;
@@ -22,7 +21,6 @@ const AdminPaymentCharges: React.FC = () => {
     platform_fee_upi: '0.00',
     platform_fee_card: '2.36',
     platform_fee_netbanking: '2.36',
-    platform_fee_wallet: '2.36',
     platform_fee_cod: '0.00',
     tax_rate: '5.00',
     razorpay_enabled: true,
@@ -157,25 +155,6 @@ const AdminPaymentCharges: React.FC = () => {
                 />
                 <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
                   Razorpay Net Banking fee: 2.36% (2% + 18% GST)
-                </p>
-              </div>
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
-                  <span className="material-symbols-outlined tw-text-sm tw-align-middle tw-mr-1">wallet</span>
-                  Wallet Platform Fee (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="10"
-                  value={formData.platform_fee_wallet}
-                  onChange={(e) => setFormData({ ...formData, platform_fee_wallet: e.target.value })}
-                  className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-lg tw-focus:outline-none tw-focus:ring-2 tw-focus:ring-blue-500"
-                  required
-                />
-                <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
-                  Razorpay Wallet fee: 2.36% (2% + 18% GST)
                 </p>
               </div>
               <div>

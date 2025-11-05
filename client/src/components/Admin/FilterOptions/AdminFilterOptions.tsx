@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import adminAPI from '../../../services/adminApi';
 import { showToast } from '../utils/adminUtils';
+import '../../../styles/admin-theme.css';
 
 interface Category {
   id: number;
@@ -38,19 +38,15 @@ interface Material {
 
 interface Discount {
   id: number;
-  title: string;
-  description?: string;
-  discount_percentage: number;
-  discount_amount: number;
+  percentage: number;
+  label: string;
   is_active: boolean;
-  valid_from?: string;
-  valid_until?: string;
+  created_at: string;
 }
 
 type FilterSection = 'categories' | 'colors' | 'materials' | 'discounts';
 
 const AdminFilterOptions: React.FC = () => {
-  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<FilterSection>('categories');
   
   // Data states
@@ -62,6 +58,13 @@ const AdminFilterOptions: React.FC = () => {
   // Loading states
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
+  
+  // Modal states
+  const [showCategoryModal, setShowCategoryModal] = useState<boolean>(false);
+  const [showSubcategoryModal, setShowSubcategoryModal] = useState<boolean>(false);
+  const [showColorModal, setShowColorModal] = useState<boolean>(false);
+  const [showMaterialModal, setShowMaterialModal] = useState<boolean>(false);
+  const [showDiscountModal, setShowDiscountModal] = useState<boolean>(false);
   
   // Form states
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -79,8 +82,9 @@ const AdminFilterOptions: React.FC = () => {
   const [colorForm, setColorForm] = useState({ name: '', hex_code: '#000000', is_active: true });
   const [materialForm, setMaterialForm] = useState({ name: '', description: '', is_active: true });
   const [discountForm, setDiscountForm] = useState({ 
-    title: '', description: '', discount_percentage: 0, discount_amount: 0, 
-    is_active: true, valid_from: '', valid_until: '' 
+    percentage: 0, 
+    label: '', 
+    is_active: true 
   });
 
   useEffect(() => {
@@ -160,10 +164,24 @@ const AdminFilterOptions: React.FC = () => {
   const fetchDiscounts = async () => {
     try {
       const response = await adminAPI.getDiscounts();
-      const discs = response.data.results || response.data || [];
+      console.log('Discounts API Response:', response.data);
+      // Handle both paginated and non-paginated responses
+      let discs = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          discs = response.data;
+        } else if (response.data.results && Array.isArray(response.data.results)) {
+          discs = response.data.results;
+        } else if (response.data.count !== undefined) {
+          // Paginated response
+          discs = response.data.results || [];
+        }
+      }
+      console.log('Parsed discounts:', discs);
       setDiscounts(discs);
     } catch (error) {
       console.error('Error fetching discounts:', error);
+      setDiscounts([]);
     }
   };
 
@@ -179,8 +197,7 @@ const AdminFilterOptions: React.FC = () => {
         await adminAPI.createCategory(categoryForm);
         showToast('Category created successfully', 'success');
       }
-      setCategoryForm({ name: '', slug: '', description: '', is_active: true });
-      setEditingCategory(null);
+      resetCategoryForm();
       await fetchCategories();
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save category', 'error');
@@ -197,7 +214,14 @@ const AdminFilterOptions: React.FC = () => {
       description: category.description || '',
       is_active: category.is_active
     });
+    setShowCategoryModal(true);
     setExpandedCategory(category.id);
+  };
+
+  const resetCategoryForm = () => {
+    setEditingCategory(null);
+    setCategoryForm({ name: '', slug: '', description: '', is_active: true });
+    setShowCategoryModal(false);
   };
 
   const handleDeleteCategory = async (id: number) => {
@@ -229,8 +253,7 @@ const AdminFilterOptions: React.FC = () => {
         await adminAPI.createSubcategory(subcategoryForm);
         showToast('Subcategory created successfully', 'success');
       }
-      setSubcategoryForm({ name: '', slug: '', category: '', description: '', is_active: true });
-      setEditingSubcategory(null);
+      resetSubcategoryForm();
       await fetchSubcategories(parseInt(subcategoryForm.category));
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save subcategory', 'error');
@@ -248,6 +271,13 @@ const AdminFilterOptions: React.FC = () => {
       description: subcategory.description || '',
       is_active: subcategory.is_active
     });
+    setShowSubcategoryModal(true);
+  };
+
+  const resetSubcategoryForm = () => {
+    setEditingSubcategory(null);
+    setSubcategoryForm({ name: '', slug: '', category: '', description: '', is_active: true });
+    setShowSubcategoryModal(false);
   };
 
   const handleDeleteSubcategory = async (id: number, categoryId: number) => {
@@ -275,8 +305,7 @@ const AdminFilterOptions: React.FC = () => {
         await adminAPI.createColor(colorForm);
         showToast('Color created successfully', 'success');
       }
-      setColorForm({ name: '', hex_code: '#000000', is_active: true });
-      setEditingColor(null);
+      resetColorForm();
       await fetchColors();
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save color', 'error');
@@ -292,6 +321,13 @@ const AdminFilterOptions: React.FC = () => {
       hex_code: color.hex_code,
       is_active: color.is_active
     });
+    setShowColorModal(true);
+  };
+
+  const resetColorForm = () => {
+    setEditingColor(null);
+    setColorForm({ name: '', hex_code: '#000000', is_active: true });
+    setShowColorModal(false);
   };
 
   const handleDeleteColor = async (id: number) => {
@@ -319,8 +355,7 @@ const AdminFilterOptions: React.FC = () => {
         await adminAPI.createMaterial(materialForm);
         showToast('Material created successfully', 'success');
       }
-      setMaterialForm({ name: '', description: '', is_active: true });
-      setEditingMaterial(null);
+      resetMaterialForm();
       await fetchMaterials();
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save material', 'error');
@@ -336,6 +371,13 @@ const AdminFilterOptions: React.FC = () => {
       description: material.description || '',
       is_active: material.is_active
     });
+    setShowMaterialModal(true);
+  };
+
+  const resetMaterialForm = () => {
+    setEditingMaterial(null);
+    setMaterialForm({ name: '', description: '', is_active: true });
+    setShowMaterialModal(false);
   };
 
   const handleDeleteMaterial = async (id: number) => {
@@ -358,19 +400,15 @@ const AdminFilterOptions: React.FC = () => {
     try {
       if (editingDiscount) {
         await adminAPI.updateDiscount(editingDiscount.id, discountForm);
-        showToast('Discount updated successfully', 'success');
+        showToast('Discount filter option updated successfully', 'success');
       } else {
         await adminAPI.createDiscount(discountForm);
-        showToast('Discount created successfully', 'success');
+        showToast('Discount filter option created successfully', 'success');
       }
-      setDiscountForm({ 
-        title: '', description: '', discount_percentage: 0, discount_amount: 0, 
-        is_active: true, valid_from: '', valid_until: '' 
-      });
-      setEditingDiscount(null);
+      resetDiscountForm();
       await fetchDiscounts();
     } catch (error: any) {
-      showToast(error.response?.data?.message || 'Failed to save discount', 'error');
+      showToast(error.response?.data?.message || 'Failed to save discount filter option', 'error');
     } finally {
       setSaving(false);
     }
@@ -379,14 +417,17 @@ const AdminFilterOptions: React.FC = () => {
   const handleEditDiscount = (discount: Discount) => {
     setEditingDiscount(discount);
     setDiscountForm({
-      title: discount.title,
-      description: discount.description || '',
-      discount_percentage: discount.discount_percentage,
-      discount_amount: discount.discount_amount,
-      is_active: discount.is_active,
-      valid_from: discount.valid_from ? discount.valid_from.split('T')[0] : '',
-      valid_until: discount.valid_until ? discount.valid_until.split('T')[0] : ''
+      percentage: discount.percentage,
+      label: discount.label || '',
+      is_active: discount.is_active
     });
+    setShowDiscountModal(true);
+  };
+
+  const resetDiscountForm = () => {
+    setEditingDiscount(null);
+    setDiscountForm({ percentage: 0, label: '', is_active: true });
+    setShowDiscountModal(false);
   };
 
   const handleDeleteDiscount = async (id: number) => {
@@ -420,38 +461,38 @@ const AdminFilterOptions: React.FC = () => {
       {/* Section Tabs */}
       <div className="admin-tabs" style={{ marginBottom: '20px' }}>
         <button
-          className={`admin-tab ${activeSection === 'categories' ? 'active' : ''}`}
+          className={`${activeSection === 'categories' ? 'active' : ''}`}
           onClick={() => setActiveSection('categories')}
         >
           <span className="material-symbols-outlined">category</span>
           Categories & Subcategories
         </button>
         <button
-          className={`admin-tab ${activeSection === 'colors' ? 'active' : ''}`}
+          className={`${activeSection === 'colors' ? 'active' : ''}`}
           onClick={() => setActiveSection('colors')}
         >
           <span className="material-symbols-outlined">palette</span>
           Colors
         </button>
         <button
-          className={`admin-tab ${activeSection === 'materials' ? 'active' : ''}`}
+          className={`${activeSection === 'materials' ? 'active' : ''}`}
           onClick={() => setActiveSection('materials')}
         >
           <span className="material-symbols-outlined">texture</span>
           Materials
         </button>
         <button
-          className={`admin-tab ${activeSection === 'discounts' ? 'active' : ''}`}
+          className={`${activeSection === 'discounts' ? 'active' : ''}`}
           onClick={() => setActiveSection('discounts')}
         >
           <span className="material-symbols-outlined">percent</span>
-          Discounts
+          Discount Filters
         </button>
       </div>
 
       {/* Categories Section */}
       {activeSection === 'categories' && (
-        <div className="admin-content-grid">
+        <div>
           <div className="admin-content-main">
             <div className="admin-card">
               <div className="admin-card-header">
@@ -459,8 +500,8 @@ const AdminFilterOptions: React.FC = () => {
                 <button
                   className="admin-btn primary"
                   onClick={() => {
-                    setEditingCategory(null);
-                    setCategoryForm({ name: '', slug: '', description: '', is_active: true });
+                    resetCategoryForm();
+                    setShowCategoryModal(true);
                   }}
                 >
                   <span className="material-symbols-outlined">add</span>
@@ -507,13 +548,15 @@ const AdminFilterOptions: React.FC = () => {
                         <div className="subcategories-header">
                           <h5>Subcategories</h5>
                           <button
-                            className="admin-btn secondary small"
+                            className="admin-btn primary"
                             onClick={() => {
-                              setEditingSubcategory(null);
-                              setSubcategoryForm({ name: '', slug: '', category: category.id.toString(), description: '', is_active: true });
+                              resetSubcategoryForm();
+                              setSubcategoryForm(prev => ({ ...prev, category: category.id.toString() }));
+                              setShowSubcategoryModal(true);
                             }}
+                            style={{ fontSize: '13px', padding: '8px 16px' }}
                           >
-                            <span className="material-symbols-outlined">add</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                             Add Subcategory
                           </button>
                         </div>
@@ -554,72 +597,77 @@ const AdminFilterOptions: React.FC = () => {
             </div>
           </div>
 
-          <div className="admin-content-sidebar">
-            {/* Category Form */}
-            <div className="admin-card">
-              <h3>{editingCategory ? 'Edit Category' : 'New Category'}</h3>
-              <form onSubmit={handleCategorySubmit}>
-                <div className="form-group">
-                  <label>Name*</label>
-                  <input
-                    type="text"
-                    value={categoryForm.name}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Slug*</label>
-                  <input
-                    type="text"
-                    value={categoryForm.slug}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea
-                    value={categoryForm.description}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={categoryForm.is_active}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, is_active: e.target.checked })}
-                    />
-                    Active
-                  </label>
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="admin-btn primary" disabled={saving}>
-                    {saving ? 'Saving...' : editingCategory ? 'Update' : 'Create'}
+          {/* Category Modal */}
+          {showCategoryModal && (
+            <div className="admin-modal-overlay" onClick={resetCategoryForm}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <h2>{editingCategory ? 'Edit Category' : 'New Category'}</h2>
+                  <button className="admin-modal-close" onClick={resetCategoryForm}>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
-                  {editingCategory && (
-                    <button
-                      type="button"
-                      className="admin-btn secondary"
-                      onClick={() => {
-                        setEditingCategory(null);
-                        setCategoryForm({ name: '', slug: '', description: '', is_active: true });
-                      }}
-                    >
+                </div>
+                <form onSubmit={handleCategorySubmit} className="admin-modal-body">
+                  <div className="form-group">
+                    <label>Name*</label>
+                    <input
+                      type="text"
+                      value={categoryForm.name}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Slug*</label>
+                    <input
+                      type="text"
+                      value={categoryForm.slug}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Description</label>
+                    <textarea
+                      value={categoryForm.description}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={categoryForm.is_active}
+                        onChange={(e) => setCategoryForm({ ...categoryForm, is_active: e.target.checked })}
+                      />
+                      Active
+                    </label>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="admin-btn secondary" onClick={resetCategoryForm}>
                       Cancel
                     </button>
-                  )}
-                </div>
-              </form>
+                    <button type="submit" className="admin-btn primary" disabled={saving}>
+                      {saving ? 'Saving...' : editingCategory ? 'Update' : 'Create'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
+          )}
 
-            {/* Subcategory Form */}
-            {expandedCategory && (
-              <div className="admin-card">
-                <h3>{editingSubcategory ? 'Edit Subcategory' : 'New Subcategory'}</h3>
-                <form onSubmit={handleSubcategorySubmit}>
+          {/* Subcategory Modal */}
+          {showSubcategoryModal && (
+            <div className="admin-modal-overlay" onClick={resetSubcategoryForm}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <h2>{editingSubcategory ? 'Edit Subcategory' : 'New Subcategory'}</h2>
+                  <button className="admin-modal-close" onClick={resetSubcategoryForm}>
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <form onSubmit={handleSubcategorySubmit} className="admin-modal-body">
                   <div className="form-group">
                     <label>Category*</label>
                     <select
@@ -672,32 +720,23 @@ const AdminFilterOptions: React.FC = () => {
                     </label>
                   </div>
                   <div className="form-actions">
+                    <button type="button" className="admin-btn secondary" onClick={resetSubcategoryForm}>
+                      Cancel
+                    </button>
                     <button type="submit" className="admin-btn primary" disabled={saving}>
                       {saving ? 'Saving...' : editingSubcategory ? 'Update' : 'Create'}
                     </button>
-                    {editingSubcategory && (
-                      <button
-                        type="button"
-                        className="admin-btn secondary"
-                        onClick={() => {
-                          setEditingSubcategory(null);
-                          setSubcategoryForm({ name: '', slug: '', category: expandedCategory.toString(), description: '', is_active: true });
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    )}
                   </div>
                 </form>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Colors Section */}
       {activeSection === 'colors' && (
-        <div className="admin-content-grid">
+        <div>
           <div className="admin-content-main">
             <div className="admin-card">
               <div className="admin-card-header">
@@ -705,8 +744,8 @@ const AdminFilterOptions: React.FC = () => {
                 <button
                   className="admin-btn primary"
                   onClick={() => {
-                    setEditingColor(null);
-                    setColorForm({ name: '', hex_code: '#000000', is_active: true });
+                    resetColorForm();
+                    setShowColorModal(true);
                   }}
                 >
                   <span className="material-symbols-outlined">add</span>
@@ -769,74 +808,73 @@ const AdminFilterOptions: React.FC = () => {
             </div>
           </div>
 
-          <div className="admin-content-sidebar">
-            <div className="admin-card">
-              <h3>{editingColor ? 'Edit Color' : 'New Color'}</h3>
-              <form onSubmit={handleColorSubmit}>
-                <div className="form-group">
-                  <label>Name*</label>
-                  <input
-                    type="text"
-                    value={colorForm.name}
-                    onChange={(e) => setColorForm({ ...colorForm, name: e.target.value })}
-                    required
-                  />
+          {/* Color Modal */}
+          {showColorModal && (
+            <div className="admin-modal-overlay" onClick={resetColorForm}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <h2>{editingColor ? 'Edit Color' : 'New Color'}</h2>
+                  <button className="admin-modal-close" onClick={resetColorForm}>
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
                 </div>
-                <div className="form-group">
-                  <label>Hex Code*</label>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <input
-                      type="color"
-                      value={colorForm.hex_code}
-                      onChange={(e) => setColorForm({ ...colorForm, hex_code: e.target.value })}
-                      style={{ width: '60px', height: '40px' }}
-                    />
+                <form onSubmit={handleColorSubmit} className="admin-modal-body">
+                  <div className="form-group">
+                    <label>Name*</label>
                     <input
                       type="text"
-                      value={colorForm.hex_code}
-                      onChange={(e) => setColorForm({ ...colorForm, hex_code: e.target.value })}
-                      placeholder="#000000"
-                      style={{ flex: 1 }}
+                      value={colorForm.name}
+                      onChange={(e) => setColorForm({ ...colorForm, name: e.target.value })}
                       required
                     />
                   </div>
-                </div>
-                <div className="form-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={colorForm.is_active}
-                      onChange={(e) => setColorForm({ ...colorForm, is_active: e.target.checked })}
-                    />
-                    Active
-                  </label>
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="admin-btn primary" disabled={saving}>
-                    {saving ? 'Saving...' : editingColor ? 'Update' : 'Create'}
-                  </button>
-                  {editingColor && (
-                    <button
-                      type="button"
-                      className="admin-btn secondary"
-                      onClick={() => {
-                        setEditingColor(null);
-                        setColorForm({ name: '', hex_code: '#000000', is_active: true });
-                      }}
-                    >
+                  <div className="form-group">
+                    <label>Hex Code*</label>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <input
+                        type="color"
+                        value={colorForm.hex_code}
+                        onChange={(e) => setColorForm({ ...colorForm, hex_code: e.target.value })}
+                        style={{ width: '60px', height: '40px' }}
+                      />
+                      <input
+                        type="text"
+                        value={colorForm.hex_code}
+                        onChange={(e) => setColorForm({ ...colorForm, hex_code: e.target.value })}
+                        placeholder="#000000"
+                        style={{ flex: 1 }}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={colorForm.is_active}
+                        onChange={(e) => setColorForm({ ...colorForm, is_active: e.target.checked })}
+                      />
+                      Active
+                    </label>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="admin-btn secondary" onClick={resetColorForm}>
                       Cancel
                     </button>
-                  )}
-                </div>
-              </form>
+                    <button type="submit" className="admin-btn primary" disabled={saving}>
+                      {saving ? 'Saving...' : editingColor ? 'Update' : 'Create'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* Materials Section */}
       {activeSection === 'materials' && (
-        <div className="admin-content-grid">
+        <div>
           <div className="admin-content-main">
             <div className="admin-card">
               <div className="admin-card-header">
@@ -844,8 +882,8 @@ const AdminFilterOptions: React.FC = () => {
                 <button
                   className="admin-btn primary"
                   onClick={() => {
-                    setEditingMaterial(null);
-                    setMaterialForm({ name: '', description: '', is_active: true });
+                    resetMaterialForm();
+                    setShowMaterialModal(true);
                   }}
                 >
                   <span className="material-symbols-outlined">add</span>
@@ -895,79 +933,78 @@ const AdminFilterOptions: React.FC = () => {
             </div>
           </div>
 
-          <div className="admin-content-sidebar">
-            <div className="admin-card">
-              <h3>{editingMaterial ? 'Edit Material' : 'New Material'}</h3>
-              <form onSubmit={handleMaterialSubmit}>
-                <div className="form-group">
-                  <label>Name*</label>
-                  <input
-                    type="text"
-                    value={materialForm.name}
-                    onChange={(e) => setMaterialForm({ ...materialForm, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea
-                    value={materialForm.description}
-                    onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={materialForm.is_active}
-                      onChange={(e) => setMaterialForm({ ...materialForm, is_active: e.target.checked })}
-                    />
-                    Active
-                  </label>
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="admin-btn primary" disabled={saving}>
-                    {saving ? 'Saving...' : editingMaterial ? 'Update' : 'Create'}
+          {/* Material Modal */}
+          {showMaterialModal && (
+            <div className="admin-modal-overlay" onClick={resetMaterialForm}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <h2>{editingMaterial ? 'Edit Material' : 'New Material'}</h2>
+                  <button className="admin-modal-close" onClick={resetMaterialForm}>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
-                  {editingMaterial && (
-                    <button
-                      type="button"
-                      className="admin-btn secondary"
-                      onClick={() => {
-                        setEditingMaterial(null);
-                        setMaterialForm({ name: '', description: '', is_active: true });
-                      }}
-                    >
+                </div>
+                <form onSubmit={handleMaterialSubmit} className="admin-modal-body">
+                  <div className="form-group">
+                    <label>Name*</label>
+                    <input
+                      type="text"
+                      value={materialForm.name}
+                      onChange={(e) => setMaterialForm({ ...materialForm, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Description</label>
+                    <textarea
+                      value={materialForm.description}
+                      onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={materialForm.is_active}
+                        onChange={(e) => setMaterialForm({ ...materialForm, is_active: e.target.checked })}
+                      />
+                      Active
+                    </label>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="admin-btn secondary" onClick={resetMaterialForm}>
                       Cancel
                     </button>
-                  )}
-                </div>
-              </form>
+                    <button type="submit" className="admin-btn primary" disabled={saving}>
+                      {saving ? 'Saving...' : editingMaterial ? 'Update' : 'Create'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* Discounts Section */}
       {activeSection === 'discounts' && (
-        <div className="admin-content-grid">
+        <div>
           <div className="admin-content-main">
             <div className="admin-card">
               <div className="admin-card-header">
-                <h3>Discounts</h3>
+                <h3>Discount Filter Options</h3>
+                <p style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
+                  These are filter options for product pages. For checkout discounts, use Coupons.
+                </p>
                 <button
                   className="admin-btn primary"
                   onClick={() => {
-                    setEditingDiscount(null);
-                    setDiscountForm({ 
-                      title: '', description: '', discount_percentage: 0, discount_amount: 0, 
-                      is_active: true, valid_from: '', valid_until: '' 
-                    });
+                    resetDiscountForm();
+                    setShowDiscountModal(true);
                   }}
                 >
                   <span className="material-symbols-outlined">add</span>
-                  Add Discount
+                  Add Discount Filter
                 </button>
               </div>
 
@@ -975,143 +1012,122 @@ const AdminFilterOptions: React.FC = () => {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>Title</th>
                       <th>Percentage</th>
-                      <th>Amount</th>
-                      <th>Valid From</th>
-                      <th>Valid Until</th>
+                      <th>Label</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {discounts.map((discount) => (
-                      <tr key={discount.id}>
-                        <td>{discount.title}</td>
-                        <td>{discount.discount_percentage}%</td>
-                        <td>${discount.discount_amount}</td>
-                        <td>{discount.valid_from ? new Date(discount.valid_from).toLocaleDateString() : '-'}</td>
-                        <td>{discount.valid_until ? new Date(discount.valid_until).toLocaleDateString() : '-'}</td>
-                        <td>
-                          <span className={`status-badge ${discount.is_active ? 'active' : 'inactive'}`}>
-                            {discount.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            className="admin-btn icon"
-                            onClick={() => handleEditDiscount(discount)}
-                          >
-                            <span className="material-symbols-outlined">edit</span>
-                          </button>
-                          <button
-                            className="admin-btn icon danger"
-                            onClick={() => handleDeleteDiscount(discount.id)}
-                          >
-                            <span className="material-symbols-outlined">delete</span>
-                          </button>
+                    {discounts.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
+                          <div className="empty-list">
+                            <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#ccc', display: 'block', marginBottom: '16px' }}>
+                              percent
+                            </span>
+                            <h3>No discount filters found</h3>
+                            <p>Create discount filter options for product page filtering</p>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      discounts.map((discount) => (
+                        <tr key={discount.id}>
+                          <td><strong>{discount.percentage}%</strong></td>
+                          <td>{discount.label || `${discount.percentage}%`}</td>
+                          <td>
+                            <span className={`status-badge ${discount.is_active ? 'active' : 'inactive'}`}>
+                              {discount.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="admin-btn icon"
+                              onClick={() => handleEditDiscount(discount)}
+                            >
+                              <span className="material-symbols-outlined">edit</span>
+                            </button>
+                            <button
+                              className="admin-btn icon danger"
+                              onClick={() => handleDeleteDiscount(discount.id)}
+                            >
+                              <span className="material-symbols-outlined">delete</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
-          <div className="admin-content-sidebar">
-            <div className="admin-card">
-              <h3>{editingDiscount ? 'Edit Discount' : 'New Discount'}</h3>
-              <form onSubmit={handleDiscountSubmit}>
-                <div className="form-group">
-                  <label>Title*</label>
-                  <input
-                    type="text"
-                    value={discountForm.title}
-                    onChange={(e) => setDiscountForm({ ...discountForm, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea
-                    value={discountForm.description}
-                    onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Discount Percentage*</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={discountForm.discount_percentage}
-                    onChange={(e) => setDiscountForm({ ...discountForm, discount_percentage: parseFloat(e.target.value) || 0 })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Discount Amount*</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={discountForm.discount_amount}
-                    onChange={(e) => setDiscountForm({ ...discountForm, discount_amount: parseFloat(e.target.value) || 0 })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Valid From</label>
-                  <input
-                    type="date"
-                    value={discountForm.valid_from}
-                    onChange={(e) => setDiscountForm({ ...discountForm, valid_from: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Valid Until</label>
-                  <input
-                    type="date"
-                    value={discountForm.valid_until}
-                    onChange={(e) => setDiscountForm({ ...discountForm, valid_until: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={discountForm.is_active}
-                      onChange={(e) => setDiscountForm({ ...discountForm, is_active: e.target.checked })}
-                    />
-                    Active
-                  </label>
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="admin-btn primary" disabled={saving}>
-                    {saving ? 'Saving...' : editingDiscount ? 'Update' : 'Create'}
+          {/* Discount Modal */}
+          {showDiscountModal && (
+            <div className="admin-modal-overlay" onClick={resetDiscountForm}>
+              <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <h2>{editingDiscount ? 'Edit Discount Filter' : 'New Discount Filter'}</h2>
+                  <button className="admin-modal-close" onClick={resetDiscountForm}>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
-                  {editingDiscount && (
-                    <button
-                      type="button"
-                      className="admin-btn secondary"
-                      onClick={() => {
-                        setEditingDiscount(null);
-                        setDiscountForm({ 
-                          title: '', description: '', discount_percentage: 0, discount_amount: 0, 
-                          is_active: true, valid_from: '', valid_until: '' 
-                        });
-                      }}
-                    >
+                </div>
+                <form onSubmit={handleDiscountSubmit} className="admin-modal-body">
+                  <div className="form-group">
+                    <label>Discount Percentage*</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={discountForm.percentage}
+                      onChange={(e) => setDiscountForm({ ...discountForm, percentage: parseInt(e.target.value) || 0 })}
+                      required
+                      placeholder="e.g., 10, 20, 30, 50"
+                    />
+                    <small style={{ color: '#666', fontSize: '12px' }}>
+                      Percentage value (0-100) for filtering products by discount
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Label (Optional)</label>
+                    <input
+                      type="text"
+                      value={discountForm.label}
+                      onChange={(e) => setDiscountForm({ ...discountForm, label: e.target.value })}
+                      placeholder="e.g., 10% Off"
+                    />
+                    <small style={{ color: '#666', fontSize: '12px' }}>
+                      If empty, will auto-generate as "{discountForm.percentage || 'X'}%"
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={discountForm.is_active}
+                        onChange={(e) => setDiscountForm({ ...discountForm, is_active: e.target.checked })}
+                      />
+                      Active
+                    </label>
+                    <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      Only active discount filters will appear in product filter options
+                    </small>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="admin-btn secondary" onClick={resetDiscountForm}>
                       Cancel
                     </button>
-                  )}
-                </div>
-              </form>
+                    <button type="submit" className="admin-btn primary" disabled={saving}>
+                      {saving ? 'Saving...' : editingDiscount ? 'Update' : 'Create'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

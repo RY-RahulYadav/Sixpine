@@ -96,11 +96,8 @@ const AdminDashboard: React.FC = () => {
               <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>payments</span>
             </div>
             <div className="admin-stat-label">Total Revenue</div>
-            <div className="admin-stat-value">${formatCurrency(stats.total_revenue)}</div>
-            <div className="admin-stat-change positive">
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>trending_up</span>
-              +12.5% from last month
-            </div>
+            <div className="admin-stat-value">{formatCurrency(stats.total_revenue)}</div>
+            
           </div>
         </div>
         
@@ -111,10 +108,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="admin-stat-label">Total Orders</div>
             <div className="admin-stat-value">{stats.total_orders}</div>
-            <div className="admin-stat-change positive">
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>trending_up</span>
-              +8.3% from last month
-            </div>
+            
           </div>
         </div>
         
@@ -125,10 +119,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="admin-stat-label">Products</div>
             <div className="admin-stat-value">{stats.total_products}</div>
-            <div className="admin-stat-change positive">
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>trending_up</span>
-              +5 new this week
-            </div>
+            
           </div>
         </div>
         
@@ -139,10 +130,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="admin-stat-label">Customers</div>
             <div className="admin-stat-value">{stats.total_users}</div>
-            <div className="admin-stat-change positive">
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>trending_up</span>
-              +3.2% from last month
-            </div>
+            
           </div>
         </div>
       </div>
@@ -320,7 +308,7 @@ const AdminDashboard: React.FC = () => {
                           #{order.order_id.substring(0, 8).toUpperCase()}
                         </td>
                         <td>{order.customer_name}</td>
-                        <td style={{ fontWeight: '600' }}>${formatCurrency(order.total_amount)}</td>
+                        <td style={{ fontWeight: '600' }}>{formatCurrency(order.total_amount)}</td>
                         <td>
                           <span className={`admin-status-badge ${order.status}`}>
                             {order.status}

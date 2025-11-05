@@ -12,6 +12,7 @@ import Footer from "../components/Footer";
 import CategoryTabs from "../components/CategoryTabs";
 import SubNav from "../components/SubNav";
 import PaymentModal from "../components/PaymentModal";
+import CouponInput from "../components/CouponInput";
 import "../styles/Pages.css";
 import "../styles/CheckoutPage.css";
 
@@ -47,9 +48,11 @@ const CheckoutPage: React.FC = () => {
   const [paymentSettings, setPaymentSettings] = useState<{
     razorpay_enabled: boolean;
     cod_enabled: boolean;
-  }>({ razorpay_enabled: true, cod_enabled: true });
+    coupons_enabled: boolean;
+  }>({ razorpay_enabled: true, cod_enabled: true, coupons_enabled: true });
   const paymentMethodInitialized = useRef(false);
   const [savedCards, setSavedCards] = useState<any[]>([]);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ id: number; code: string; discount_amount: string } | null>(null);
 
   useEffect(() => {
     if (!state.isAuthenticated) {
@@ -81,7 +84,8 @@ const CheckoutPage: React.FC = () => {
       const response = await orderAPI.getPaymentCharges();
       const settings = {
         razorpay_enabled: response.data.razorpay_enabled !== false, // Default to true if not set
-        cod_enabled: response.data.cod_enabled !== false // Default to true if not set
+        cod_enabled: response.data.cod_enabled !== false, // Default to true if not set
+        coupons_enabled: response.data.coupons_enabled !== false // Default to true if not set
       };
       setPaymentSettings(settings);
       
@@ -257,7 +261,8 @@ const CheckoutPage: React.FC = () => {
         try {
           await orderAPI.checkoutWithCOD({
             shipping_address_id: selectedAddressId,
-            order_notes: 'Order placed from checkout'
+            order_notes: 'Order placed from checkout',
+            coupon_id: appliedCoupon?.id
           });
           
                  // Clear cart after successful COD order
@@ -294,7 +299,8 @@ const CheckoutPage: React.FC = () => {
         
         const { calculateOrderTotals } = await import('../utils/orderCalculations');
         const subtotal = state.cart?.total_price || 0;
-        const totals = calculateOrderTotals(subtotal, selectedPaymentMethod, platformFees);
+        const couponDiscount = parseFloat(appliedCoupon?.discount_amount || '0') || 0;
+        const totals = calculateOrderTotals(subtotal, selectedPaymentMethod, platformFees, couponDiscount);
         const total = totals.total;
 
         // Validate totals
@@ -367,7 +373,8 @@ const CheckoutPage: React.FC = () => {
         try {
           razorpayResponse = await orderAPI.createRazorpayOrder({
             amount: total,
-            shipping_address_id: selectedAddressId
+            shipping_address_id: selectedAddressId,
+            coupon_id: appliedCoupon?.id
           });
         } catch (apiError: any) {
           // Handle API errors before opening Razorpay
@@ -422,7 +429,8 @@ const CheckoutPage: React.FC = () => {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 shipping_address_id: selectedAddressId,
-                payment_method: selectedPaymentMethod
+                payment_method: selectedPaymentMethod,
+                coupon_id: appliedCoupon?.id
               });
 
               // Refresh saved cards if a card was saved during payment
@@ -556,10 +564,19 @@ const CheckoutPage: React.FC = () => {
             <OrderConfirmation />
           </div>
           <div className="checkout-right">
+            {paymentSettings.coupons_enabled && (
+              <CouponInput
+                subtotal={state.cart?.total_price || 0}
+                onCouponApplied={(coupon) => setAppliedCoupon(coupon)}
+                onCouponRemoved={() => setAppliedCoupon(null)}
+                appliedCoupon={appliedCoupon}
+              />
+            )}
             <OrderSummary 
               onPaymentClick={handlePayment}
               paymentDisabled={processing || !selectedAddressId || !selectedPaymentMethod}
               selectedPaymentMethod={selectedPaymentMethod}
+              couponDiscount={parseFloat(appliedCoupon?.discount_amount || '0') || 0}
             />
           </div>
         </div>

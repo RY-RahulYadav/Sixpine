@@ -222,7 +222,7 @@ export const orderAPI = {
   
   cancelOrder: (orderId: string) => API.post(`/orders/${orderId}/cancel/`),
   
-  createRazorpayOrder: (data: { amount: number; shipping_address_id: number }) =>
+  createRazorpayOrder: (data: { amount: number; shipping_address_id: number; coupon_id?: number }) =>
     API.post('/orders/razorpay/create-order/', data),
   
   verifyRazorpayPayment: (data: {
@@ -231,10 +231,14 @@ export const orderAPI = {
     razorpay_signature: string;
     shipping_address_id: number;
     payment_method?: string;
+    coupon_id?: number;
   }) => API.post('/orders/razorpay/verify-payment/', data),
   
-  checkoutWithCOD: (data: { shipping_address_id: number; order_notes?: string }) =>
+  checkoutWithCOD: (data: { shipping_address_id: number; order_notes?: string; coupon_id?: number }) =>
     API.post('/orders/checkout/cod/', data),
+  
+  validateCoupon: (data: { code: string; order_amount: number }) =>
+    API.post('/coupons/validate/', data),
   
   completePayment: (data: {
     order_id: string;

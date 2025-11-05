@@ -6,7 +6,6 @@ interface PlatformFees {
   platform_fee_upi: number;
   platform_fee_card: number;
   platform_fee_netbanking: number;
-  platform_fee_wallet: number;
   platform_fee_cod: number;
   tax_rate: number;
 }
@@ -16,7 +15,6 @@ const DEFAULT_PLATFORM_FEES: PlatformFees = {
   platform_fee_upi: 0.00,
   platform_fee_card: 2.36,
   platform_fee_netbanking: 2.36,
-  platform_fee_wallet: 2.36,
   platform_fee_cod: 0.00,
   tax_rate: 5.00,
 };
@@ -44,8 +42,6 @@ export function getPlatformFeePercentage(
     case 'NB':
     case 'NET_BANKING':
       return fees.platform_fee_netbanking;
-    case 'WALLET':
-      return fees.platform_fee_wallet;
     case 'COD':
       return fees.platform_fee_cod;
     default:
@@ -71,16 +67,25 @@ export function calculatePlatformFee(
 export function calculateOrderTotals(
   subtotal: number,
   paymentMethod: string | null | undefined,
-  platformFees?: Partial<PlatformFees>
+  platformFees?: Partial<PlatformFees>,
+  couponDiscount: number = 0
 ) {
   const fees = { ...DEFAULT_PLATFORM_FEES, ...platformFees };
-  const tax = (subtotal * fees.tax_rate) / 100;
-  const platformFee = calculatePlatformFee(subtotal, paymentMethod, fees);
+  
+  // Apply coupon discount to subtotal first
+  const subtotalAfterDiscount = Math.max(0, subtotal - couponDiscount);
+  
+  // Calculate tax on subtotal after discount
+  const tax = (subtotalAfterDiscount * fees.tax_rate) / 100;
+  // Calculate platform fee on subtotal after discount
+  const platformFee = calculatePlatformFee(subtotalAfterDiscount, paymentMethod, fees);
   const shippingCost = 0; // Shipping is removed
-  const total = subtotal + tax + platformFee + shippingCost;
+  const total = subtotalAfterDiscount + tax + platformFee + shippingCost;
   
   return {
     subtotal: Number(subtotal.toFixed(2)),
+    couponDiscount: Number(couponDiscount.toFixed(2)),
+    subtotalAfterDiscount: Number(subtotalAfterDiscount.toFixed(2)),
     tax: Number(tax.toFixed(2)),
     platformFee: Number(platformFee.toFixed(2)),
     shippingCost: 0,

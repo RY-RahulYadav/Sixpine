@@ -57,9 +57,17 @@ interface OrderDetails {
   payment_status: string;
   payment_method: string;
   subtotal: number;
+  coupon?: {
+    id: number;
+    code: string;
+    discount_type: string;
+    discount_value: string;
+  } | null;
+  coupon_discount?: number;
   shipping_cost: number;
   platform_fee?: number;
   tax_amount: number;
+  tax_rate?: string;
   total_amount: number;
   created_at: string;
   updated_at: string;
@@ -355,19 +363,38 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
                         <span>Subtotal:</span>
                         <strong>₹{formatAmount(order.subtotal)}</strong>
                       </div>
-                      {(order.platform_fee || 0) > 0 && (
+                      {(order.coupon_discount || 0) > 0 && (
+                        <>
+                          <div className="d-flex justify-content-between mb-2" style={{ color: '#28a745' }}>
+                            <span>
+                              Coupon Discount{order.coupon?.code ? ` (${order.coupon.code})` : ''}:
+                            </span>
+                            <strong>-₹{formatAmount(order.coupon_discount || 0)}</strong>
+                          </div>
+                          {order.coupon && (
+                            <div className="mb-2" style={{ fontSize: '12px', color: '#6c757d', fontStyle: 'italic' }}>
+                              <span>Applied: {order.coupon.code} ({order.coupon.discount_value}{order.coupon.discount_type === 'percentage' ? '%' : '₹'})</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {(order.shipping_cost || 0) > 0 && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span>Platform Fee:</span>
-                          <strong>₹{formatAmount(order.platform_fee || 0)}</strong>
+                          <span>Shipping Cost:</span>
+                          <strong>₹{formatAmount(order.shipping_cost || 0)}</strong>
                         </div>
                       )}
                       <div className="d-flex justify-content-between mb-2">
-                        <span>Tax:</span>
+                        <span>Platform Fee:</span>
+                        <strong>₹{formatAmount(order.platform_fee || 0)}</strong>
+                      </div>
+                      <div className="d-flex justify-content-between mb-2">
+                        <span>Tax{order.tax_rate ? ` (${order.tax_rate}%)` : ''}:</span>
                         <strong>₹{formatAmount(order.tax_amount)}</strong>
                       </div>
                       <hr />
                       <div className="d-flex justify-content-between">
-                        <strong>Total:</strong>
+                        <strong>Total Amount Paid:</strong>
                         <strong className="text-primary fs-5">₹{formatAmount(order.total_amount)}</strong>
                       </div>
                     </div>

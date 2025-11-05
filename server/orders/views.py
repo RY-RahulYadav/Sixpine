@@ -7,6 +7,7 @@ import razorpay
 import hmac
 import hashlib
 from .models import Address, Order, OrderStatusHistory
+from products.models import Coupon
 from .serializers import (
     AddressSerializer, OrderListSerializer, OrderDetailSerializer, 
     OrderCreateSerializer
@@ -140,11 +141,17 @@ def checkout_from_cart(request):
             'quantity': cart_item.quantity
         })
     
+    # Get coupon_id and payment_method if provided
+    coupon_id = request.data.get('coupon_id', None)
+    payment_method = request.data.get('payment_method', 'COD')
+    
     # Create order
     order_data = {
         'shipping_address_id': shipping_address_id,
         'items': items_data,
-        'order_notes': order_notes
+        'order_notes': order_notes,
+        'coupon_id': coupon_id,
+        'payment_method': payment_method
     }
     
     serializer = OrderCreateSerializer(data=order_data, context={'request': request})
@@ -451,7 +458,8 @@ def verify_razorpay_payment(request):
     razorpay_payment_id = request.data.get('razorpay_payment_id')
     razorpay_signature = request.data.get('razorpay_signature')
     shipping_address_id = request.data.get('shipping_address_id')
-    payment_method = request.data.get('payment_method', 'RAZORPAY')
+    payment_method_from_request = request.data.get('payment_method', 'RAZORPAY')
+    coupon_id = request.data.get('coupon_id', None)
     
     # Check if Razorpay is enabled
     razorpay_enabled = GlobalSettings.get_setting('razorpay_enabled', True)
@@ -496,19 +504,39 @@ def verify_razorpay_payment(request):
                 price = cart_item.variant.price
             subtotal += price * cart_item.quantity
         
-        # Calculate totals with platform fee
-        totals = calculate_order_totals(subtotal, payment_method)
+        # Handle coupon if provided
+        coupon = None
+        coupon_discount = Decimal('0.00')
+        if coupon_id:
+            try:
+                coupon = Coupon.objects.get(id=coupon_id)
+                can_use, message = coupon.can_be_used_by_user(request.user)
+                if can_use:
+                    discount_amount, _ = coupon.calculate_discount(subtotal)
+                    coupon_discount = Decimal(str(discount_amount))
+                # Don't increment usage for failed verification
+            except Coupon.DoesNotExist:
+                pass
+        
+        # Map payment method for platform fee calculation
+        payment_method_for_calc = payment_method_from_request.upper() if payment_method_from_request else 'COD'
+        
+        # Calculate totals with platform fee (after coupon discount)
+        subtotal_after_discount = subtotal - coupon_discount
+        totals = calculate_order_totals(subtotal_after_discount, payment_method_for_calc)
         
         # Create pending order with payment_status='pending'
         order = Order.objects.create(
             user=request.user,
             shipping_address=address,
-            subtotal=totals['subtotal'],
+            subtotal=subtotal,
+            coupon=coupon,
+            coupon_discount=coupon_discount,
             shipping_cost=totals['shipping_cost'],
             platform_fee=totals['platform_fee'],
             tax_amount=totals['tax_amount'],
             total_amount=totals['total_amount'],
-            payment_method=payment_method,
+            payment_method=payment_method_for_calc,
             razorpay_order_id=razorpay_order_id,
             payment_status='pending',
             status='pending'
@@ -581,19 +609,59 @@ def verify_razorpay_payment(request):
             price = cart_item.variant.price
         subtotal += price * cart_item.quantity
     
-    # Calculate totals with platform fee
-    totals = calculate_order_totals(subtotal, payment_method)
+    # Handle coupon if provided
+    coupon = None
+    coupon_discount = Decimal('0.00')
+    if coupon_id:
+        try:
+            coupon = Coupon.objects.get(id=coupon_id)
+            can_use, message = coupon.can_be_used_by_user(request.user)
+            if can_use:
+                discount_amount, _ = coupon.calculate_discount(subtotal)
+                coupon_discount = Decimal(str(discount_amount))
+                # Update coupon usage
+                coupon.used_count += 1
+                coupon.save()
+            else:
+                return Response({'error': message}, status=status.HTTP_400_BAD_REQUEST)
+        except Coupon.DoesNotExist:
+            return Response({'error': 'Invalid coupon'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Map payment method to internal format for platform fee calculation
+    # Use payment_method_from_request (from frontend: CC, NB, UPI, etc.) for calculation
+    # This ensures platform fee is calculated correctly based on what user selected
+    if payment_method_from_request and payment_method_from_request.upper() in ['CC', 'CARD', 'NB', 'NET_BANKING', 'UPI']:
+        # Use the payment method from frontend request (CC, NB, UPI, etc.)
+        payment_method_for_calc = payment_method_from_request.upper()
+    else:
+        # Default to CC (Card) if not specified
+        payment_method_for_calc = 'CC'
+    
+    # Calculate totals with platform fee (after coupon discount)
+    # Platform fee is calculated based on payment method (CC = 2.36%, UPI = 0%, etc.)
+    subtotal_after_discount = subtotal - coupon_discount
+    totals = calculate_order_totals(subtotal_after_discount, payment_method_for_calc)
+    
+    print(f'[PLATFORM_FEE] Calculation for order:')
+    print(f'[PLATFORM_FEE]    - Payment Method (from request): {payment_method_from_request}')
+    print(f'[PLATFORM_FEE]    - Payment Method (for calc): {payment_method_for_calc}')
+    print(f'[PLATFORM_FEE]    - Subtotal after discount: {subtotal_after_discount}')
+    print(f'[PLATFORM_FEE]    - Platform Fee: {totals["platform_fee"]}')
+    print(f'[PLATFORM_FEE]    - Tax: {totals["tax_amount"]}')
+    print(f'[PLATFORM_FEE]    - Total: {totals["total_amount"]}')
     
     # Create order
     order = Order.objects.create(
         user=request.user,
         shipping_address=address,
-        subtotal=totals['subtotal'],
+        subtotal=subtotal,
+        coupon=coupon,
+        coupon_discount=coupon_discount,
         shipping_cost=totals['shipping_cost'],
         platform_fee=totals['platform_fee'],
         tax_amount=totals['tax_amount'],
         total_amount=totals['total_amount'],
-        payment_method=payment_method,
+        payment_method=payment_method_for_calc,  # Store the mapped payment method
         razorpay_order_id=razorpay_order_id,
         razorpay_payment_id=razorpay_payment_id,
         razorpay_signature=razorpay_signature,
@@ -657,27 +725,29 @@ def verify_razorpay_payment(request):
         
         # Check if payment has token_id (card was saved during checkout)
         token_id = payment.get('token_id')
-        payment_method = payment.get('method')
+        razorpay_payment_method = payment.get('method')  # From Razorpay: 'card', 'netbanking', 'upi'
         payment_customer_id = payment.get('customer_id')
         payment_card = payment.get('card', {})
         
         # Log full payment details for debugging
         print(f'[RAZORPAY] 🔍 Payment details for user {request.user.email}:')
         print(f'[RAZORPAY]    - Payment ID: {razorpay_payment_id}')
-        print(f'[RAZORPAY]    - Method: {payment_method}')
+        print(f'[RAZORPAY]    - Razorpay Method: {razorpay_payment_method}')
+        print(f'[RAZORPAY]    - Request Method: {payment_method_from_request}')
         print(f'[RAZORPAY]    - Token ID: {token_id}')
         print(f'[RAZORPAY]    - Payment Customer ID: {payment_customer_id}')
         print(f'[RAZORPAY]    - User Customer ID (from User model): {request.user.razorpay_customer_id}')
         print(f'[RAZORPAY]    - Card details: {payment_card}')
         logger.info(f'🔍 Payment details for user {request.user.email}:')
         logger.info(f'   - Payment ID: {razorpay_payment_id}')
-        logger.info(f'   - Method: {payment_method}')
+        logger.info(f'   - Razorpay Method: {razorpay_payment_method}')
+        logger.info(f'   - Request Method: {payment_method_from_request}')
         logger.info(f'   - Token ID: {token_id}')
         logger.info(f'   - Payment Customer ID: {payment_customer_id}')
         logger.info(f'   - User Customer ID (from User model): {request.user.razorpay_customer_id}')
         logger.info(f'   - Card details: {payment_card}')
         
-        if token_id and payment_method == 'card':
+        if token_id and razorpay_payment_method == 'card':
             # Card was saved - token_id is available
             # IMPORTANT: Verify token is active before saving to database
             try:
@@ -858,7 +928,7 @@ def complete_payment(request):
                        status=status.HTTP_400_BAD_REQUEST)
     
     # Validate payment method availability
-    if payment_method in ['RAZORPAY', 'CARD', 'NET_BANKING', 'UPI', 'WALLET']:
+    if payment_method in ['RAZORPAY', 'CARD', 'NET_BANKING', 'UPI']:
         razorpay_enabled = GlobalSettings.get_setting('razorpay_enabled', True)
         if isinstance(razorpay_enabled, str):
             razorpay_enabled = razorpay_enabled.lower() not in ['false', '0', 'no', '']
@@ -878,7 +948,7 @@ def complete_payment(request):
             )
     
     # Verify payment signature if Razorpay
-    if payment_method in ['RAZORPAY', 'CARD', 'NET_BANKING', 'UPI', 'WALLET']:
+    if payment_method in ['RAZORPAY', 'CARD', 'NET_BANKING', 'UPI']:
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return Response({'error': 'Missing required payment parameters'}, 
                            status=status.HTTP_400_BAD_REQUEST)
@@ -932,6 +1002,71 @@ def complete_payment(request):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def validate_coupon(request):
+    """Validate a coupon code for the current user"""
+    coupon_code = request.data.get('code', '').strip().upper()
+    order_amount = request.data.get('order_amount', 0)
+    
+    if not coupon_code:
+        return Response(
+            {'error': 'Coupon code is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    from decimal import Decimal
+    
+    try:
+        # Convert to Decimal for proper calculation
+        order_amount = Decimal(str(order_amount))
+    except (ValueError, TypeError, Exception):
+        return Response(
+            {'error': 'Invalid order amount'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        coupon = Coupon.objects.get(code=coupon_code)
+    except Coupon.DoesNotExist:
+        return Response(
+            {'error': 'Invalid coupon code'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Check if coupon can be used by user
+    can_use, message = coupon.can_be_used_by_user(request.user)
+    if not can_use:
+        return Response(
+            {'error': message},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Calculate discount
+    discount_amount, discount_message = coupon.calculate_discount(order_amount)
+    
+    # Convert Decimal to float for JSON response
+    discount_amount = float(discount_amount)
+    
+    if discount_amount == 0:
+        return Response(
+            {'error': discount_message},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    return Response({
+        'success': True,
+        'coupon': {
+            'id': coupon.id,
+            'code': coupon.code,
+            'discount_type': coupon.discount_type,
+            'discount_value': str(coupon.discount_value),
+            'discount_amount': round(discount_amount, 2),
+            'message': discount_message
+        }
+    }, status=status.HTTP_200_OK)
+
+
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def get_payment_charges(request):
@@ -948,11 +1083,11 @@ def get_payment_charges(request):
         'platform_fee_upi': str(GlobalSettings.get_setting('platform_fee_upi', '0.00')),
         'platform_fee_card': str(GlobalSettings.get_setting('platform_fee_card', '2.36')),
         'platform_fee_netbanking': str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')),
-        'platform_fee_wallet': str(GlobalSettings.get_setting('platform_fee_wallet', '2.36')),
         'platform_fee_cod': str(GlobalSettings.get_setting('platform_fee_cod', '0.00')),
         'tax_rate': str(GlobalSettings.get_setting('tax_rate', '5.00')),
         'razorpay_enabled': get_setting_value('razorpay_enabled', True),
-        'cod_enabled': get_setting_value('cod_enabled', True)
+        'cod_enabled': get_setting_value('cod_enabled', True),
+        'coupons_enabled': get_setting_value('coupons_enabled', True)
     }
     return Response(data, status=status.HTTP_200_OK)
 
@@ -976,6 +1111,7 @@ def checkout_with_cod(request):
     
     shipping_address_id = request.data.get('shipping_address_id')
     order_notes = request.data.get('order_notes', '')
+    coupon_id = request.data.get('coupon_id', None)
     
     if not shipping_address_id:
         return Response({'error': 'Shipping address is required'}, 
@@ -1001,14 +1137,35 @@ def checkout_with_cod(request):
             price = cart_item.variant.price
         subtotal += price * cart_item.quantity
     
-    # Calculate totals with platform fee
-    totals = calculate_order_totals(subtotal, 'COD')
+    # Handle coupon if provided
+    coupon = None
+    coupon_discount = Decimal('0.00')
+    if coupon_id:
+        try:
+            coupon = Coupon.objects.get(id=coupon_id)
+            can_use, message = coupon.can_be_used_by_user(request.user)
+            if can_use:
+                discount_amount, _ = coupon.calculate_discount(subtotal)
+                coupon_discount = Decimal(str(discount_amount))
+                # Update coupon usage
+                coupon.used_count += 1
+                coupon.save()
+            else:
+                return Response({'error': message}, status=status.HTTP_400_BAD_REQUEST)
+        except Coupon.DoesNotExist:
+            return Response({'error': 'Invalid coupon'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Calculate totals with platform fee (after coupon discount)
+    subtotal_after_discount = subtotal - coupon_discount
+    totals = calculate_order_totals(subtotal_after_discount, 'COD')
     
     # Create order
     order = Order.objects.create(
         user=request.user,
         shipping_address=address,
-        subtotal=totals['subtotal'],
+        subtotal=subtotal,
+        coupon=coupon,
+        coupon_discount=coupon_discount,
         shipping_cost=totals['shipping_cost'],
         platform_fee=totals['platform_fee'],
         tax_amount=totals['tax_amount'],

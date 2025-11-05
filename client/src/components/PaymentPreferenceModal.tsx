@@ -108,7 +108,6 @@ const PaymentPreferenceModal: React.FC<PaymentPreferenceModalProps> = ({
               <option value="card">Credit/Debit Card</option>
               <option value="netbanking">Net Banking</option>
               <option value="upi">UPI</option>
-              <option value="wallet">Digital Wallet</option>
               <option value="cod">Cash on Delivery</option>
             </select>
           </div>

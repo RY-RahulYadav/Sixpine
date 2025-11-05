@@ -56,6 +56,9 @@ class AdminLog(models.Model):
         ('delete', 'Delete'),
         ('activate', 'Activate'),
         ('deactivate', 'Deactivate'),
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+        ('view', 'View'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='admin_logs')

@@ -242,25 +242,13 @@ const BrandAnalytics: React.FC = () => {
                 <div>
                   <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Revenue</div>
                   <div style={{ fontSize: '32px', fontWeight: '700' }}>
-                    ${formatCurrency(analytics.order_stats.total_revenue)}
+                    {formatCurrency(analytics.order_stats.total_revenue)}
                   </div>
                   <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
-                    Avg: ${formatCurrency(analytics.order_stats.average_order_value)} per order
+                    Avg: {formatCurrency(analytics.order_stats.average_order_value)} per order
                   </div>
                 </div>
-                <div style={{ 
-                  width: '56px', 
-                  height: '56px', 
-                  background: 'rgba(255,255,255,0.2)', 
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
-                    payments
-                  </span>
-                </div>
+                
               </div>
             </div>
 
@@ -384,10 +372,10 @@ const BrandAnalytics: React.FC = () => {
                   <YAxis 
                     style={{ fontSize: '12px' }}
                     stroke="#888"
-                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                   />
                   <Tooltip 
-                    formatter={(value: number) => [`$${formatCurrency(value)}`, 'Revenue']}
+                    formatter={(value: number) => [formatCurrency(value), 'Revenue']}
                     contentStyle={{ 
                       background: 'white', 
                       border: '1px solid #f0f0f0',
@@ -459,7 +447,7 @@ const BrandAnalytics: React.FC = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: '600', color: '#ff6f00' }}>
-                        ${formatCurrency(method.revenue)}
+                        {formatCurrency(method.revenue)}
                       </div>
                       <div style={{ fontSize: '12px', color: '#888' }}>
                         {method.count} orders
@@ -509,7 +497,7 @@ const BrandAnalytics: React.FC = () => {
                       </div>
                     </div>
                     <div style={{ fontWeight: '600', color: '#067d62' }}>
-                      ${formatCurrency(product.revenue || 0)}
+                      {formatCurrency(product.revenue || 0)}
                     </div>
                   </div>
                 ))}
@@ -561,13 +549,13 @@ const BrandAnalytics: React.FC = () => {
                   color: 'white'
                 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>
-                    attach_money
+                    payments
                   </span>
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', color: '#888' }}>Total Revenue</div>
                   <div style={{ fontSize: '28px', fontWeight: '700', color: '#333' }}>
-                    ${formatCurrency(analytics.order_stats.total_revenue)}
+                    {formatCurrency(analytics.order_stats.total_revenue)}
                   </div>
                 </div>
               </div>
@@ -592,7 +580,7 @@ const BrandAnalytics: React.FC = () => {
                 <div>
                   <div style={{ fontSize: '13px', color: '#888' }}>Average Order</div>
                   <div style={{ fontSize: '28px', fontWeight: '700', color: '#333' }}>
-                    ${formatCurrency(analytics.order_stats.average_order_value)}
+                    {formatCurrency(analytics.order_stats.average_order_value)}
                   </div>
                 </div>
               </div>
@@ -749,7 +737,7 @@ const BrandAnalytics: React.FC = () => {
                           {product.sold}
                         </td>
                         <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#067d62', fontSize: '14px' }}>
-                          ${formatCurrency(product.revenue || 0)}
+                          {formatCurrency(product.revenue || 0)}
                         </td>
                       </tr>
                     ))}

@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from products.models import Product
+from products.models import Product, Coupon
 from django.core.validators import MinValueValidator
 import uuid
 
@@ -75,6 +75,8 @@ class Order(models.Model):
     
     # Pricing
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
+    coupon_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text='Discount amount from coupon')
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     platform_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text='Payment gateway platform fee based on payment method')
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)

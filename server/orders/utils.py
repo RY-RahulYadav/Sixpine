@@ -3,18 +3,38 @@ from admin_api.models import GlobalSettings
 
 
 def get_platform_fee_percentage(payment_method):
-    """Get platform fee percentage based on payment method"""
-    if payment_method in ['UPI']:
-        fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_upi', '0.00')))
-    elif payment_method in ['CARD', 'RAZORPAY']:
+    """Get platform fee percentage based on payment method
+    
+    Handles both Razorpay format (card, netbanking, upi, wallet) 
+    and internal format (CC, NB, UPI, CARD, NET_BANKING, etc.)
+    """
+    if not payment_method:
+        return Decimal('0.00')
+    
+    # Normalize payment method to lowercase first for Razorpay format
+    payment_method_lower = str(payment_method).lower()
+    payment_method_upper = str(payment_method).upper()
+    
+    # Handle Razorpay format (card, netbanking, upi, wallet)
+    if payment_method_lower in ['card']:
         fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_card', '2.36')))
-    elif payment_method in ['NET_BANKING']:
+    elif payment_method_lower in ['netbanking', 'net_banking']:
         fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')))
-    elif payment_method in ['WALLET']:
-        fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_wallet', '2.36')))
-    elif payment_method in ['COD']:
+    elif payment_method_lower in ['upi']:
+        fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_upi', '0.00')))
+    # Handle internal format (CC, CARD, NB, UPI, NET_BANKING, etc.)
+    elif payment_method_upper in ['UPI']:
+        fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_upi', '0.00')))
+    elif payment_method_upper in ['CC', 'CARD', 'RAZORPAY']:
+        # CC = Credit Card, CARD = Card, RAZORPAY = Razorpay (all use card fee)
+        fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_card', '2.36')))
+    elif payment_method_upper in ['NB', 'NET_BANKING', 'NETBANKING']:
+        # NB = Net Banking (short form)
+        fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')))
+    elif payment_method_upper in ['COD']:
         fee_percentage = Decimal(str(GlobalSettings.get_setting('platform_fee_cod', '0.00')))
     else:
+        # Default to 0 for unknown payment methods
         fee_percentage = Decimal('0.00')
     
     return fee_percentage

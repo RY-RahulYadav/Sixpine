@@ -8,9 +8,10 @@ interface OrderSummaryProps {
   onPaymentClick?: () => void;
   paymentDisabled?: boolean;
   selectedPaymentMethod?: string | null;
+  couponDiscount?: number;
 }
 
-const OrderSummary: React.FC<OrderSummaryProps> = ({ onPaymentClick, paymentDisabled, selectedPaymentMethod }) => {
+const OrderSummary: React.FC<OrderSummaryProps> = ({ onPaymentClick, paymentDisabled, selectedPaymentMethod, couponDiscount = 0 }) => {
   const { state } = useApp();
   const [platformFees, setPlatformFees] = useState<any>(null);
 
@@ -31,7 +32,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ onPaymentClick, paymentDisa
   // Calculate totals
   const subtotal = state.cart?.total_price || 0;
   const totalItems = state.cart?.total_items || 0;
-  const totals = calculateOrderTotals(subtotal, selectedPaymentMethod, platformFees);
+  const totals = calculateOrderTotals(subtotal, selectedPaymentMethod, platformFees, couponDiscount);
 
   const handlePaymentClick = () => {
     if (paymentDisabled) return;
@@ -55,6 +56,12 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ onPaymentClick, paymentDisa
           <span>Items ({totalItems}):</span>
           <span>₹{subtotal.toFixed(2)}</span>
         </div>
+        {totals.couponDiscount > 0 && (
+          <div className={styles.summaryLine} style={{ color: '#28a745', fontWeight: '500' }}>
+            <span>Coupon Discount:</span>
+            <span>-₹{totals.couponDiscount.toFixed(2)}</span>
+          </div>
+        )}
         {totals.platformFee > 0 && (
           <div className={styles.summaryLine}>
             <span>Platform Fee:</span>

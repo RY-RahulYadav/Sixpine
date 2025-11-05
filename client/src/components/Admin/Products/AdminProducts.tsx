@@ -337,7 +337,7 @@ const AdminProducts: React.FC = () => {
                   <td>
                     <div>
                       <div style={{ fontWeight: '600', fontSize: '14px' }}>
-                        ${formatCurrency(product.price)}
+                        {formatCurrency(product.price)}
                       </div>
                       {product.old_price && (
                         <div style={{ 
@@ -345,7 +345,7 @@ const AdminProducts: React.FC = () => {
                           color: '#888', 
                           textDecoration: 'line-through' 
                         }}>
-                          ${formatCurrency(product.old_price)}
+                          {formatCurrency(product.old_price)}
                         </div>
                       )}
                     </div>

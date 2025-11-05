@@ -78,22 +78,42 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['order_id', 'user', 'status', 'payment_status', 'payment_method', 'subtotal', 'shipping_cost',
-                 'platform_fee', 'tax_amount', 'total_amount', 'shipping_address', 'tracking_number',
+        fields = ['order_id', 'user', 'status', 'payment_status', 'payment_method', 'subtotal', 'coupon', 'coupon_discount',
+                 'shipping_cost', 'platform_fee', 'tax_amount', 'total_amount', 'shipping_address', 'tracking_number',
                  'estimated_delivery', 'delivered_at', 'order_notes', 'items', 'status_history',
                  'items_count', 'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature',
                  'created_at', 'updated_at']
         read_only_fields = ['order_id', 'user', 'created_at', 'updated_at']
+    
+    def to_representation(self, instance):
+        """Add coupon information to response"""
+        data = super().to_representation(instance)
+        # Include coupon information
+        if instance.coupon:
+            data['coupon'] = {
+                'id': instance.coupon.id,
+                'code': instance.coupon.code,
+                'discount_type': instance.coupon.discount_type,
+                'discount_value': str(instance.coupon.discount_value),
+            }
+        else:
+            data['coupon'] = None
+        # Add tax rate from global settings for display
+        from admin_api.models import GlobalSettings
+        tax_rate = GlobalSettings.get_setting('tax_rate', '5.00')
+        data['tax_rate'] = str(tax_rate)
+        return data
 
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating orders"""
     shipping_address_id = serializers.IntegerField(write_only=True)
     items = OrderItemSerializer(many=True, write_only=True)
+    coupon_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Order
-        fields = ['shipping_address_id', 'items', 'order_notes']
+        fields = ['shipping_address_id', 'items', 'order_notes', 'coupon_id', 'payment_method']
         
     def validate_shipping_address_id(self, value):
         user = self.context['request'].user
@@ -102,12 +122,14 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        from products.models import Product
+        from products.models import Product, Coupon
         from decimal import Decimal
         
         user = self.context['request'].user
         items_data = validated_data.pop('items')
         shipping_address_id = validated_data.pop('shipping_address_id')
+        coupon_id = validated_data.pop('coupon_id', None)
+        payment_method = validated_data.pop('payment_method', 'COD')
         
         # Calculate totals
         subtotal = Decimal('0.00')
@@ -115,21 +137,42 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             product = Product.objects.get(id=item_data['product_id'])
             subtotal += product.price * item_data['quantity']
         
+        # Handle coupon if provided
+        coupon = None
+        coupon_discount = Decimal('0.00')
+        if coupon_id:
+            try:
+                coupon = Coupon.objects.get(id=coupon_id)
+                can_use, message = coupon.can_be_used_by_user(user)
+                if can_use:
+                    discount_amount, _ = coupon.calculate_discount(subtotal)
+                    coupon_discount = Decimal(str(discount_amount))
+                    # Update coupon usage
+                    coupon.used_count += 1
+                    coupon.save()
+                else:
+                    raise serializers.ValidationError({'coupon_id': message})
+            except Coupon.DoesNotExist:
+                raise serializers.ValidationError({'coupon_id': 'Invalid coupon'})
+        
         from .utils import calculate_order_totals
         
-        # Calculate totals with platform fee (default to None/COD if not specified)
-        payment_method = validated_data.get('payment_method', 'COD')
-        totals = calculate_order_totals(subtotal, payment_method)
+        # Calculate totals with platform fee (after coupon discount)
+        subtotal_after_discount = subtotal - coupon_discount
+        totals = calculate_order_totals(subtotal_after_discount, payment_method)
         
-        # Create order
+        # Create order with all required fields stored in database
         order = Order.objects.create(
             user=user,
             shipping_address_id=shipping_address_id,
-            subtotal=totals['subtotal'],
-            shipping_cost=totals['shipping_cost'],
-            platform_fee=totals['platform_fee'],
-            tax_amount=totals['tax_amount'],
-            total_amount=totals['total_amount'],
+            subtotal=subtotal,  # Store original subtotal
+            coupon=coupon,  # Store coupon reference
+            coupon_discount=coupon_discount,  # Store coupon discount amount
+            shipping_cost=totals['shipping_cost'],  # Store shipping cost
+            platform_fee=totals['platform_fee'],  # Store platform fee
+            tax_amount=totals['tax_amount'],  # Store tax amount
+            total_amount=totals['total_amount'],  # Store total amount
+            payment_method=payment_method,
             **validated_data
         )
         

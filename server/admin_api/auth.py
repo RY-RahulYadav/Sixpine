@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from accounts.serializers import UserSerializer
+from .utils import create_admin_log
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -41,6 +42,19 @@ def admin_login_view(request):
         )
     
     token, _ = Token.objects.get_or_create(user=user)
+    
+    # Log admin login
+    try:
+        create_admin_log(
+            request=request,
+            action_type='login',
+            model_name='User',
+            object_id=user.id,
+            object_repr=f'{user.username} (Admin Login)',
+            details={'username': user.username, 'email': user.email}
+        )
+    except Exception as e:
+        print(f"Error creating admin log: {e}")
     
     print(f"Success: Admin login for {username}")
     
