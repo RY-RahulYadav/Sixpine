@@ -251,4 +251,12 @@ export const orderAPI = {
   getPaymentCharges: () => API.get('/payment-charges/'),
 };
 
+// Homepage Content API calls (public)
+export const homepageAPI = {
+  getHomepageContent: (sectionKey?: string) => {
+    const params = sectionKey ? { section_key: sectionKey } : {};
+    return API.get('/homepage-content/', { params });
+  },
+};
+
 export default API;

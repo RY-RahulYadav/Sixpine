@@ -1,15 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from './heroSection.module.css';
 import API from '../../services/api';
+import { homepageAPI } from '../../services/api';
+
+interface HeroSlide {
+  id: number;
+  title: string;
+  subtitle: string;
+  price: string;
+  buttonText: string;
+  backgroundColor: string;
+  imageSrc: string;
+}
 
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isExpertOpen, setIsExpertOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const contactFormRef = useRef<HTMLFormElement>(null);
-
-  const slides = [
+  const [slides, setSlides] = useState<HeroSlide[]>([
     {
       id: 1,
       title: "Be the Perfect Host",
@@ -17,7 +26,7 @@ const HeroSection = () => {
       price: "₹ 2,499",
       buttonText: "BUY NOW",
       backgroundColor: "#C4A484",
-      imageSrc: "/images/Home/studytable.jpg"  // Added image source
+      imageSrc: "/images/Home/studytable.jpg"
     },
     {
       id: 2,
@@ -26,7 +35,7 @@ const HeroSection = () => {
       price: "₹ 15,999",
       buttonText: "BUY NOW",
       backgroundColor: "#8B7355",
-      imageSrc: "/images/Home/furnishing.jpg" // Example image source (add your own)
+      imageSrc: "/images/Home/furnishing.jpg"
     },
     {
       id: 3,
@@ -35,9 +44,46 @@ const HeroSection = () => {
       price: "₹ 25,999",
       buttonText: "BUY NOW",
       backgroundColor: "#A68B5B",
-      imageSrc: "/images/Home/livingroom.jpg" // Example image source (add your own)
+      imageSrc: "/images/Home/livingroom.jpg"
     }
-  ];
+  ]);
+  const [loading, setLoading] = useState(true);
+  const [specialDealBanner, setSpecialDealBanner] = useState<any>(null);
+  const [mattressBanner, setMattressBanner] = useState<any>(null);
+  const [bottomBanner, setBottomBanner] = useState<any>(null);
+  const contactFormRef = useRef<HTMLFormElement>(null);
+
+  // Fetch hero section data from API
+  useEffect(() => {
+    const fetchHeroData = async () => {
+      try {
+        setLoading(true);
+        const response = await homepageAPI.getHomepageContent('hero');
+        
+        if (response.data && response.data.content) {
+          if (response.data.content.slides) {
+            setSlides(response.data.content.slides);
+          }
+          if (response.data.content.specialDealBanner) {
+            setSpecialDealBanner(response.data.content.specialDealBanner);
+          }
+          if (response.data.content.mattressBanner) {
+            setMattressBanner(response.data.content.mattressBanner);
+          }
+          if (response.data.content.bottomBanner) {
+            setBottomBanner(response.data.content.bottomBanner);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching hero section data:', error);
+        // Keep default slides if API fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHeroData();
+  }, []);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -63,9 +109,11 @@ const HeroSection = () => {
   };
 
   useEffect(() => {
-    const timer = setInterval(nextSlide, 5000);
-    return () => clearInterval(timer);
-  }, []);
+    if (slides.length > 0) {
+      const timer = setInterval(nextSlide, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [slides.length]);
 
 
 
@@ -89,7 +137,7 @@ const HeroSection = () => {
           {/* Main Carousel */}
           <div
             className={styles.mainCarousel}
-            style={{ backgroundColor: slides[currentSlide].backgroundColor }}
+            style={{ backgroundColor: slides[currentSlide]?.backgroundColor || '#C4A484' }}
           >
             {/* Navigation Arrows */}
             <button className={`${styles.navArrow} ${styles.navArrowLeft}`} onClick={prevSlide}>
@@ -108,16 +156,16 @@ const HeroSection = () => {
             <div className={styles.slideContent}>
               {/* Text Content */}
               <div className={styles.slideText}>
-                <p className={styles.slideSubtitle}>{slides[currentSlide].title}</p>
-                <h1 className={styles.slideTitle}>{slides[currentSlide].subtitle}</h1>
+                <p className={styles.slideSubtitle}>{slides[currentSlide]?.title || ''}</p>
+                <h1 className={styles.slideTitle}>{slides[currentSlide]?.subtitle || ''}</h1>
                 <div className={styles.priceSection}>
                   <p className={styles.startingFrom}>Starting From</p>
                   <div className={styles.priceContainer}>
-                    <span className={styles.price}>{slides[currentSlide].price}</span>
+                    <span className={styles.price}>{slides[currentSlide]?.price || ''}</span>
                     <span className={styles.asterisk}>*</span>
                   </div>
                 </div>
-                <button className={styles.buyNowBtn}>{slides[currentSlide].buttonText}</button>
+                <button className={styles.buyNowBtn}>{slides[currentSlide]?.buttonText || 'BUY NOW'}</button>
               </div>
 
               {/* Product Image */}
@@ -125,8 +173,8 @@ const HeroSection = () => {
                 <div className={styles.imagePlaceholder}>
                   {/* Dynamic image source */}
                   <img
-                    src={slides[currentSlide].imageSrc}
-                    alt={slides[currentSlide].subtitle}
+                    src={slides[currentSlide]?.imageSrc || ''}
+                    alt={slides[currentSlide]?.subtitle || 'Product'}
                     className={styles.productImg}
                   />
                 </div>
@@ -151,21 +199,35 @@ const HeroSection = () => {
           {/* Right Side Panels */}
           <div className={styles.rightPanels}>
             {/* Special Deal - Bedroom */}
-            <div className={styles.bedroomPanel}>
+            <div 
+              className={styles.bedroomPanel}
+              style={specialDealBanner?.backgroundImage ? {
+                backgroundImage: `url(${specialDealBanner.backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              } : {}}
+            >
               <div className={styles.bedroomContent}>
                 <div className={styles.bedroomText}>
                   {/* Special Deal Badge */}
-                  <div className={styles.specialDealBadge}>SPECIAL DEAL</div>
-                  <div className={styles.uptoText}>UPTO</div>
-                  <div className={styles.discountPrice}>₹5000 OFF</div>
-                  <div className={styles.instantDiscount}>INSTANT DISCOUNT</div>
-                  <button className={styles.bedroomBuyBtn}>BUY NOW</button>
+                  <div className={styles.specialDealBadge}>{specialDealBanner?.badgeText || 'SPECIAL DEAL'}</div>
+                  <div className={styles.uptoText}>{specialDealBanner?.uptoText || 'UPTO'}</div>
+                  <div className={styles.discountPrice}>{specialDealBanner?.discountText || '₹5000 OFF'}</div>
+                  <div className={styles.instantDiscount}>{specialDealBanner?.instantDiscountText || 'INSTANT DISCOUNT'}</div>
+                  <button className={styles.bedroomBuyBtn}>{specialDealBanner?.buttonText || 'BUY NOW'}</button>
                 </div>
               </div>
             </div>
 
             {/* Mattress Section */}
-            <div className={styles.mattressPanel}>
+            <div 
+              className={styles.mattressPanel}
+              style={mattressBanner?.backgroundImage ? {
+                backgroundImage: `url(${mattressBanner.backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              } : {}}
+            >
               {/* Ships in 2 Days Badge */}
               <div className={styles.shipsBadge}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -174,17 +236,17 @@ const HeroSection = () => {
                   <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" strokeWidth="2"/>
                   <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" strokeWidth="2"/>
                 </svg>
-                Ships in 2 Days
+                {mattressBanner?.badgeText || 'Ships in 2 Days'}
               </div>
 
               <div className={styles.mattressContent}>
                 <div className={styles.mattressText}>
-                  <h3 className={styles.mattressTitle}>MATTRESS</h3>
-                  <p className={styles.mattressSubtitle}>That Turns Sleep into Therapy</p>
+                  <h3 className={styles.mattressTitle}>{mattressBanner?.title || 'MATTRESS'}</h3>
+                  <p className={styles.mattressSubtitle}>{mattressBanner?.subtitle || 'That Turns Sleep into Therapy'}</p>
                   <div className={styles.mattressPriceSection}>
-                    <span className={styles.startingText}>Starting From</span>
-                    <div className={styles.mattressPrice}>₹9,999</div>
-                    <div className={styles.freeDelivery}>FREE Delivery Available</div>
+                    <span className={styles.startingText}>{mattressBanner?.startingText || 'Starting From'}</span>
+                    <div className={styles.mattressPrice}>{mattressBanner?.price || '₹9,999'}</div>
+                    <div className={styles.freeDelivery}>{mattressBanner?.deliveryText || 'FREE Delivery Available'}</div>
                   </div>
                 </div>
               </div>
@@ -372,11 +434,11 @@ const HeroSection = () => {
       </div>
 
 
-      {/* banner up */}
+      {/* Bottom Banner */}
       <div className={styles.bannerContainer}>
         <img
-          src="https://ii1.pepperfry.com/assets/a08eed1c-bbbd-4e8b-b381-07df5fbfe959.jpg"
-          alt="Sixpine Banner"
+          src={bottomBanner?.imageUrl || 'https://ii1.pepperfry.com/assets/a08eed1c-bbbd-4e8b-b381-07df5fbfe959.jpg'}
+          alt={bottomBanner?.altText || 'Sixpine Banner'}
           className={styles.bannerImage}
         />
       </div>

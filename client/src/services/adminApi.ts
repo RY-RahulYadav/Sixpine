@@ -122,6 +122,14 @@ export const adminAPI = {
   createCoupon: (couponData: any) => API.post('/admin/coupons/', couponData),
   updateCoupon: (id: number, couponData: any) => API.put(`/admin/coupons/${id}/`, couponData),
   deleteCoupon: (id: number) => API.delete(`/admin/coupons/${id}/`),
+  
+  // Homepage Content
+  getHomepageContent: (params?: any) => API.get('/admin/homepage-content/', { params }),
+  getHomepageContentItem: (id: number) => API.get(`/admin/homepage-content/${id}/`),
+  createHomepageContent: (contentData: any) => API.post('/admin/homepage-content/', contentData),
+  updateHomepageContent: (id: number, contentData: any) => API.put(`/admin/homepage-content/${id}/`, contentData),
+  patchHomepageContent: (id: number, contentData: any) => API.patch(`/admin/homepage-content/${id}/`, contentData),
+  deleteHomepageContent: (id: number) => API.delete(`/admin/homepage-content/${id}/`),
 };
 
 export default adminAPI;

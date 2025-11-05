@@ -395,6 +395,41 @@ def get_home_data(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def get_homepage_content(request):
+    """Get homepage content sections for public display"""
+    from admin_api.models import HomePageContent
+    
+    section_key = request.query_params.get('section_key', None)
+    
+    if section_key:
+        try:
+            content = HomePageContent.objects.get(section_key=section_key, is_active=True)
+            return Response({
+                'section_key': content.section_key,
+                'section_name': content.section_name,
+                'content': content.content,
+                'is_active': content.is_active
+            })
+        except HomePageContent.DoesNotExist:
+            return Response(
+                {'error': 'Content section not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    else:
+        # Return all active sections
+        contents = HomePageContent.objects.filter(is_active=True).order_by('order', 'section_name')
+        result = {}
+        for content in contents:
+            result[content.section_key] = {
+                'section_name': content.section_name,
+                'content': content.content,
+                'is_active': content.is_active
+            }
+        return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def get_search_suggestions(request):
     """Get search suggestions based on query"""
     query = request.GET.get('q', '').strip()

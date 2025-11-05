@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GlobalSettings, AdminLog, AdminDashboardSetting
+from .models import GlobalSettings, AdminLog, AdminDashboardSetting, HomePageContent
 
 
 @admin.register(GlobalSettings)
@@ -27,3 +27,13 @@ class AdminDashboardSettingAdmin(admin.ModelAdmin):
     list_display = ('user', 'layout_preference', 'theme_preference', 'show_notifications')
     search_fields = ('user__email', 'user__username')
     ordering = ('user',)
+
+
+@admin.register(HomePageContent)
+class HomePageContentAdmin(admin.ModelAdmin):
+    """Home Page Content admin"""
+    list_display = ('section_name', 'section_key', 'is_active', 'order', 'updated_at')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('section_name', 'section_key')
+    ordering = ('order', 'section_name')
+    readonly_fields = ('created_at', 'updated_at')

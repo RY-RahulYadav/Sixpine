@@ -24,6 +24,7 @@ urlpatterns = [
     path('products/featured/', views.get_featured_products, name='featured-products'),
     path('products/new-arrivals/', views.get_new_arrivals, name='new-arrivals'),
     path('home-data/', views.get_home_data, name='home-data'),
+    path('homepage-content/', views.get_homepage_content, name='homepage-content'),
     
     # Product reviews
     path('products/<slug:slug>/reviews/', views.ProductReviewListView.as_view(), name='product-reviews'),

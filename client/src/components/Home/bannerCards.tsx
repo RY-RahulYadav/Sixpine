@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect } from "react";
 import styles from "./bannerCards.module.css"; // Import CSS module
-import { FaChevronLeft, FaChevronRight, FaHeart, FaShoppingCart } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { homepageAPI } from '../../services/api';
+import ProductCard from './ProductCard';
 
 interface BannerCard {
   img: string;
@@ -16,25 +18,22 @@ interface Product {
   reviews: number;
   oldPrice: string;
   newPrice: string;
+  productId?: number;
+  productSlug?: string;
 }
 
-// Banner Data
-const bannerCards: BannerCard[] = [
+// Default Banner Data
+const defaultBannerCards: BannerCard[] = [
   {
-    // title: "Bohemian",
-    // text: "Explore Furniture Fused With Rich Textures & Bold Hues Where Wanderlust Meets Home",
     img: "/images/Home/bannerCards.webp",
   },
   {
-    // title: "Amberville",
-    // text: "Explore Handcrafted Pieces Inspired By Colonial Charm, Reimagined For Modern Living",
     img: "/images/Home/bannerCards.webp",
   },
-  
 ];
 
-// Slider Product Data
-const products1: Product[] = [
+// Default Slider Product Data
+const defaultProducts1: Product[] = [
   {
     img: "/images/Home/sofa1.jpg",
     title: "Elegant Sofa",
@@ -91,7 +90,7 @@ const products1: Product[] = [
   },
 ];
 
-const products2: Product[] = [
+const defaultProducts2: Product[] = [
   {
     img: "/images/Home/sofa4.jpg",
     title: "Sheesham Bed",
@@ -152,6 +151,15 @@ const BannerCards = () => {
   const slider1 = useRef<HTMLDivElement>(null);
   const slider2 = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [heading, setHeading] = useState("Crafted In India");
+  const [bannerCards, setBannerCards] = useState<BannerCard[]>(defaultBannerCards);
+  const [slider1Title, setSlider1Title] = useState("Customers frequently viewed | Popular products in the last 7 days");
+  const [slider1ViewAllUrl, setSlider1ViewAllUrl] = useState("#");
+  const [slider1Products, setSlider1Products] = useState<Product[]>(defaultProducts1);
+  const [slider2Title, setSlider2Title] = useState("Inspired by your browsing history");
+  const [slider2ViewAllUrl, setSlider2ViewAllUrl] = useState("#");
+  const [slider2Products, setSlider2Products] = useState<Product[]>(defaultProducts2);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -161,6 +169,33 @@ const BannerCards = () => {
     handleResize(); // Set initial value
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await homepageAPI.getHomepageContent('banner-cards');
+        
+        if (response.data && response.data.content) {
+          setHeading(response.data.content.heading || "Crafted In India");
+          setBannerCards(response.data.content.bannerCards || defaultBannerCards);
+          setSlider1Title(response.data.content.slider1Title || slider1Title);
+          setSlider1ViewAllUrl(response.data.content.slider1ViewAllUrl || "#");
+          setSlider1Products(response.data.content.slider1Products || defaultProducts1);
+          setSlider2Title(response.data.content.slider2Title || slider2Title);
+          setSlider2ViewAllUrl(response.data.content.slider2ViewAllUrl || "#");
+          setSlider2Products(response.data.content.slider2Products || defaultProducts2);
+        }
+      } catch (error) {
+        console.error('Error fetching banner cards data:', error);
+        // Keep default data if API fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const scroll = (ref: React.RefObject<HTMLDivElement | null>, dir: 'left' | 'right') => {
@@ -175,43 +210,32 @@ const BannerCards = () => {
 
   const renderProducts = (products: Product[]) =>
     products.map((p, idx) => (
-      <div className={styles.craftedProductCard} key={idx}>
-  <img src={p.img} alt={p.title} className={styles.productImg1} />
-  <h4 className={styles.productTitle}>{p.title}</h4>
-  <p className={styles.productDesc}>{p.desc}</p>
-  
-  <div className={styles.productRating}>
-    {"★".repeat(Math.floor(p.rating))}
-    {"☆".repeat(5 - Math.floor(p.rating))}
-    <span> ({p.reviews} reviews)</span>
-    {/* small color swatches to the right of rating (like the screenshot) */}
-    <div className={styles.colorSwatches} aria-hidden>
-      
-
-      <span className={styles.moreCount}>+3 color</span>
-    </div>
-  </div>
-  
-  <div className={styles.productPrices}>
-    <span className={styles.oldPrice}>{p.oldPrice}</span>
-    <span className={styles.newPrice}>{p.newPrice}</span>
-  </div>
-
-  {/* Button + Icons ek row me */}
-  <div className={styles.actionRow}>
-    <button className={styles.buyBtn}>Buy Now</button>
-    <div className={styles.productIcons}>
-      <FaHeart /> <FaShoppingCart />
-    </div>
-  </div>
-</div>
-
+      <ProductCard
+        key={idx}
+        id={p.id || idx}
+        title={p.title}
+        desc={p.desc}
+        img={p.img}
+        image={p.img}
+        rating={p.rating}
+        reviews={p.reviews}
+        price={p.newPrice}
+        oldPrice={p.oldPrice}
+        newPrice={p.newPrice}
+        productSlug={p.productSlug}
+      />
     ));
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
+    );
+  }
 
   return (
     <div className={styles.craftedContainer}>
       {/* Banner Section */}
-      <h3 className={styles.craftedHeading}>Crafted In India</h3>
+      <h3 className={styles.craftedHeading}>{heading}</h3>
       <div className={styles.craftedBanner}>
         {bannerCards.map((b, i) => (
           <div
@@ -230,17 +254,17 @@ const BannerCards = () => {
       {/* Slider 1 */}
       <div className={styles.craftedSliderSection}>
         <div className={styles.sectionHeader}>
-          <h3 className={styles.sliderTitle}>Customers frequently viewed | Popular products in the last 7 days</h3>
-          <button className={styles.viewAllBtn}>
+          <h3 className={styles.sliderTitle}>{slider1Title}</h3>
+          <a href={slider1ViewAllUrl} className={styles.viewAllBtn}>
             View All <FaChevronRight />
-          </button>
+          </a>
         </div>
         <div className={styles.sliderWrapper}>
           <button className={`${styles.sliderArrow} ${styles.left}`} onClick={() => scroll(slider1, "left")}>
             <FaChevronLeft />
           </button>
           <div className={styles.craftedSlider} ref={slider1}>
-            {renderProducts(products1)}
+            {renderProducts(slider1Products)}
           </div>
           <button className={`${styles.sliderArrow} ${styles.right}`} onClick={() => scroll(slider1, "right")}>
             <FaChevronRight />
@@ -251,17 +275,17 @@ const BannerCards = () => {
       {/* Slider 2 */}
       <div className={styles.craftedSliderSection}>
         <div className={styles.sectionHeader}>
-          <h3 className={styles.sliderTitle}>Inspired by your browsing history</h3>
-          <button className={styles.viewAllBtn}>
+          <h3 className={styles.sliderTitle}>{slider2Title}</h3>
+          <a href={slider2ViewAllUrl} className={styles.viewAllBtn}>
             View All <FaChevronRight />
-          </button>
+          </a>
         </div>
         <div className={styles.sliderWrapper}>
           <button className={`${styles.sliderArrow} ${styles.left}`} onClick={() => scroll(slider2, "left")}>
             <FaChevronLeft />
           </button>
           <div className={styles.craftedSlider} ref={slider2}>
-            {renderProducts(products2)}
+            {renderProducts(slider2Products)}
           </div>
           <button className={`${styles.sliderArrow} ${styles.right}`} onClick={() => scroll(slider2, "right")}>
             <FaChevronRight />

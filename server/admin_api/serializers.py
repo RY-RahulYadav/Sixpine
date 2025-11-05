@@ -8,7 +8,7 @@ from products.models import (
 )
 from orders.models import Order, OrderItem, OrderStatusHistory, OrderNote
 from accounts.models import ContactQuery, BulkOrder
-from .models import GlobalSettings, AdminLog
+from .models import GlobalSettings, AdminLog, HomePageContent
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import timedelta
@@ -828,4 +828,22 @@ class AdminCouponSerializer(serializers.ModelSerializer):
         if obj.usage_limit:
             return obj.usage_limit - obj.used_count
         return None
+
+
+# ==================== Home Page Content Serializers ====================
+class HomePageContentSerializer(serializers.ModelSerializer):
+    """Serializer for home page content sections"""
+    class Meta:
+        model = HomePageContent
+        fields = [
+            'id', 'section_key', 'section_name', 'content',
+            'is_active', 'order', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def validate_content(self, value):
+        """Validate that content is a dict"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Content must be a JSON object")
+        return value
 

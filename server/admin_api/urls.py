@@ -5,7 +5,8 @@ from .views import (
     AdminSubcategoryViewSet, AdminColorViewSet, AdminMaterialViewSet,
     AdminProductViewSet, AdminOrderViewSet, AdminDiscountViewSet,
     AdminCouponViewSet, payment_charges_settings, global_settings,
-    AdminContactQueryViewSet, AdminBulkOrderViewSet, AdminLogViewSet
+    AdminContactQueryViewSet, AdminBulkOrderViewSet, AdminLogViewSet,
+    AdminHomePageContentViewSet
 )
 from .auth import admin_login_view
 
@@ -22,6 +23,7 @@ router.register(r'coupons', AdminCouponViewSet, basename='admin-coupons')
 router.register(r'contact-queries', AdminContactQueryViewSet, basename='admin-contact-queries')
 router.register(r'bulk-orders', AdminBulkOrderViewSet, basename='admin-bulk-orders')
 router.register(r'logs', AdminLogViewSet, basename='admin-logs')
+router.register(r'homepage-content', AdminHomePageContentViewSet, basename='admin-homepage-content')
 
 urlpatterns = [
     path('auth/login/', admin_login_view, name='admin-login'),

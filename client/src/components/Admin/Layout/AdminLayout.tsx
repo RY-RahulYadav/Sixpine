@@ -56,6 +56,7 @@ const AdminLayout: React.FC = () => {
     { path: '/admin/coupons', icon: 'local_offer', label: 'Coupons', section: 'settings' },
     { path: '/admin/filter-options', icon: 'tune', label: 'Filter Options', section: 'settings' },
     { path: '/admin/payment-charges', icon: 'payments', label: 'Payment & Charges', section: 'settings' },
+    { path: '/admin/homepage', icon: 'home', label: 'Home Page', section: 'settings' },
     { path: '/admin/settings', icon: 'settings', label: 'Settings', section: 'settings' },
   ];
   

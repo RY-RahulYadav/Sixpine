@@ -23,6 +23,7 @@ import BrandAnalytics from './Analytics/BrandAnalytics';
 import AdminContactQueries from './ContactQueries/AdminContactQueries';
 import AdminBulkOrders from './BulkOrders/AdminBulkOrders';
 import AdminLogs from './Logs/AdminLogs';
+import AdminHomePageManagement from './HomePageManagement/AdminHomePageManagement';
 
 const AdminRouter = () => {
   const { state } = useApp();
@@ -76,6 +77,7 @@ const AdminRouter = () => {
         <Route path="contact-queries" element={<AdminContactQueries />} />
         <Route path="bulk-orders" element={<AdminBulkOrders />} />
         <Route path="logs" element={<AdminLogs />} />
+        <Route path="homepage" element={<AdminHomePageManagement />} />
       </Route>
     </Routes>
   );

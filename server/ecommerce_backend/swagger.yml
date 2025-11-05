@@ -42,6 +42,18 @@ tags:
     description: Admin category management operations
   - name: Admin - Logs
     description: Admin action logs and audit trail
+  - name: Admin - Payment & Charges
+    description: Admin payment charges and settings management
+  - name: Admin - Contact Queries
+    description: Admin contact query management
+  - name: Admin - Bulk Orders
+    description: Admin bulk order management
+  - name: Admin - Coupons
+    description: Admin coupon management
+  - name: Browsing History
+    description: User browsing history tracking
+  - name: Payment Preferences
+    description: User payment preferences and saved cards
 
 components:
   securitySchemes:
@@ -406,6 +418,282 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
 
+  /auth/register/request-otp/:
+    post:
+      tags:
+        - Authentication
+      summary: Request OTP for registration
+      description: Request OTP via email or WhatsApp for user registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - password_confirm
+              properties:
+                username:
+                  type: string
+                  example: "tusharjidal"
+                email:
+                  type: string
+                  format: email
+                  example: "tushar@example.com"
+                first_name:
+                  type: string
+                  example: "Tushar"
+                last_name:
+                  type: string
+                  example: "Jidal"
+                password:
+                  type: string
+                  format: password
+                  example: "SecurePass123!"
+                password_confirm:
+                  type: string
+                  format: password
+                  example: "SecurePass123!"
+                mobile:
+                  type: string
+                  example: "+919876543210"
+                otp_method:
+                  type: string
+                  enum: [email, whatsapp]
+                  example: "email"
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent to your email"
+                  otp_sent:
+                    type: boolean
+                    example: true
+
+  /auth/register/verify-otp/:
+    post:
+      tags:
+        - Authentication
+      summary: Verify OTP and complete registration
+      description: Verify OTP and create user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otp
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "tushar@example.com"
+                otp:
+                  type: string
+                  example: "123456"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User registered successfully"
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+
+  /auth/password-reset/request/:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: Request password reset OTP via email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "tushar@example.com"
+      responses:
+        '200':
+          description: Password reset OTP sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset OTP sent to your email"
+
+  /auth/password-reset/confirm/:
+    post:
+      tags:
+        - Authentication
+      summary: Confirm password reset
+      description: Verify OTP and reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - new_password
+                - new_password_confirm
+              properties:
+                token:
+                  type: string
+                  example: "reset_token_here"
+                new_password:
+                  type: string
+                  format: password
+                  example: "NewSecurePass123!"
+                new_password_confirm:
+                  type: string
+                  format: password
+                  example: "NewSecurePass123!"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+
+  /auth/payment-preferences/:
+    get:
+      tags:
+        - Payment Preferences
+      summary: Get payment preferences
+      description: Get user's payment preferences and saved cards
+      security:
+        - TokenAuth: []
+      responses:
+        '200':
+          description: Payment preferences retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  default_payment_method:
+                    type: string
+                    example: "razorpay"
+                  saved_cards:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        token_id:
+                          type: string
+                        card_number:
+                          type: string
+                        card_holder_name:
+                          type: string
+                        expiry_month:
+                          type: integer
+                        expiry_year:
+                          type: integer
+
+    put:
+      tags:
+        - Payment Preferences
+      summary: Update payment preferences
+      description: Update user's payment preferences
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                default_payment_method:
+                  type: string
+                  enum: [razorpay, cod]
+                  example: "razorpay"
+      responses:
+        '200':
+          description: Payment preferences updated
+
+  /auth/payment-preferences/saved-cards/:
+    get:
+      tags:
+        - Payment Preferences
+      summary: Get saved cards
+      description: Get user's saved payment cards
+      security:
+        - TokenAuth: []
+      responses:
+        '200':
+          description: Saved cards retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    token_id:
+                      type: string
+                    card_number:
+                      type: string
+                    card_holder_name:
+                      type: string
+                    expiry_month:
+                      type: integer
+                    expiry_year:
+                      type: integer
+
+  /auth/payment-preferences/saved-cards/{token_id}/delete/:
+    delete:
+      tags:
+        - Payment Preferences
+      summary: Delete saved card
+      description: Delete a saved payment card
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: token_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "card_token_123"
+      responses:
+        '200':
+          description: Card deleted successfully
+
   # ==================== Products ====================
   /products/:
     get:
@@ -513,6 +801,122 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Product'
+
+  # ==================== Browsing History ====================
+  /browsing-history/track/:
+    post:
+      tags:
+        - Browsing History
+      summary: Track product view
+      description: Record a product view in user's browsing history
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+              properties:
+                product_id:
+                  type: integer
+                  example: 5
+      responses:
+        '201':
+          description: Product view tracked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Product view tracked"
+
+  /browsing-history/:
+    get:
+      tags:
+        - Browsing History
+      summary: Get browsing history
+      description: Get user's browsing history
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          example: 20
+          description: Maximum number of items to return
+      responses:
+        '200':
+          description: Browsing history retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    product:
+                      $ref: '#/components/schemas/Product'
+                    viewed_at:
+                      type: string
+                      format: date-time
+
+    delete:
+      tags:
+        - Browsing History
+      summary: Clear browsing history
+      description: Clear all or specific product from browsing history
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: product_id
+          in: query
+          schema:
+            type: integer
+          description: Optional product ID to clear specific product
+      responses:
+        '200':
+          description: Browsing history cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Browsing history cleared"
+
+  /browsing-history/categories/:
+    get:
+      tags:
+        - Browsing History
+      summary: Get browsed categories
+      description: Get categories based on browsing history
+      security:
+        - TokenAuth: []
+      responses:
+        '200':
+          description: Browsed categories retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    category_id:
+                      type: integer
+                    category_name:
+                      type: string
+                    browsed_product_count:
+                      type: integer
 
   # ==================== Cart ====================
   /cart/:
@@ -1067,6 +1471,140 @@ paths:
                   error:
                     type: string
                     example: "Order cannot be cancelled at this stage"
+
+  /orders/razorpay/create-order/:
+    post:
+      tags:
+        - Orders
+      summary: Create Razorpay order
+      description: Create a Razorpay order for payment
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+              properties:
+                amount:
+                  type: number
+                  example: 94498.95
+                currency:
+                  type: string
+                  example: "INR"
+                order_id:
+                  type: string
+                  format: uuid
+                  example: "b7b77505-0987-40f9-9dc8-6422781367a7"
+      responses:
+        '200':
+          description: Razorpay order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  razorpay_order_id:
+                    type: string
+                    example: "order_1234567890"
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+
+  /orders/razorpay/verify-payment/:
+    post:
+      tags:
+        - Orders
+      summary: Verify Razorpay payment
+      description: Verify Razorpay payment signature
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - razorpay_order_id
+                - razorpay_payment_id
+                - razorpay_signature
+              properties:
+                razorpay_order_id:
+                  type: string
+                  example: "order_1234567890"
+                razorpay_payment_id:
+                  type: string
+                  example: "pay_1234567890"
+                razorpay_signature:
+                  type: string
+                  example: "signature_here"
+                order_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Payment verified successfully
+
+  /coupons/validate/:
+    post:
+      tags:
+        - Orders
+      summary: Validate coupon code
+      description: Validate a coupon code and get discount details
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - coupon_code
+                - order_amount
+              properties:
+                coupon_code:
+                  type: string
+                  example: "SAVE20"
+                order_amount:
+                  type: number
+                  example: 1000.00
+      responses:
+        '200':
+          description: Coupon validated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: true
+                  discount_amount:
+                    type: number
+                    example: 200.00
+                  discount_percentage:
+                    type: number
+                    example: 20
+                  final_amount:
+                    type: number
+                    example: 800.00
+        '400':
+          description: Invalid coupon
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid or expired coupon code"
 
   # ==================== Wishlist ====================
   /wishlist/:
@@ -1860,6 +2398,175 @@ paths:
         '201':
           description: Note added
 
+  # ==================== Admin Payment & Charges ====================
+  /admin-api/payment-charges/:
+    get:
+      tags:
+        - Admin - Payment & Charges
+      summary: Get payment charges settings
+      description: Get current payment charges configuration including payment method enable/disable settings
+      security:
+        - TokenAuth: []
+      responses:
+        '200':
+          description: Payment charges retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  platform_fee_upi:
+                    type: number
+                    format: decimal
+                    example: 0.00
+                    description: Platform fee percentage for UPI payments
+                  platform_fee_card:
+                    type: number
+                    format: decimal
+                    example: 2.36
+                    description: Platform fee percentage for Credit/Debit Card payments
+                  platform_fee_netbanking:
+                    type: number
+                    format: decimal
+                    example: 2.36
+                    description: Platform fee percentage for Net Banking payments
+                  platform_fee_cod:
+                    type: number
+                    format: decimal
+                    example: 0.00
+                    description: Platform fee percentage for COD payments
+                  tax_rate:
+                    type: number
+                    format: decimal
+                    example: 5.00
+                    description: Tax rate percentage applied to orders
+                  razorpay_enabled:
+                    type: boolean
+                    example: true
+                    description: Enable/disable Razorpay payment gateway (online payments)
+                  cod_enabled:
+                    type: boolean
+                    example: true
+                    description: Enable/disable Cash on Delivery payment method
+
+    put:
+      tags:
+        - Admin - Payment & Charges
+      summary: Update payment charges settings
+      description: |
+        Update payment charges configuration and enable/disable payment methods.
+        Use razorpay_enabled to enable/disable Razorpay (online payments).
+        Use cod_enabled to enable/disable Cash on Delivery.
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platform_fee_upi:
+                  type: number
+                  format: decimal
+                  example: 0.00
+                  description: "Platform fee percentage for UPI payments (Razorpay: 0%)"
+                platform_fee_card:
+                  type: number
+                  format: decimal
+                  example: 2.36
+                  description: "Platform fee percentage for Credit/Debit Card payments (Razorpay: 2.36% including GST)"
+                platform_fee_netbanking:
+                  type: number
+                  format: decimal
+                  example: 2.36
+                  description: "Platform fee percentage for Net Banking payments (Razorpay: 2.36% including GST)"
+                platform_fee_cod:
+                  type: number
+                  format: decimal
+                  example: 0.00
+                  description: "Platform fee percentage for COD payments (Cash on Delivery: 0%)"
+                tax_rate:
+                  type: number
+                  format: decimal
+                  example: 5.00
+                  description: Tax rate percentage applied to orders
+                razorpay_enabled:
+                  type: boolean
+                  example: true
+                  description: "Enable/disable Razorpay payment gateway. When false, users cannot use online payment methods (Razorpay, Card, UPI, Net Banking)"
+                cod_enabled:
+                  type: boolean
+                  example: true
+                  description: "Enable/disable Cash on Delivery payment method. When false, users cannot select COD at checkout"
+            examples:
+              enable_razorpay_disable_cod:
+                summary: Enable Razorpay, disable COD
+                value:
+                  platform_fee_upi: 0.00
+                  platform_fee_card: 2.36
+                  platform_fee_netbanking: 2.36
+                  platform_fee_cod: 0.00
+                  tax_rate: 5.00
+                  razorpay_enabled: true
+                  cod_enabled: false
+              enable_both:
+                summary: Enable both payment methods
+                value:
+                  platform_fee_upi: 0.00
+                  platform_fee_card: 2.36
+                  platform_fee_netbanking: 2.36
+                  platform_fee_cod: 0.00
+                  tax_rate: 5.00
+                  razorpay_enabled: true
+                  cod_enabled: true
+              disable_razorpay_enable_cod:
+                summary: Disable Razorpay, enable COD only
+                value:
+                  platform_fee_upi: 0.00
+                  platform_fee_card: 2.36
+                  platform_fee_netbanking: 2.36
+                  platform_fee_cod: 0.00
+                  tax_rate: 5.00
+                  razorpay_enabled: false
+                  cod_enabled: true
+      responses:
+        '200':
+          description: Payment charges updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Settings updated successfully"
+                  platform_fee_upi:
+                    type: number
+                    format: decimal
+                  platform_fee_card:
+                    type: number
+                    format: decimal
+                  platform_fee_netbanking:
+                    type: number
+                    format: decimal
+                  platform_fee_cod:
+                    type: number
+                    format: decimal
+                  tax_rate:
+                    type: number
+                    format: decimal
+                  razorpay_enabled:
+                    type: boolean
+                  cod_enabled:
+                    type: boolean
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   # ==================== Admin Categories ====================
   /admin-api/categories/:
     get:
@@ -2054,3 +2761,480 @@ paths:
                         created_at:
                           type: string
                           format: date-time
+
+  # ==================== Admin Contact Queries ====================
+  /admin-api/contact-queries/:
+    get:
+      tags:
+        - Admin - Contact Queries
+      summary: List contact queries
+      description: Get all contact queries with filtering options
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, in_progress, resolved, closed]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Contact queries retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        full_name:
+                          type: string
+                        email:
+                          type: string
+                        phone_number:
+                          type: string
+                        message:
+                          type: string
+                        status:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+
+  /admin-api/contact-queries/{id}/:
+    get:
+      tags:
+        - Admin - Contact Queries
+      summary: Get contact query details
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Contact query details retrieved
+
+    put:
+      tags:
+        - Admin - Contact Queries
+      summary: Update contact query
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, in_progress, resolved, closed]
+                admin_notes:
+                  type: string
+      responses:
+        '200':
+          description: Contact query updated
+
+    delete:
+      tags:
+        - Admin - Contact Queries
+      summary: Delete contact query
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Contact query deleted
+
+  /admin-api/contact-queries/{id}/update_status/:
+    post:
+      tags:
+        - Admin - Contact Queries
+      summary: Update contact query status
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, in_progress, resolved, closed]
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+
+  # ==================== Admin Bulk Orders ====================
+  /admin-api/bulk-orders/:
+    get:
+      tags:
+        - Admin - Bulk Orders
+      summary: List bulk orders
+      description: Get all bulk orders with filtering options
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, quoted, accepted, rejected, completed]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bulk orders retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        company_name:
+                          type: string
+                        contact_person:
+                          type: string
+                        email:
+                          type: string
+                        phone_number:
+                          type: string
+                        status:
+                          type: string
+                        quoted_price:
+                          type: number
+                          nullable: true
+                        created_at:
+                          type: string
+                          format: date-time
+
+  /admin-api/bulk-orders/{id}/:
+    get:
+      tags:
+        - Admin - Bulk Orders
+      summary: Get bulk order details
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Bulk order details retrieved
+
+    put:
+      tags:
+        - Admin - Bulk Orders
+      summary: Update bulk order
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                quoted_price:
+                  type: number
+                admin_notes:
+                  type: string
+      responses:
+        '200':
+          description: Bulk order updated
+
+    delete:
+      tags:
+        - Admin - Bulk Orders
+      summary: Delete bulk order
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Bulk order deleted
+
+  /admin-api/bulk-orders/{id}/update_status/:
+    post:
+      tags:
+        - Admin - Bulk Orders
+      summary: Update bulk order status
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, quoted, accepted, rejected, completed]
+                notes:
+                  type: string
+                quoted_price:
+                  type: number
+      responses:
+        '200':
+          description: Status updated
+
+  # ==================== Admin Coupons ====================
+  /admin-api/coupons/:
+    get:
+      tags:
+        - Admin - Coupons
+      summary: List all coupons
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Coupons retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        code:
+                          type: string
+                        description:
+                          type: string
+                        discount_type:
+                          type: string
+                          enum: [percentage, fixed]
+                        discount_value:
+                          type: number
+                        min_order_amount:
+                          type: number
+                        valid_from:
+                          type: string
+                          format: date-time
+                        valid_until:
+                          type: string
+                          format: date-time
+                        is_active:
+                          type: boolean
+                        usage_limit:
+                          type: integer
+                        used_count:
+                          type: integer
+
+    post:
+      tags:
+        - Admin - Coupons
+      summary: Create new coupon
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - discount_type
+                - discount_value
+              properties:
+                code:
+                  type: string
+                  example: "SAVE20"
+                description:
+                  type: string
+                  example: "20% off on all products"
+                discount_type:
+                  type: string
+                  enum: [percentage, fixed]
+                  example: "percentage"
+                discount_value:
+                  type: number
+                  example: 20.0
+                min_order_amount:
+                  type: number
+                  example: 1000.00
+                max_discount_amount:
+                  type: number
+                  example: 500.00
+                valid_from:
+                  type: string
+                  format: date-time
+                valid_until:
+                  type: string
+                  format: date-time
+                is_active:
+                  type: boolean
+                  example: true
+                usage_limit:
+                  type: integer
+                  example: 100
+                one_time_use_per_user:
+                  type: boolean
+                  example: false
+      responses:
+        '201':
+          description: Coupon created
+
+  /admin-api/coupons/{id}/:
+    get:
+      tags:
+        - Admin - Coupons
+      summary: Get coupon details
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Coupon details retrieved
+
+    put:
+      tags:
+        - Admin - Coupons
+      summary: Update coupon
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                description:
+                  type: string
+                discount_type:
+                  type: string
+                discount_value:
+                  type: number
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Coupon updated
+
+    delete:
+      tags:
+        - Admin - Coupons
+      summary: Delete coupon
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Coupon deleted
