@@ -164,7 +164,7 @@ const AdminLayout: React.FC = () => {
             )}
             
             {/* Page Management Section */}
-            {groupedMenuItems.page_management.length > 0 && (
+            {/* {groupedMenuItems.page_management.length > 0 && (
               <div className="admin-menu-section">
                 <div className="admin-menu-title">Page Management</div>
                 {groupedMenuItems.page_management.map((item) => {
@@ -181,7 +181,7 @@ const AdminLayout: React.FC = () => {
                   );
                 })}
               </div>
-            )}
+            )} */}
             
             {/* Analytics Section */}
             {groupedMenuItems.analytics.length > 0 && (

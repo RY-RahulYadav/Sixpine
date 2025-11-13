@@ -6,6 +6,8 @@ import { useApp } from '../context/AppContext';
 import { addressAPI, homepageAPI } from '../services/api';
 import styles from '../styles/AddressesPage.module.css';
 import Productdetails_Slider1 from "../components/Products_Details/productdetails_slider1";
+import SubNav from '../components/SubNav';
+import CategoryTabs from '../components/CategoryTabs';
 
 // Product interface matching the slider component
 interface Product {
@@ -236,6 +238,10 @@ const AddressesPage: React.FC = () => {
   return (
     <>
       <Navbar />
+      <div className="page-content">
+        <SubNav/>
+        <CategoryTabs />
+      </div>
       <div className={styles.container}>
         {/* Breadcrumb */}
         <div className={styles.breadcrumb}>
