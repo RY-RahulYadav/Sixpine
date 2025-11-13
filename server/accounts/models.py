@@ -248,3 +248,84 @@ class DataRequest(models.Model):
     
     def __str__(self):
         return f"{self.user.email} - {self.get_request_type_display()} ({self.status})"
+
+
+class Vendor(models.Model):
+    """Vendor/Seller model for multi-vendor e-commerce platform"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('active', 'Active'),
+        ('suspended', 'Suspended'),
+        ('inactive', 'Inactive'),
+    ]
+    
+    # One-to-one relationship with User
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vendor_profile')
+    
+    # Business Information (all optional - can be filled later in seller panel)
+    business_name = models.CharField(max_length=200, blank=True, null=True)
+    business_email = models.EmailField(unique=True, blank=True, null=True)
+    business_phone = models.CharField(max_length=15, blank=True, null=True)
+    business_address = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
+    country = models.CharField(max_length=100, default='India', blank=True, null=True)
+    
+    # Tax Information
+    gst_number = models.CharField(max_length=50, blank=True, null=True)
+    pan_number = models.CharField(max_length=50, blank=True, null=True)
+    business_type = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Brand Information
+    brand_name = models.CharField(max_length=100, blank=True, null=True, help_text='Brand name to display on products')
+    
+    # Status and Verification
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_verified = models.BooleanField(default=False)
+    
+    # Commission
+    commission_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0.0,
+        help_text='Platform commission percentage'
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    approved_at = models.DateTimeField(blank=True, null=True)
+    approved_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        blank=True, 
+        null=True, 
+        related_name='approved_vendors'
+    )
+    
+    class Meta:
+        db_table = 'vendors'
+        verbose_name = 'Vendor'
+        verbose_name_plural = 'Vendors'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.brand_name} ({self.business_name})"
+    
+    # Shipment Address (separate from business address)
+    shipment_address = models.TextField(blank=True, null=True, help_text='Address for shipping orders')
+    shipment_city = models.CharField(max_length=100, blank=True, null=True)
+    shipment_state = models.CharField(max_length=100, blank=True, null=True)
+    shipment_pincode = models.CharField(max_length=10, blank=True, null=True)
+    shipment_country = models.CharField(max_length=100, default='India', blank=True, null=True)
+    shipment_latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, help_text='Latitude for geolocation')
+    shipment_longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, help_text='Longitude for geolocation')
+    
+    # Low Stock Threshold (vendor-specific)
+    low_stock_threshold = models.PositiveIntegerField(default=100, help_text='Products with total stock below this value will be considered low stock')
+    
+    @property
+    def is_active(self):
+        """Check if vendor is active"""
+        return self.status == 'active' and self.is_verified

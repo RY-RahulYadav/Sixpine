@@ -19,6 +19,7 @@ urlpatterns = [
     path('colors/', views.ColorListView.as_view(), name='color-list'),
     path('materials/', views.MaterialListView.as_view(), name='material-list'),
     path('filter-options/', views.get_filter_options, name='filter-options'),
+    path('brands/', views.get_brands, name='brands-list'),
     
     # Special product lists
     path('products/featured/', views.get_featured_products, name='featured-products'),

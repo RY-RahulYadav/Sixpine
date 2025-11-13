@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
 import Footer from '../components/Footer';
-import { productAPI, authAPI } from '../services/api';
+import { productAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import '../styles/productList.css';
 import '../styles/productListModern.css';
@@ -100,6 +100,7 @@ const ProductListPage: React.FC = () => {
   const [hasNext, setHasNext] = useState<boolean>(false);
   const [hasPrevious, setHasPrevious] = useState<boolean>(false);
   const [selectedFilters, setSelectedFilters] = useState({
+    brand: '' as string,
     category: '' as string,
     subcategory: '' as string,
     colors: [] as string[],
@@ -108,6 +109,8 @@ const ProductListPage: React.FC = () => {
     rating: null as number | null,
     discount: null as number | null,
   });
+  
+  const [brands, setBrands] = useState<any[]>([]);
   
   const [filterOptions, setFilterOptions] = useState({
     categories: [] as any[],
@@ -123,12 +126,25 @@ const ProductListPage: React.FC = () => {
 
   const [sortBy, setSortBy] = useState('featured');
   // Only list/tile view is supported now — default to 'list'
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode] = useState<'grid' | 'list'>('list');
 
-  // Fetch filter options only once on component mount
+  // Fetch brands on component mount
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await productAPI.getBrands();
+        setBrands(response.data || []);
+      } catch (error) {
+        console.error('Fetch brands error:', error);
+      }
+    };
+    fetchBrands();
+  }, []);
+
+  // Fetch filter options when component mounts or brand changes
   useEffect(() => {
     fetchFilterOptions();
-  }, []);
+  }, [selectedFilters.brand]);
 
   // Sync URL category param to selectedFilters when component mounts or category param changes
   useEffect(() => {
@@ -158,8 +174,30 @@ const ProductListPage: React.FC = () => {
 
   const fetchFilterOptions = async () => {
     try {
-      const response = await productAPI.getFilterOptions();
-      setFilterOptions(response.data || {});
+      const params: any = {};
+      if (selectedFilters.brand) {
+        params.vendor = selectedFilters.brand;
+      }
+      const response = await productAPI.getFilterOptions(params);
+      const data = response.data || {};
+      
+      // Update price range if vendor-specific options are returned
+      if (data.priceRange) {
+        setFilterOptions({
+          ...data,
+          priceRange: {
+            min_price: data.priceRange.min_price || 135,
+            max_price: data.priceRange.max_price || 25000
+          }
+        });
+        // Update selected price range to match vendor's range
+        setSelectedFilters(prev => ({
+          ...prev,
+          priceRange: [data.priceRange.min_price || 135, data.priceRange.max_price || 25000]
+        }));
+      } else {
+        setFilterOptions(data);
+      }
     } catch (error) {
       console.error('Fetch filter options error:', error);
     }
@@ -238,6 +276,11 @@ const ProductListPage: React.FC = () => {
         params.min_discount = selectedFilters.discount;
       }
 
+      // Add vendor filter
+      if (selectedFilters.brand) {
+        params.vendor = selectedFilters.brand;
+      }
+
       // Add sorting
       switch (sortBy) {
         case 'price_low':
@@ -304,7 +347,7 @@ const ProductListPage: React.FC = () => {
       const productId = Number(product.id);
       // Use first variant if product has variants, otherwise no variant
       const firstVariant = getFirstVariant(product);
-      const variantId = firstVariant?.id || null;
+      const variantId = firstVariant?.id || undefined;
       
       await addToCart(productId, 1, variantId);
       // Sidebar will open automatically via context
@@ -329,7 +372,7 @@ const ProductListPage: React.FC = () => {
       const productId = Number(product.id);
       // Use first variant if product has variants, otherwise no variant
       const firstVariant = getFirstVariant(product);
-      const variantId = firstVariant?.id || null;
+      const variantId = firstVariant?.id || undefined;
       
       // Add to cart then navigate to cart/checkout
       await addToCart(productId, 1, variantId);
@@ -456,6 +499,39 @@ const ProductListPage: React.FC = () => {
                       >
                         <i className="bi bi-x-lg"></i>
                       </button>
+                    </div>
+
+                    {/* Brand Filter */}
+                    <div className="filter-section">
+                      <h6 className="filter-title">
+                        <i className="bi bi-shop me-2"></i>
+                        Brand
+                      </h6>
+                      <div className="select-with-icon">
+                        <select
+                          className="form-select filter-select"
+                          value={selectedFilters.brand}
+                          onChange={(e) => {
+                            handleFilterChange('brand', e.target.value);
+                            // Reset other filters when brand changes
+                            setSelectedFilters(prev => ({
+                              ...prev,
+                              brand: e.target.value,
+                              category: '',
+                              subcategory: '',
+                              colors: [],
+                              materials: [],
+                            }));
+                          }}
+                        >
+                          <option value="">All Brands</option>
+                          {brands.map((brand) => (
+                            <option key={brand.id} value={brand.id}>
+                              {brand.brand_name || brand.business_name || `Brand ${brand.id}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     {/* Category Filter */}
@@ -690,6 +766,7 @@ const ProductListPage: React.FC = () => {
                         className="btn-clear-filters"
                         onClick={() => {
                           setSelectedFilters({
+                            brand: '',
                             category: '',
                             subcategory: '',
                             colors: [],
@@ -721,6 +798,7 @@ const ProductListPage: React.FC = () => {
                         className="btn-reset"
                         onClick={() => {
                           setSelectedFilters({
+                            brand: '',
                             category: '',
                             subcategory: '',
                             colors: [],
@@ -740,7 +818,7 @@ const ProductListPage: React.FC = () => {
                       {products.map((product) => {
                         // Get first variant for display
                         const firstVariant = getFirstVariant(product);
-                        const displayImage = firstVariant?.image || firstVariant?.images?.[0]?.image || product.main_image || '/placeholder-image.jpg';
+                        const displayImage = product.main_image || '/placeholder-image.jpg';
                         const displayPrice = firstVariant?.price || product.price;
                         const displayOldPrice = firstVariant?.old_price || product.old_price;
                         const isOutOfStock = firstVariant ? !firstVariant.is_in_stock : false;

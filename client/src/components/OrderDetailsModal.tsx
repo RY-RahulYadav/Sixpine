@@ -183,7 +183,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
         completed: ['processing', 'shipped', 'delivered'].includes(order.status),
         current: order.status === 'processing',
         failed: false,
-        date: null
+        date: null as string | null
       },
       {
         key: 'shipped',
@@ -191,7 +191,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
         completed: ['shipped', 'delivered'].includes(order.status),
         current: order.status === 'shipped',
         failed: false,
-        date: null
+        date: null as string | null
       },
       {
         key: 'delivered',
@@ -211,6 +211,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
           label: 'Payment Success',
           completed: false,
           current: false,
+          failed: false,
           date: null
         },
         {
@@ -218,6 +219,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, show, on
           label: 'Cancelled',
           completed: true,
           current: false,
+          failed: false,
           date: order.updated_at
         }
       ];

@@ -512,7 +512,18 @@ def verify_razorpay_payment(request):
                 coupon = Coupon.objects.get(id=coupon_id)
                 can_use, message = coupon.can_be_used_by_user(request.user)
                 if can_use:
-                    discount_amount, _ = coupon.calculate_discount(subtotal)
+                    # If coupon is vendor-specific, calculate discount only on vendor's products
+                    if coupon.vendor:
+                        vendor_subtotal = Decimal('0.00')
+                        for cart_item in cart.items.all():
+                            if cart_item.product.vendor and cart_item.product.vendor.id == coupon.vendor.id:
+                                price = cart_item.product.price
+                                if cart_item.variant and cart_item.variant.price:
+                                    price = cart_item.variant.price
+                                vendor_subtotal += price * cart_item.quantity
+                        discount_amount, _ = coupon.calculate_discount(subtotal, vendor_subtotal)
+                    else:
+                        discount_amount, _ = coupon.calculate_discount(subtotal)
                     coupon_discount = Decimal(str(discount_amount))
                 # Don't increment usage for failed verification
             except Coupon.DoesNotExist:
@@ -617,7 +628,25 @@ def verify_razorpay_payment(request):
             coupon = Coupon.objects.get(id=coupon_id)
             can_use, message = coupon.can_be_used_by_user(request.user)
             if can_use:
-                discount_amount, _ = coupon.calculate_discount(subtotal)
+                # If coupon is vendor-specific, calculate discount only on vendor's products
+                if coupon.vendor:
+                    vendor_subtotal = Decimal('0.00')
+                    for cart_item in cart.items.all():
+                        if cart_item.product.vendor and cart_item.product.vendor.id == coupon.vendor.id:
+                            price = cart_item.product.price
+                            if cart_item.variant and cart_item.variant.price:
+                                price = cart_item.variant.price
+                            vendor_subtotal += price * cart_item.quantity
+                    
+                    if vendor_subtotal == 0:
+                        return Response({
+                            'error': f'This coupon applies only to products from {coupon.vendor.brand_name}. Please add products from this vendor to your cart.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    discount_amount, _ = coupon.calculate_discount(subtotal, vendor_subtotal)
+                else:
+                    discount_amount, _ = coupon.calculate_discount(subtotal)
+                
                 coupon_discount = Decimal(str(discount_amount))
                 # Update coupon usage
                 coupon.used_count += 1
@@ -679,11 +708,15 @@ def verify_razorpay_payment(request):
         if cart_item.variant and cart_item.variant.price:
             price = cart_item.variant.price
         
+        # Get vendor from product
+        vendor = cart_item.product.vendor if hasattr(cart_item.product, 'vendor') else None
+        
         # Create order item with variant information
         OrderItem.objects.create(
             order=order,
             product=cart_item.product,
             variant=cart_item.variant,
+            vendor=vendor,
             quantity=cart_item.quantity,
             price=price,
             variant_color=cart_item.variant.color.name if cart_item.variant else '',
@@ -1008,6 +1041,7 @@ def validate_coupon(request):
     """Validate a coupon code for the current user"""
     coupon_code = request.data.get('code', '').strip().upper()
     order_amount = request.data.get('order_amount', 0)
+    cart_items = request.data.get('cart_items', [])  # List of {product_id, quantity, price}
     
     if not coupon_code:
         return Response(
@@ -1042,8 +1076,43 @@ def validate_coupon(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    # Calculate discount
-    discount_amount, discount_message = coupon.calculate_discount(order_amount)
+    # If coupon is vendor-specific, validate cart items contain vendor's products
+    vendor_products_amount = None
+    if coupon.vendor:
+        if not cart_items:
+            return Response(
+                {'error': 'Cart items are required for vendor-specific coupons'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Calculate total amount for vendor's products only
+        vendor_products_amount = Decimal('0.00')
+        vendor_product_found = False
+        
+        for item in cart_items:
+            product_id = item.get('product_id')
+            quantity = item.get('quantity', 1)
+            price = item.get('price', 0)
+            
+            try:
+                from products.models import Product
+                product = Product.objects.get(id=product_id)
+                # Check if product belongs to coupon's vendor
+                if product.vendor and product.vendor.id == coupon.vendor.id:
+                    vendor_product_found = True
+                    item_total = Decimal(str(price)) * Decimal(str(quantity))
+                    vendor_products_amount += item_total
+            except Product.DoesNotExist:
+                continue
+        
+        if not vendor_product_found:
+            return Response(
+                {'error': f'This coupon applies only to products from {coupon.vendor.brand_name}. Please add products from this vendor to your cart.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    # Calculate discount (on vendor products if vendor-specific, otherwise on total)
+    discount_amount, discount_message = coupon.calculate_discount(order_amount, vendor_products_amount)
     
     # Convert Decimal to float for JSON response
     discount_amount = float(discount_amount)
@@ -1145,7 +1214,25 @@ def checkout_with_cod(request):
             coupon = Coupon.objects.get(id=coupon_id)
             can_use, message = coupon.can_be_used_by_user(request.user)
             if can_use:
-                discount_amount, _ = coupon.calculate_discount(subtotal)
+                # If coupon is vendor-specific, calculate discount only on vendor's products
+                if coupon.vendor:
+                    vendor_subtotal = Decimal('0.00')
+                    for cart_item in cart.items.all():
+                        if cart_item.product.vendor and cart_item.product.vendor.id == coupon.vendor.id:
+                            price = cart_item.product.price
+                            if cart_item.variant and cart_item.variant.price:
+                                price = cart_item.variant.price
+                            vendor_subtotal += price * cart_item.quantity
+                    
+                    if vendor_subtotal == 0:
+                        return Response({
+                            'error': f'This coupon applies only to products from {coupon.vendor.brand_name}. Please add products from this vendor to your cart.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    discount_amount, _ = coupon.calculate_discount(subtotal, vendor_subtotal)
+                else:
+                    discount_amount, _ = coupon.calculate_discount(subtotal)
+                
                 coupon_discount = Decimal(str(discount_amount))
                 # Update coupon usage
                 coupon.used_count += 1
@@ -1186,11 +1273,15 @@ def checkout_with_cod(request):
         if cart_item.variant and cart_item.variant.price:
             price = cart_item.variant.price
         
+        # Get vendor from product
+        vendor = cart_item.product.vendor if hasattr(cart_item.product, 'vendor') else None
+        
         # Create order item with variant information
         OrderItem.objects.create(
             order=order,
             product=cart_item.product,
             variant=cart_item.variant,
+            vendor=vendor,
             quantity=cart_item.quantity,
             price=price,
             variant_color=cart_item.variant.color.name if cart_item.variant else '',

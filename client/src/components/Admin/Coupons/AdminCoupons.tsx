@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import adminAPI from '../../../services/adminApi';
+import { useAdminAPI } from '../../../hooks/useAdminAPI';
 import { showToast } from '../utils/adminUtils';
 import '../../../styles/admin-theme.css';
 
@@ -24,6 +24,7 @@ interface Coupon {
 }
 
 const AdminCoupons: React.FC = () => {
+  const api = useAdminAPI();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,43 +44,14 @@ const AdminCoupons: React.FC = () => {
     one_time_use_per_user: false
   });
 
-  const [couponsEnabled, setCouponsEnabled] = useState<boolean>(true);
-  const [updatingGlobalSetting, setUpdatingGlobalSetting] = useState<boolean>(false);
-
   useEffect(() => {
     fetchCoupons();
-    fetchCouponsEnabledSetting();
   }, []);
-
-  const fetchCouponsEnabledSetting = async () => {
-    try {
-      const response = await adminAPI.getGlobalSettings('coupons_enabled');
-      const value = response.data?.value || 'true';
-      setCouponsEnabled(value.toLowerCase() === 'true' || value === '1');
-    } catch (error) {
-      console.error('Error fetching coupons enabled setting:', error);
-      setCouponsEnabled(true); // Default to enabled
-    }
-  };
-
-  const toggleCouponsEnabled = async () => {
-    setUpdatingGlobalSetting(true);
-    try {
-      const newValue = !couponsEnabled;
-      await adminAPI.updateGlobalSetting('coupons_enabled', newValue ? 'true' : 'false', 'Enable or disable coupon feature globally');
-      setCouponsEnabled(newValue);
-      showToast(`Coupons ${newValue ? 'enabled' : 'disabled'} globally`, 'success');
-    } catch (error: any) {
-      showToast(error.response?.data?.error || 'Failed to update setting', 'error');
-    } finally {
-      setUpdatingGlobalSetting(false);
-    }
-  };
 
   const fetchCoupons = async () => {
     try {
       setLoading(true);
-      const response = await adminAPI.getCoupons();
+      const response = await api.getCoupons();
       setCoupons(response.data.results || response.data || []);
       setError(null);
     } catch (err: any) {
@@ -107,10 +79,10 @@ const AdminCoupons: React.FC = () => {
       };
       
       if (editingCoupon) {
-        await adminAPI.updateCoupon(editingCoupon.id, submitData);
+        await api.updateCoupon(editingCoupon.id, submitData);
         showToast('Coupon updated successfully', 'success');
       } else {
-        await adminAPI.createCoupon(submitData);
+        await api.createCoupon(submitData);
         showToast('Coupon created successfully', 'success');
       }
       setShowModal(false);
@@ -147,7 +119,7 @@ const AdminCoupons: React.FC = () => {
       return;
     }
     try {
-      await adminAPI.deleteCoupon(id);
+      await api.deleteCoupon(id);
       showToast('Coupon deleted successfully', 'success');
       fetchCoupons();
     } catch (err: any) {
@@ -192,30 +164,8 @@ const AdminCoupons: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: couponsEnabled ? '#e8f5e9' : '#ffebee', borderRadius: '8px', border: `2px solid ${couponsEnabled ? '#4caf50' : '#f44336'}` }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: couponsEnabled ? '#2e7d32' : '#c62828' }}>
-              Coupons {couponsEnabled ? 'Enabled' : 'Disabled'}
-            </span>
-            <button
-              className="admin-btn"
-              onClick={toggleCouponsEnabled}
-              disabled={updatingGlobalSetting}
-              style={{
-                padding: '4px 12px',
-                fontSize: '12px',
-                background: couponsEnabled ? '#4caf50' : '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: updatingGlobalSetting ? 'not-allowed' : 'pointer',
-                opacity: updatingGlobalSetting ? 0.6 : 1
-              }}
-            >
-              {updatingGlobalSetting ? 'Updating...' : couponsEnabled ? 'Disable' : 'Enable'}
-            </button>
-          </div>
           <button
-            className="admin-btn primary"
+            className="admin-modern-btn primary"
             onClick={() => {
               resetForm();
               setShowModal(true);
@@ -308,11 +258,9 @@ const AdminCoupons: React.FC = () => {
             ))}
             {coupons.length === 0 && !loading && (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={8} className="empty-state-cell">
                   <div className="empty-list">
-                    <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#ccc', display: 'block', marginBottom: '16px' }}>
-                      local_offer
-                    </span>
+                    <span className="material-symbols-outlined">local_offer</span>
                     <h3>No coupons found</h3>
                     <p>Create your first coupon to get started</p>
                   </div>

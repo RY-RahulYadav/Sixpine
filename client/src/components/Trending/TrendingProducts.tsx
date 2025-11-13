@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaShoppingCart } from 'react-icons/fa';
 import styles from './Trending.module.css';
 import { homepageAPI } from '../../services/api';
@@ -52,7 +52,7 @@ const defaultProducts = [
 
 const TrendingProducts = () => {
   const [trendingProducts, setTrendingProducts] = useState(defaultProducts);
-  const [sectionTitle, setSectionTitle] = useState('Trending Right Now');
+  const [, setSectionTitle] = useState('Trending Right Now');
   const [sectionSubtitle, setSectionSubtitle] = useState('Discover what customers are loving this week');
   const [viewAllButtonText, setViewAllButtonText] = useState('View All Trending Products');
   const [loading, setLoading] = useState(true);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './Trending.module.css';
 import { homepageAPI } from '../../services/api';
 
@@ -55,7 +55,7 @@ const defaultCategories = [
 
 const TrendingCategories = () => {
   const [categories, setCategories] = useState(defaultCategories);
-  const [sectionTitle, setSectionTitle] = useState('Popular Trending Categories');
+  const [, setSectionTitle] = useState('Popular Trending Categories');
   const [sectionSubtitle, setSectionSubtitle] = useState('Explore trending categories shoppers are loving');
   const [loading, setLoading] = useState(true);
 

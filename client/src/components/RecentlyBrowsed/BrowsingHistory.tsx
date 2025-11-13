@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaShoppingCart } from 'react-icons/fa';
 import { productAPI } from '../../services/api';
@@ -49,27 +49,27 @@ const BrowsingHistory = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-      if (diffHours === 0) {
-        const diffMinutes = Math.floor(diffTime / (1000 * 60));
-        return diffMinutes <= 1 ? 'Just now' : `${diffMinutes} minutes ago`;
-      }
-      return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  };
+  // const formatDate = (dateString: string) => {
+  //   const date = new Date(dateString);
+  //   const now = new Date();
+  //   const diffTime = Math.abs(now.getTime() - date.getTime());
+  //   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  //   
+  //   if (diffDays === 0) {
+  //     const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+  //     if (diffHours === 0) {
+  //       const diffMinutes = Math.floor(diffTime / (1000 * 60));
+  //       return diffMinutes <= 1 ? 'Just now' : `${diffMinutes} minutes ago`;
+  //     }
+  //     return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+  //   } else if (diffDays === 1) {
+  //     return 'Yesterday';
+  //   } else if (diffDays < 7) {
+  //     return `${diffDays} days ago`;
+  //   } else {
+  //     return date.toLocaleDateString();
+  //   }
+  // };
 
   const formatPrice = (price: string) => {
     return `₹${parseFloat(price).toLocaleString('en-IN')}`;
@@ -86,14 +86,14 @@ const BrowsingHistory = () => {
     }
   };
 
-  const handleRemoveItem = async (productId: number) => {
-    try {
-      await productAPI.clearBrowsingHistory(productId);
-      setHistoryItems(historyItems.filter(item => item.product.id !== productId));
-    } catch (error) {
-      console.error('Error removing item:', error);
-    }
-  };
+  // const handleRemoveItem = async (productId: number) => {
+  //   try {
+  //     await productAPI.clearBrowsingHistory(productId);
+  //     setHistoryItems(historyItems.filter(item => item.product.id !== productId));
+  //   } catch (error) {
+  //     console.error('Error removing item:', error);
+  //   }
+  // };
 
   const handleProductClick = (slug: string) => {
     navigate(`/products-details/${slug}`);

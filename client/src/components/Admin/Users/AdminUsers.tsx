@@ -221,7 +221,7 @@ const AdminUsers: React.FC = () => {
             
             {users.length === 0 && !loading && (
               <tr>
-                <td colSpan={7} className="admin-empty-state">
+                <td colSpan={7} className="admin-empty-state empty-state-cell">
                   <div>
                     <span className="material-symbols-outlined">people</span>
                     <h3>No customers found</h3>

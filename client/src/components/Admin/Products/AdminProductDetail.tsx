@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import adminAPI from '../../../services/adminApi';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useAdminAPI } from '../../../hooks/useAdminAPI';
 import { showToast } from '../utils/adminUtils';
 
 interface ProductImage {
@@ -111,6 +111,10 @@ interface Product {
 const AdminProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const api = useAdminAPI();
+  const isSellerPanel = location.pathname.startsWith('/seller');
+  const basePath = isSellerPanel ? '/seller' : '/admin';
   const isNew = id === 'new' || !id;
   
   const [product, setProduct] = useState<Product | null>(null);
@@ -203,10 +207,10 @@ const AdminProductDetail: React.FC = () => {
         
         // Fetch dropdown data
         const [categoriesRes, colorsRes, materialsRes, productsRes] = await Promise.all([
-          adminAPI.getCategories(),
-          adminAPI.getColors(),
-          adminAPI.getMaterials(),
-          adminAPI.getProducts({ page_size: 1000 }) // Get all products for recommendations
+          api.getCategories(),
+          api.getColors(),
+          api.getMaterials(),
+          api.getProducts({ page_size: 1000 }) // Get all products for recommendations
         ]);
         
         setCategories(categoriesRes.data.results || categoriesRes.data || []);
@@ -216,7 +220,7 @@ const AdminProductDetail: React.FC = () => {
         
         // Fetch product if editing
         if (!isNew) {
-          const response = await adminAPI.getProduct(parseInt(id!));
+          const response = await api.getProduct(parseInt(id!));
           const productData = response.data;
           setProduct(productData);
           
@@ -308,7 +312,7 @@ const AdminProductDetail: React.FC = () => {
   
   const fetchSubcategories = async (categoryId: number) => {
     try {
-      const response = await adminAPI.getSubcategories({ category: categoryId });
+      const response = await api.getSubcategories({ category: categoryId });
       setSubcategories(response.data.results || response.data || []);
     } catch (err) {
       console.error('Error fetching subcategories:', err);
@@ -620,11 +624,11 @@ const AdminProductDetail: React.FC = () => {
       
       let response;
       if (isNew) {
-        response = await adminAPI.createProduct(payload);
+        response = await api.createProduct(payload);
         showSuccess('Product created successfully!');
-        navigate(`/admin/products/${response.data.id}`);
+        navigate(`${basePath}/products/${response.data.id}`);
       } else {
-        response = await adminAPI.updateProduct(parseInt(id!), payload);
+        response = await api.updateProduct(parseInt(id!), payload);
         setProduct(response.data);
         showSuccess('Product updated successfully!');
       }
@@ -657,7 +661,7 @@ const AdminProductDetail: React.FC = () => {
     }
     
     try {
-      await adminAPI.toggleProductActive(product.id);
+      await api.toggleProductActive(product.id);
       setFormData(prev => ({ ...prev, is_active: !prev.is_active }));
       showSuccess(`Product ${formData.is_active ? 'hidden' : 'shown'}`);
     } catch (err) {
@@ -672,7 +676,7 @@ const AdminProductDetail: React.FC = () => {
     }
     
     try {
-      await adminAPI.toggleProductFeatured(product.id);
+      await api.toggleProductFeatured(product.id);
       setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }));
       showSuccess(`Product ${formData.is_featured ? 'removed from' : 'added to'} featured`);
     } catch (err) {
@@ -686,9 +690,9 @@ const AdminProductDetail: React.FC = () => {
     }
     
     try {
-      await adminAPI.deleteProduct(product.id);
+      await api.deleteProduct(product.id);
       showSuccess('Product deleted successfully');
-      navigate('/admin/products');
+      navigate(`${basePath}/products`);
     } catch (err) {
       setError('Failed to delete product');
     }
@@ -1284,15 +1288,15 @@ const AdminProductDetail: React.FC = () => {
         {activeTab === 'details' && (
           <div className="admin-card tw-space-y-3">
             {/* Specifications Section */}
-            <div className="tw-border-2 tw-border-orange-200 tw-rounded-xl tw-overflow-hidden tw-shadow-md hover:tw-shadow-lg tw-transition-all">
-              <div className="tw-w-full tw-flex tw-justify-between tw-items-center tw-px-6 tw-py-4 tw-bg-gradient-to-r tw-from-orange-50 tw-via-orange-100 tw-to-orange-50">
+            <div className="tw-border-2 tw-border-blue-200 tw-rounded-xl tw-overflow-hidden tw-shadow-md hover:tw-shadow-lg tw-transition-all">
+              <div className="tw-w-full tw-flex tw-justify-between tw-items-center tw-px-6 tw-py-4 tw-bg-gradient-to-r tw-from-blue-50 tw-via-blue-100 tw-to-blue-50">
                 <button
                   type="button"
                   className="btndetailsbox tw-flex tw-items-center tw-gap-3 tw-flex-1 hover:tw-scale-[1.01] tw-transition-transform " 
                   onClick={() => setActiveDetailSection(activeDetailSection === 'specifications' ? null : 'specifications')}
                 >
                   <span 
-                    className="material-symbols-outlined tw-transition-all tw-duration-300 tw-text-orange-600 tw-font-bold tw-text-2xl" 
+                    className="material-symbols-outlined tw-transition-all tw-duration-300 tw-text-blue-600 tw-font-bold tw-text-2xl" 
                     style={{ transform: activeDetailSection === 'specifications' ? 'rotate(180deg)' : 'rotate(0deg)' }}
                   >
                     expand_more
@@ -1319,7 +1323,7 @@ const AdminProductDetail: React.FC = () => {
                           value={spec.name}
                           onChange={(e) => handleSpecificationChange(index, 'name', e.target.value)}
                           placeholder="e.g., Brand"
-                          className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-orange-500 focus:tw-border-transparent tw-text-sm"
+                          className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-transparent tw-text-sm"
                         />
                       </div>
                       <div>
@@ -1329,7 +1333,7 @@ const AdminProductDetail: React.FC = () => {
                           value={spec.value}
                           onChange={(e) => handleSpecificationChange(index, 'value', e.target.value)}
                           placeholder="Value"
-                          className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-orange-500 focus:tw-border-transparent tw-text-sm"
+                          className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-transparent tw-text-sm"
                         />
                       </div>
                       <div>
@@ -1339,7 +1343,7 @@ const AdminProductDetail: React.FC = () => {
                           value={spec.sort_order}
                           onChange={(e) => handleSpecificationChange(index, 'sort_order', parseInt(e.target.value) || 0)}
                           placeholder="0"
-                          className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-orange-500 focus:tw-border-transparent tw-text-sm"
+                          className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-transparent tw-text-sm"
                         />
                       </div>
                       <div className="tw-flex tw-items-end">

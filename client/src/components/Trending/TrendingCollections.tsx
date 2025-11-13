@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './Trending.module.css';
 import { homepageAPI } from '../../services/api';
 

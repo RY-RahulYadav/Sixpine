@@ -212,7 +212,7 @@ const BannerCards = () => {
     products.map((p, idx) => (
       <ProductCard
         key={idx}
-        id={p.id || idx}
+        id={(p as any).id || idx}
         title={p.title}
         desc={p.desc}
         img={p.img}

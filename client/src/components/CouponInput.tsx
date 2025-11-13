@@ -2,8 +2,15 @@ import React, { useState } from 'react';
 import { orderAPI } from '../services/api';
 import '../styles/CouponInput.css';
 
+interface CartItem {
+  product_id: number;
+  quantity: number;
+  price: number;
+}
+
 interface CouponInputProps {
   subtotal: number;
+  cartItems?: CartItem[];
   onCouponApplied: (coupon: { id: number; code: string; discount_amount: string }) => void;
   onCouponRemoved: () => void;
   appliedCoupon: { id: number; code: string; discount_amount: string } | null;
@@ -11,6 +18,7 @@ interface CouponInputProps {
 
 const CouponInput: React.FC<CouponInputProps> = ({
   subtotal,
+  cartItems = [],
   onCouponApplied,
   onCouponRemoved,
   appliedCoupon
@@ -31,7 +39,8 @@ const CouponInput: React.FC<CouponInputProps> = ({
     try {
       const response = await orderAPI.validateCoupon({
         code: couponCode.trim().toUpperCase(),
-        order_amount: subtotal
+        order_amount: subtotal,
+        cart_items: cartItems
       });
 
       if (response.data.success) {

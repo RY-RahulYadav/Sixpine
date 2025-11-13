@@ -39,11 +39,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const handleDetailsClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    // Could implement a details modal here
-    console.log('Details clicked');
-  };
+  // const handleDetailsClick = (e: React.MouseEvent) => {
+  //   e.preventDefault();
+  //   // Could implement a details modal here
+  //   console.log('Details clicked');
+  // };
 
   const subtotal = state.cart?.total_price || 0;
   const totalItems = state.cart?.total_items || 0;

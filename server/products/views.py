@@ -4,15 +4,16 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Avg, Count, Prefetch
+from django.db.models import Q, Avg, Count, Prefetch, Min, Max
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from .models import (
     Product, Category, Subcategory, Color, Material, ProductVariant, ProductVariantImage,
     ProductReview, ProductRecommendation, ProductSpecification,
-    ProductFeature, ProductOffer, BrowsingHistory
+    ProductFeature, ProductOffer, BrowsingHistory, Discount
 )
+from accounts.models import Vendor
 from .serializers import (
     ProductListSerializer, ProductDetailSerializer, ProductSearchSerializer,
     CategorySerializer, SubcategorySerializer, ColorSerializer, MaterialSerializer,
@@ -631,6 +632,18 @@ def get_filter_options(request):
     filter_options = ProductAggregationFilter.get_filter_options(queryset)
     
     return Response(filter_options)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_brands(request):
+    """Get list of active brands/vendors"""
+    brands = Vendor.objects.filter(
+        status='active',
+        is_verified=True
+    ).values('id', 'brand_name', 'business_name').order_by('brand_name', 'business_name')
+    
+    return Response(list(brands))
 
 
 @api_view(['GET'])

@@ -20,9 +20,9 @@ from .serializers import (
     PaymentChargeSerializer, GlobalSettingsSerializer,
     AdminContactQuerySerializer, AdminBulkOrderSerializer, AdminLogSerializer,
     AdminCouponSerializer, HomePageContentSerializer, BulkOrderPageContentSerializer,
-    AdminDataRequestSerializer
+    AdminDataRequestSerializer, AdminBrandSerializer
 )
-from accounts.models import User, ContactQuery, BulkOrder, DataRequest
+from accounts.models import User, ContactQuery, BulkOrder, DataRequest, Vendor
 from accounts.data_export_utils import export_orders_to_excel, export_addresses_to_excel, export_payment_options_to_excel
 from products.models import (
     Category, Subcategory, Color, Material, Product, ProductImage,
@@ -394,6 +394,7 @@ class AdminProductViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
         subcategory = self.request.query_params.get('subcategory', None)
         is_active = self.request.query_params.get('is_active', None)
         is_featured = self.request.query_params.get('is_featured', None)
+        vendor = self.request.query_params.get('vendor', None)
         
         if search:
             queryset = queryset.filter(
@@ -409,6 +410,8 @@ class AdminProductViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         if is_featured is not None:
             queryset = queryset.filter(is_featured=is_featured.lower() == 'true')
+        if vendor:
+            queryset = queryset.filter(vendor_id=vendor)
         
         return queryset
     
@@ -732,20 +735,49 @@ class AdminCouponViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated, IsAdminUser])
 def payment_charges_settings(request):
     """Get or update payment charges settings"""
+    def get_setting_value(key, default):
+        value = GlobalSettings.get_setting(key, default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str) and value.lower() in ['true', 'false']:
+            return value.lower() == 'true'
+        return value
+    
     if request.method == 'GET':
         settings = {
-            'cod_charge': float(GlobalSettings.get_setting('cod_charge', 0)),
-            'free_delivery_threshold': float(GlobalSettings.get_setting('free_delivery_threshold', 0)),
-            'delivery_charge': float(GlobalSettings.get_setting('delivery_charge', 0)),
+            'platform_fee_upi': str(GlobalSettings.get_setting('platform_fee_upi', '0.00')),
+            'platform_fee_card': str(GlobalSettings.get_setting('platform_fee_card', '2.36')),
+            'platform_fee_netbanking': str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')),
+            'platform_fee_cod': str(GlobalSettings.get_setting('platform_fee_cod', '0.00')),
+            'tax_rate': str(GlobalSettings.get_setting('tax_rate', '5.00')),
+            'razorpay_enabled': get_setting_value('razorpay_enabled', True),
+            'cod_enabled': get_setting_value('cod_enabled', True),
         }
         serializer = PaymentChargeSerializer(settings)
         return Response(serializer.data)
     
     elif request.method == 'PUT':
         data = request.data
-        GlobalSettings.set_setting('cod_charge', data.get('cod_charge', 0), 'COD charge amount')
-        GlobalSettings.set_setting('free_delivery_threshold', data.get('free_delivery_threshold', 0), 'Free delivery threshold')
-        GlobalSettings.set_setting('delivery_charge', data.get('delivery_charge', 0), 'Delivery charge amount')
+        
+        # Update platform fees
+        if 'platform_fee_upi' in data:
+            GlobalSettings.set_setting('platform_fee_upi', data.get('platform_fee_upi', '0.00'), 'Platform fee percentage for UPI payments')
+        if 'platform_fee_card' in data:
+            GlobalSettings.set_setting('platform_fee_card', data.get('platform_fee_card', '2.36'), 'Platform fee percentage for Credit/Debit Card payments')
+        if 'platform_fee_netbanking' in data:
+            GlobalSettings.set_setting('platform_fee_netbanking', data.get('platform_fee_netbanking', '2.36'), 'Platform fee percentage for Net Banking payments')
+        if 'platform_fee_cod' in data:
+            GlobalSettings.set_setting('platform_fee_cod', data.get('platform_fee_cod', '0.00'), 'Platform fee percentage for COD payments')
+        
+        # Update tax rate
+        if 'tax_rate' in data:
+            GlobalSettings.set_setting('tax_rate', data.get('tax_rate', '5.00'), 'Tax rate percentage')
+        
+        # Update payment method enabled flags
+        if 'razorpay_enabled' in data:
+            GlobalSettings.set_setting('razorpay_enabled', data.get('razorpay_enabled', True), 'Enable Razorpay payment gateway')
+        if 'cod_enabled' in data:
+            GlobalSettings.set_setting('cod_enabled', data.get('cod_enabled', True), 'Enable Cash on Delivery')
         
         create_admin_log(
             request=request,
@@ -756,13 +788,73 @@ def payment_charges_settings(request):
             details=data
         )
         
+        # Return updated settings
         settings = {
-            'cod_charge': float(GlobalSettings.get_setting('cod_charge', 0)),
-            'free_delivery_threshold': float(GlobalSettings.get_setting('free_delivery_threshold', 0)),
-            'delivery_charge': float(GlobalSettings.get_setting('delivery_charge', 0)),
+            'platform_fee_upi': str(GlobalSettings.get_setting('platform_fee_upi', '0.00')),
+            'platform_fee_card': str(GlobalSettings.get_setting('platform_fee_card', '2.36')),
+            'platform_fee_netbanking': str(GlobalSettings.get_setting('platform_fee_netbanking', '2.36')),
+            'platform_fee_cod': str(GlobalSettings.get_setting('platform_fee_cod', '0.00')),
+            'tax_rate': str(GlobalSettings.get_setting('tax_rate', '5.00')),
+            'razorpay_enabled': get_setting_value('razorpay_enabled', True),
+            'cod_enabled': get_setting_value('cod_enabled', True),
         }
         serializer = PaymentChargeSerializer(settings)
         return Response(serializer.data)
+
+
+# ==================== Vendor-Specific Filter Options ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def vendor_filter_options(request, vendor_id):
+    """Get filter options for a specific vendor (categories, colors, materials, discounts used by vendor's products)"""
+    try:
+        vendor = Vendor.objects.get(id=vendor_id)
+    except Vendor.DoesNotExist:
+        return Response(
+            {'error': 'Vendor not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Get categories used by vendor's products
+    vendor_categories = Category.objects.filter(
+        products__vendor=vendor,
+        products__is_active=True
+    ).distinct().values('id', 'name', 'slug', 'description', 'image', 'is_active', 'sort_order')
+    
+    # Get subcategories used by vendor's products
+    vendor_subcategories = Subcategory.objects.filter(
+        products__vendor=vendor,
+        products__is_active=True
+    ).distinct().values('id', 'name', 'slug', 'category_id', 'description', 'is_active', 'sort_order')
+    
+    # Get colors used by vendor's products
+    vendor_colors = Color.objects.filter(
+        variants__product__vendor=vendor,
+        variants__product__is_active=True,
+        variants__is_active=True
+    ).distinct().values('id', 'name', 'hex_code', 'is_active')
+    
+    # Get materials used by vendor's products
+    vendor_materials = Material.objects.filter(
+        products__vendor=vendor,
+        products__is_active=True
+    ).distinct().values('id', 'name', 'description', 'is_active')
+    
+    # Get discounts (all active discounts - shared across vendors)
+    discounts = Discount.objects.filter(is_active=True).values('id', 'percentage', 'label', 'is_active', 'created_at')
+    
+    return Response({
+        'categories': list(vendor_categories),
+        'subcategories': list(vendor_subcategories),
+        'colors': list(vendor_colors),
+        'materials': list(vendor_materials),
+        'discounts': list(discounts),
+        'vendor': {
+            'id': vendor.id,
+            'brand_name': vendor.brand_name,
+            'business_name': vendor.business_name
+        }
+    })
 
 
 # ==================== Global Settings ====================
@@ -1302,3 +1394,90 @@ class AdminDataRequestViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
             response_data['errors'] = errors
         
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+# ==================== Brand/Vendor Management Views ====================
+class AdminBrandViewSet(AdminLoggingMixin, viewsets.ReadOnlyModelViewSet):
+    """Admin viewset for brand/vendor management"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Vendor.objects.all().select_related('user').order_by('-created_at')
+    serializer_class = AdminBrandSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search = self.request.query_params.get('search', None)
+        status_filter = self.request.query_params.get('status', None)
+        is_verified = self.request.query_params.get('is_verified', None)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(business_name__icontains=search) |
+                Q(brand_name__icontains=search) |
+                Q(business_email__icontains=search) |
+                Q(user__email__icontains=search) |
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search)
+            )
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if is_verified is not None:
+            queryset = queryset.filter(is_verified=is_verified.lower() == 'true')
+        
+        return queryset
+    
+    @action(detail=True, methods=['post'])
+    def suspend(self, request, pk=None):
+        """Suspend a brand/vendor"""
+        vendor = self.get_object()
+        vendor.status = 'suspended'
+        vendor.save()
+        
+        create_admin_log(
+            request=request,
+            action_type='update',
+            model_name='Vendor',
+            object_id=vendor.id,
+            object_repr=str(vendor),
+            details={'status': 'suspended'}
+        )
+        
+        serializer = self.get_serializer(vendor)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        """Activate a brand/vendor"""
+        vendor = self.get_object()
+        vendor.status = 'active'
+        vendor.is_verified = True
+        vendor.save()
+        
+        create_admin_log(
+            request=request,
+            action_type='update',
+            model_name='Vendor',
+            object_id=vendor.id,
+            object_repr=str(vendor),
+            details={'status': 'active', 'is_verified': True}
+        )
+        
+        serializer = self.get_serializer(vendor)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def products(self, request, pk=None):
+        """Get all products for a specific brand"""
+        vendor = self.get_object()
+        from products.models import Product
+        products = Product.objects.filter(vendor=vendor).select_related('category', 'subcategory')
+        serializer = AdminProductListSerializer(products, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def orders(self, request, pk=None):
+        """Get all orders for a specific brand"""
+        vendor = self.get_object()
+        from orders.models import Order, OrderItem
+        orders = Order.objects.filter(items__vendor=vendor).distinct().order_by('-created_at')
+        serializer = AdminOrderListSerializer(orders, many=True)
+        return Response(serializer.data)

@@ -26,11 +26,11 @@ const ReviewItems = () => {
             />
             <div className={styles.itemDetails}>
               <div className={styles.itemTitle}>{item.product.title}</div>
-              {item.variant && (
+              {(item as any).variant && (
                 <div className={styles.itemVariant}>
-                  {item.variant.color?.name && <span>Color: {item.variant.color.name} </span>}
-                  {item.variant.size && <span>| Size: {item.variant.size} </span>}
-                  {item.variant.pattern && <span>| Pattern: {item.variant.pattern}</span>}
+                  {(item as any).variant.color?.name && <span>Color: {(item as any).variant.color.name} </span>}
+                  {(item as any).variant.size && <span>| Size: {(item as any).variant.size} </span>}
+                  {(item as any).variant.pattern && <span>| Pattern: {(item as any).variant.pattern}</span>}
                 </div>
               )}
               <div className={styles.itemQuantity}>Quantity: {item.quantity}</div>

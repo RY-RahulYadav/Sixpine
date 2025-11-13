@@ -6,7 +6,8 @@ from .views import (
     AdminProductViewSet, AdminOrderViewSet, AdminDiscountViewSet,
     AdminCouponViewSet, payment_charges_settings, global_settings,
     AdminContactQueryViewSet, AdminBulkOrderViewSet, AdminLogViewSet,
-    AdminHomePageContentViewSet, AdminBulkOrderPageContentViewSet, AdminDataRequestViewSet
+    AdminHomePageContentViewSet, AdminBulkOrderPageContentViewSet, AdminDataRequestViewSet,
+    AdminBrandViewSet, vendor_filter_options
 )
 from .auth import admin_login_view
 
@@ -26,12 +27,14 @@ router.register(r'logs', AdminLogViewSet, basename='admin-logs')
 router.register(r'homepage-content', AdminHomePageContentViewSet, basename='admin-homepage-content')
 router.register(r'bulk-order-page-content', AdminBulkOrderPageContentViewSet, basename='admin-bulk-order-page-content')
 router.register(r'data-requests', AdminDataRequestViewSet, basename='admin-data-requests')
+router.register(r'brands', AdminBrandViewSet, basename='admin-brands')
 
 urlpatterns = [
     path('auth/login/', admin_login_view, name='admin-login'),
     path('dashboard/stats/', dashboard_stats, name='admin-dashboard-stats'),
     path('payment-charges/', payment_charges_settings, name='admin-payment-charges'),
     path('global-settings/', global_settings, name='admin-global-settings'),
+    path('brands/<int:vendor_id>/filter-options/', vendor_filter_options, name='admin-vendor-filter-options'),
     path('', include(router.urls)),
 ]
 

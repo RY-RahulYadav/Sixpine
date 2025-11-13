@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAdminAPI } from '../../../hooks/useAdminAPI';
 import adminAPI from '../../../services/adminApi';
 import { showToast } from '../utils/adminUtils';
 import '../../../styles/admin-theme.css';
@@ -46,8 +47,20 @@ interface Discount {
 
 type FilterSection = 'categories' | 'colors' | 'materials' | 'discounts';
 
+interface Brand {
+  id: number;
+  brand_name: string;
+  business_name: string;
+}
+
 const AdminFilterOptions: React.FC = () => {
+  const api = useAdminAPI();
   const [activeSection, setActiveSection] = useState<FilterSection>('categories');
+  
+  // Brand selection state
+  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [loadingBrands, setLoadingBrands] = useState<boolean>(false);
   
   // Data states
   const [categories, setCategories] = useState<Category[]>([]);
@@ -88,6 +101,7 @@ const AdminFilterOptions: React.FC = () => {
   });
 
   useEffect(() => {
+    fetchBrands();
     fetchAllData();
   }, []);
 
@@ -97,15 +111,40 @@ const AdminFilterOptions: React.FC = () => {
     }
   }, [expandedCategory]);
 
+  useEffect(() => {
+    // Refetch data when brand selection changes
+    fetchAllData();
+  }, [selectedBrandId]);
+
+  const fetchBrands = async () => {
+    try {
+      setLoadingBrands(true);
+      const response = await adminAPI.getBrands();
+      const brandsList = response.data.results || response.data || [];
+      setBrands(brandsList);
+    } catch (error) {
+      console.error('Error fetching brands:', error);
+    } finally {
+      setLoadingBrands(false);
+    }
+  };
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        fetchCategories(),
-        fetchColors(),
-        fetchMaterials(),
-        fetchDiscounts()
-      ]);
+      
+      if (selectedBrandId) {
+        // Fetch vendor-specific filter options
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        // Fetch admin (global) filter options
+        await Promise.all([
+          fetchCategories(),
+          fetchColors(),
+          fetchMaterials(),
+          fetchDiscounts()
+        ]);
+      }
     } catch (error) {
       console.error('Error fetching filter options:', error);
       showToast('Failed to load filter options', 'error');
@@ -114,9 +153,36 @@ const AdminFilterOptions: React.FC = () => {
     }
   };
 
+  const fetchVendorFilterOptions = async (vendorId: number) => {
+    try {
+      const response = await adminAPI.getVendorFilterOptions(vendorId);
+      const data = response.data;
+      
+      setCategories(data.categories || []);
+      setColors(data.colors || []);
+      setMaterials(data.materials || []);
+      setDiscounts(data.discounts || []);
+      
+      // Build subcategories map
+      const subcatsMap: Record<number, Subcategory[]> = {};
+      if (data.subcategories) {
+        data.subcategories.forEach((subcat: Subcategory) => {
+          if (!subcatsMap[subcat.category]) {
+            subcatsMap[subcat.category] = [];
+          }
+          subcatsMap[subcat.category].push(subcat);
+        });
+      }
+      setSubcategoriesMap(subcatsMap);
+    } catch (error) {
+      console.error('Error fetching vendor filter options:', error);
+      showToast('Failed to load vendor filter options', 'error');
+    }
+  };
+
   const fetchCategories = async () => {
     try {
-      const response = await adminAPI.getCategories();
+      const response = await api.getCategories();
       const cats = response.data.results || response.data || [];
       setCategories(cats);
       // Fetch subcategories for all categories
@@ -130,7 +196,7 @@ const AdminFilterOptions: React.FC = () => {
 
   const fetchSubcategories = async (categoryId: number) => {
     try {
-      const response = await adminAPI.getSubcategories({ category: categoryId });
+      const response = await api.getSubcategories({ category: categoryId });
       const subcats = response.data.results || response.data || [];
       setSubcategoriesMap(prev => ({
         ...prev,
@@ -143,7 +209,7 @@ const AdminFilterOptions: React.FC = () => {
 
   const fetchColors = async () => {
     try {
-      const response = await adminAPI.getColors();
+      const response = await api.getColors();
       const cols = response.data.results || response.data || [];
       setColors(cols);
     } catch (error) {
@@ -153,7 +219,7 @@ const AdminFilterOptions: React.FC = () => {
 
   const fetchMaterials = async () => {
     try {
-      const response = await adminAPI.getMaterials();
+      const response = await api.getMaterials();
       const mats = response.data.results || response.data || [];
       setMaterials(mats);
     } catch (error) {
@@ -198,7 +264,11 @@ const AdminFilterOptions: React.FC = () => {
         showToast('Category created successfully', 'success');
       }
       resetCategoryForm();
-      await fetchCategories();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchCategories();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save category', 'error');
     } finally {
@@ -231,7 +301,11 @@ const AdminFilterOptions: React.FC = () => {
     try {
       await adminAPI.deleteCategory(id);
       showToast('Category deleted successfully', 'success');
-      await fetchCategories();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchCategories();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to delete category', 'error');
     }
@@ -306,7 +380,11 @@ const AdminFilterOptions: React.FC = () => {
         showToast('Color created successfully', 'success');
       }
       resetColorForm();
-      await fetchColors();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchColors();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save color', 'error');
     } finally {
@@ -337,7 +415,11 @@ const AdminFilterOptions: React.FC = () => {
     try {
       await adminAPI.deleteColor(id);
       showToast('Color deleted successfully', 'success');
-      await fetchColors();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchColors();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to delete color', 'error');
     }
@@ -356,7 +438,11 @@ const AdminFilterOptions: React.FC = () => {
         showToast('Material created successfully', 'success');
       }
       resetMaterialForm();
-      await fetchMaterials();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchMaterials();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save material', 'error');
     } finally {
@@ -387,7 +473,11 @@ const AdminFilterOptions: React.FC = () => {
     try {
       await adminAPI.deleteMaterial(id);
       showToast('Material deleted successfully', 'success');
-      await fetchMaterials();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchMaterials();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to delete material', 'error');
     }
@@ -406,7 +496,11 @@ const AdminFilterOptions: React.FC = () => {
         showToast('Discount filter option created successfully', 'success');
       }
       resetDiscountForm();
-      await fetchDiscounts();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchDiscounts();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to save discount filter option', 'error');
     } finally {
@@ -437,7 +531,11 @@ const AdminFilterOptions: React.FC = () => {
     try {
       await adminAPI.deleteDiscount(id);
       showToast('Discount deleted successfully', 'success');
-      await fetchDiscounts();
+      if (selectedBrandId) {
+        await fetchVendorFilterOptions(selectedBrandId);
+      } else {
+        await fetchDiscounts();
+      }
     } catch (error: any) {
       showToast(error.response?.data?.message || 'Failed to delete discount', 'error');
     }
@@ -455,7 +553,40 @@ const AdminFilterOptions: React.FC = () => {
   return (
     <div className="admin-filter-options">
       <div className="admin-header-actions">
-        <h2>Filter Options Management</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', width: '100%' }}>
+          <h2>Filter Options Management</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 500, fontSize: '14px', whiteSpace: 'nowrap' }}>Filter by Brand:</label>
+            <select
+              value={selectedBrandId || ''}
+              onChange={(e) => setSelectedBrandId(e.target.value ? parseInt(e.target.value) : null)}
+              className="admin-input"
+              style={{ minWidth: '250px' }}
+              disabled={loadingBrands}
+            >
+              <option value="">All Brands (Admin Filter Options)</option>
+              {brands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.brand_name || brand.business_name}
+                </option>
+              ))}
+            </select>
+            {selectedBrandId && (
+              <button
+                onClick={() => setSelectedBrandId(null)}
+                className="admin-btn secondary"
+                style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+        {selectedBrandId && (
+          <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e7f3ff', borderRadius: '4px', fontSize: '14px', width: '100%' }}>
+            <strong>Note:</strong> Showing filter options for selected brand. These are the categories, colors, materials, and discounts used by this brand's products.
+          </div>
+        )}
       </div>
 
       {/* Section Tabs */}
@@ -497,16 +628,18 @@ const AdminFilterOptions: React.FC = () => {
             <div className="admin-card">
               <div className="admin-card-header">
                 <h3>Categories</h3>
-                <button
-                  className="admin-btn primary"
-                  onClick={() => {
-                    resetCategoryForm();
-                    setShowCategoryModal(true);
-                  }}
-                >
-                  <span className="material-symbols-outlined">add</span>
-                  Add Category
-                </button>
+                {!selectedBrandId && (
+                  <button
+                    className="admin-btn primary"
+                    onClick={() => {
+                      resetCategoryForm();
+                      setShowCategoryModal(true);
+                    }}
+                  >
+                    <span className="material-symbols-outlined">add</span>
+                    Add Category
+                  </button>
+                )}
               </div>
 
               <div className="categories-list">
@@ -519,24 +652,28 @@ const AdminFilterOptions: React.FC = () => {
                         {!category.is_active && <span className="status-badge inactive">Inactive</span>}
                       </div>
                       <div className="category-actions">
-                        <button
-                          className="admin-btn icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditCategory(category);
-                          }}
-                        >
-                          <span className="material-symbols-outlined">edit</span>
-                        </button>
-                        <button
-                          className="admin-btn icon danger"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCategory(category.id);
-                          }}
-                        >
-                          <span className="material-symbols-outlined">delete</span>
-                        </button>
+                        {!selectedBrandId && (
+                          <>
+                            <button
+                              className="admin-btn icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditCategory(category);
+                              }}
+                            >
+                              <span className="material-symbols-outlined">edit</span>
+                            </button>
+                            <button
+                              className="admin-btn icon danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCategory(category.id);
+                              }}
+                            >
+                              <span className="material-symbols-outlined">delete</span>
+                            </button>
+                          </>
+                        )}
                         <span className="material-symbols-outlined">
                           {expandedCategory === category.id ? 'expand_less' : 'expand_more'}
                         </span>
@@ -547,18 +684,20 @@ const AdminFilterOptions: React.FC = () => {
                       <div className="subcategories-section">
                         <div className="subcategories-header">
                           <h5>Subcategories</h5>
-                          <button
-                            className="admin-btn primary"
-                            onClick={() => {
-                              resetSubcategoryForm();
-                              setSubcategoryForm(prev => ({ ...prev, category: category.id.toString() }));
-                              setShowSubcategoryModal(true);
-                            }}
-                            style={{ fontSize: '13px', padding: '8px 16px' }}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
-                            Add Subcategory
-                          </button>
+                          {!selectedBrandId && (
+                            <button
+                              className="admin-btn primary"
+                              onClick={() => {
+                                resetSubcategoryForm();
+                                setSubcategoryForm(prev => ({ ...prev, category: category.id.toString() }));
+                                setShowSubcategoryModal(true);
+                              }}
+                              style={{ fontSize: '13px', padding: '8px 16px' }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                              Add Subcategory
+                            </button>
+                          )}
                         </div>
 
                         <div className="subcategories-list">
@@ -570,18 +709,22 @@ const AdminFilterOptions: React.FC = () => {
                                 {!subcat.is_active && <span className="status-badge inactive">Inactive</span>}
                               </div>
                               <div className="category-actions">
-                                <button
-                                  className="admin-btn icon"
-                                  onClick={() => handleEditSubcategory(subcat)}
-                                >
-                                  <span className="material-symbols-outlined">edit</span>
-                                </button>
-                                <button
-                                  className="admin-btn icon danger"
-                                  onClick={() => handleDeleteSubcategory(subcat.id, category.id)}
-                                >
-                                  <span className="material-symbols-outlined">delete</span>
-                                </button>
+                                {!selectedBrandId && (
+                                  <>
+                                    <button
+                                      className="admin-btn icon"
+                                      onClick={() => handleEditSubcategory(subcat)}
+                                    >
+                                      <span className="material-symbols-outlined">edit</span>
+                                    </button>
+                                    <button
+                                      className="admin-btn icon danger"
+                                      onClick={() => handleDeleteSubcategory(subcat.id, category.id)}
+                                    >
+                                      <span className="material-symbols-outlined">delete</span>
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -741,16 +884,18 @@ const AdminFilterOptions: React.FC = () => {
             <div className="admin-card">
               <div className="admin-card-header">
                 <h3>Colors</h3>
-                <button
-                  className="admin-btn primary"
-                  onClick={() => {
-                    resetColorForm();
-                    setShowColorModal(true);
-                  }}
-                >
-                  <span className="material-symbols-outlined">add</span>
-                  Add Color
-                </button>
+                {!selectedBrandId && (
+                  <button
+                    className="admin-btn primary"
+                    onClick={() => {
+                      resetColorForm();
+                      setShowColorModal(true);
+                    }}
+                  >
+                    <span className="material-symbols-outlined">add</span>
+                    Add Color
+                  </button>
+                )}
               </div>
 
               <div className="admin-table-container">
@@ -787,18 +932,22 @@ const AdminFilterOptions: React.FC = () => {
                           </span>
                         </td>
                         <td>
-                          <button
-                            className="admin-btn icon"
-                            onClick={() => handleEditColor(color)}
-                          >
-                            <span className="material-symbols-outlined">edit</span>
-                          </button>
-                          <button
-                            className="admin-btn icon danger"
-                            onClick={() => handleDeleteColor(color.id)}
-                          >
-                            <span className="material-symbols-outlined">delete</span>
-                          </button>
+                          {!selectedBrandId && (
+                            <>
+                              <button
+                                className="admin-btn icon"
+                                onClick={() => handleEditColor(color)}
+                              >
+                                <span className="material-symbols-outlined">edit</span>
+                              </button>
+                              <button
+                                className="admin-btn icon danger"
+                                onClick={() => handleDeleteColor(color.id)}
+                              >
+                                <span className="material-symbols-outlined">delete</span>
+                              </button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -879,16 +1028,18 @@ const AdminFilterOptions: React.FC = () => {
             <div className="admin-card">
               <div className="admin-card-header">
                 <h3>Materials</h3>
-                <button
-                  className="admin-btn primary"
-                  onClick={() => {
-                    resetMaterialForm();
-                    setShowMaterialModal(true);
-                  }}
-                >
-                  <span className="material-symbols-outlined">add</span>
-                  Add Material
-                </button>
+                {!selectedBrandId && (
+                  <button
+                    className="admin-btn primary"
+                    onClick={() => {
+                      resetMaterialForm();
+                      setShowMaterialModal(true);
+                    }}
+                  >
+                    <span className="material-symbols-outlined">add</span>
+                    Add Material
+                  </button>
+                )}
               </div>
 
               <div className="admin-table-container">
@@ -912,18 +1063,22 @@ const AdminFilterOptions: React.FC = () => {
                           </span>
                         </td>
                         <td>
-                          <button
-                            className="admin-btn icon"
-                            onClick={() => handleEditMaterial(material)}
-                          >
-                            <span className="material-symbols-outlined">edit</span>
-                          </button>
-                          <button
-                            className="admin-btn icon danger"
-                            onClick={() => handleDeleteMaterial(material.id)}
-                          >
-                            <span className="material-symbols-outlined">delete</span>
-                          </button>
+                          {!selectedBrandId && (
+                            <>
+                              <button
+                                className="admin-btn icon"
+                                onClick={() => handleEditMaterial(material)}
+                              >
+                                <span className="material-symbols-outlined">edit</span>
+                              </button>
+                              <button
+                                className="admin-btn icon danger"
+                                onClick={() => handleDeleteMaterial(material.id)}
+                              >
+                                <span className="material-symbols-outlined">delete</span>
+                              </button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -996,16 +1151,18 @@ const AdminFilterOptions: React.FC = () => {
                 <p style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
                   These are filter options for product pages. For checkout discounts, use Coupons.
                 </p>
-                <button
-                  className="admin-btn primary"
-                  onClick={() => {
-                    resetDiscountForm();
-                    setShowDiscountModal(true);
-                  }}
-                >
-                  <span className="material-symbols-outlined">add</span>
-                  Add Discount Filter
-                </button>
+                {!selectedBrandId && (
+                  <button
+                    className="admin-btn primary"
+                    onClick={() => {
+                      resetDiscountForm();
+                      setShowDiscountModal(true);
+                    }}
+                  >
+                    <span className="material-symbols-outlined">add</span>
+                    Add Discount Filter
+                  </button>
+                )}
               </div>
 
               <div className="admin-table-container">
@@ -1042,18 +1199,22 @@ const AdminFilterOptions: React.FC = () => {
                             </span>
                           </td>
                           <td>
-                            <button
-                              className="admin-btn icon"
-                              onClick={() => handleEditDiscount(discount)}
-                            >
-                              <span className="material-symbols-outlined">edit</span>
-                            </button>
-                            <button
-                              className="admin-btn icon danger"
-                              onClick={() => handleDeleteDiscount(discount.id)}
-                            >
-                              <span className="material-symbols-outlined">delete</span>
-                            </button>
+                            {!selectedBrandId && (
+                              <>
+                                <button
+                                  className="admin-btn icon"
+                                  onClick={() => handleEditDiscount(discount)}
+                                >
+                                  <span className="material-symbols-outlined">edit</span>
+                                </button>
+                                <button
+                                  className="admin-btn icon danger"
+                                  onClick={() => handleDeleteDiscount(discount.id)}
+                                >
+                                  <span className="material-symbols-outlined">delete</span>
+                                </button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))

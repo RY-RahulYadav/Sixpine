@@ -10,7 +10,7 @@ const LoginSecurity = () => {
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [mobile, setMobile] = useState('');
-    const [password, setPassword] = useState('********');
+    const [password] = useState('********');
 
     const [editingField, setEditingField] = useState<string | null>(null);
     const [inputValue, setInputValue] = useState('');

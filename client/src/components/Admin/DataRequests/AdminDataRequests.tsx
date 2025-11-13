@@ -146,7 +146,7 @@ const AdminDataRequests: React.FC = () => {
 
   const handleBulkDelete = async () => {
     if (selectedRequests.length === 0) {
-      showToast('Please select at least one request to delete', 'warning');
+      showToast('Please select at least one request to delete', 'error');
       return;
     }
 

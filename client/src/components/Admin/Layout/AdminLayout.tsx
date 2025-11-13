@@ -45,27 +45,29 @@ const AdminLayout: React.FC = () => {
   };
   
   const menuItems = [
+    // Main Menu Section
     { path: '/admin', icon: 'dashboard', label: 'Dashboard', exact: true, section: 'main' },
-    { path: '/admin/products', icon: 'inventory_2', label: 'Products', section: 'main' },
-    { path: '/admin/orders', icon: 'shopping_bag', label: 'Orders', section: 'main' },
-    { path: '/admin/users', icon: 'people', label: 'Customers', section: 'main' },
-    // { path: '/admin/analytics', icon: 'analytics', label: 'Brand Analytics', section: 'analytics' },
-    { path: '/admin/contact-queries', icon: 'contact_support', label: 'Contact Queries', section: 'management' },
-    { path: '/admin/bulk-orders', icon: 'local_shipping', label: 'Bulk Orders', section: 'management' },
-    { path: '/admin/data-requests', icon: 'download', label: 'Data Requests', section: 'management' },
+    { path: '/admin/customers', icon: 'people', label: 'Customer Management', section: 'main' },
+    { path: '/admin/brands', icon: 'store', label: 'Brand Management', section: 'main' },
+    { path: '/admin/orders', icon: 'shopping_cart', label: 'Order Management', section: 'main' },
+    // Page Management Section
+    { path: '/admin/homepage', icon: 'home', label: 'Home Management', section: 'page_management' },
+    { path: '/admin/trending', icon: 'trending_up', label: 'Trending Page Management', section: 'page_management' },
+    { path: '/admin/best-deals', icon: 'local_offer', label: 'Best Deal Management', section: 'page_management' },
+    { path: '/admin/bulk-order-page', icon: 'inventory_2', label: 'Bulk Order Page Management', section: 'page_management' },
+    // Management Section
     { path: '/admin/logs', icon: 'list_alt', label: 'Activity Logs', section: 'management' },
-    { path: '/admin/coupons', icon: 'local_offer', label: 'Coupons', section: 'settings' },
+    { path: '/admin/contact-queries', icon: 'contact_support', label: 'Contact Queries', section: 'management' },
+    { path: '/admin/bulk-orders', icon: 'local_shipping', label: 'Bulk Order Queries', section: 'management' },
+    // Settings Section
+    { path: '/admin/payment-charges', icon: 'payments', label: 'Payment Settings', section: 'settings' },
     { path: '/admin/filter-options', icon: 'tune', label: 'Filter Options', section: 'settings' },
-    { path: '/admin/payment-charges', icon: 'payments', label: 'Payment & Charges', section: 'settings' },
-    { path: '/admin/homepage', icon: 'home', label: 'Home Page', section: 'settings' },
-    { path: '/admin/bulk-order-page', icon: 'inventory_2', label: 'Bulk Order Page', section: 'settings' },
-    // { path: '/admin/trending', icon: 'trending_up', label: 'Trending', section: 'settings' },
-    // { path: '/admin/best-deals', icon: 'local_offer', label: 'Best Deals', section: 'settings' },
     { path: '/admin/settings', icon: 'settings', label: 'Settings', section: 'settings' },
   ];
   
   const groupedMenuItems = {
     main: menuItems.filter(item => item.section === 'main'),
+    page_management: menuItems.filter(item => item.section === 'page_management'),
     analytics: menuItems.filter(item => item.section === 'analytics'),
     management: menuItems.filter(item => item.section === 'management'),
     settings: menuItems.filter(item => item.section === 'settings'),
@@ -141,77 +143,105 @@ const AdminLayout: React.FC = () => {
         {/* Modern Sidebar */}
         <aside className={`admin-modern-sidebar ${sidebarOpen ? 'open' : ''}`}>
           <nav className="admin-sidebar-menu">
-            {/* Main Section */}
-            <div className="admin-menu-section">
-              <div className="admin-menu-title">Main Menu</div>
-              {groupedMenuItems.main.map((item) => {
-                const active = item.exact ? location.pathname === item.path : isActive(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`admin-menu-item ${active ? 'active' : ''}`}
-                  >
-                    <span className="material-symbols-outlined">{item.icon}</span>
-                    <span className="admin-menu-text">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+            {/* Main Menu Section */}
+            {groupedMenuItems.main.length > 0 && (
+              <div className="admin-menu-section">
+                <div className="admin-menu-title">Main Menu</div>
+                {groupedMenuItems.main.map((item) => {
+                  const active = item.exact ? location.pathname === item.path : isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`admin-menu-item ${active ? 'active' : ''}`}
+                    >
+                      <span className="material-symbols-outlined">{item.icon}</span>
+                      <span className="admin-menu-text">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Page Management Section */}
+            {groupedMenuItems.page_management.length > 0 && (
+              <div className="admin-menu-section">
+                <div className="admin-menu-title">Page Management</div>
+                {groupedMenuItems.page_management.map((item) => {
+                  const active = item.exact ? location.pathname === item.path : isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`admin-menu-item ${active ? 'active' : ''}`}
+                    >
+                      <span className="material-symbols-outlined">{item.icon}</span>
+                      <span className="admin-menu-text">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
             
             {/* Analytics Section */}
-            <div className="admin-menu-section">
-              {/* <div className="admin-menu-title">Analytics</div> */}
-              {groupedMenuItems.analytics.map((item) => {
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`admin-menu-item ${active ? 'active' : ''}`}
-                  >
-                    <span className="material-symbols-outlined">{item.icon}</span>
-                    <span className="admin-menu-text">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+            {groupedMenuItems.analytics.length > 0 && (
+              <div className="admin-menu-section">
+                <div className="admin-menu-title">Analytics</div>
+                {groupedMenuItems.analytics.map((item) => {
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`admin-menu-item ${active ? 'active' : ''}`}
+                    >
+                      <span className="material-symbols-outlined">{item.icon}</span>
+                      <span className="admin-menu-text">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
             
             {/* Management Section */}
-            <div className="admin-menu-section">
-              <div className="admin-menu-title">Management</div>
-              {groupedMenuItems.management.map((item) => {
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`admin-menu-item ${active ? 'active' : ''}`}
-                  >
-                    <span className="material-symbols-outlined">{item.icon}</span>
-                    <span className="admin-menu-text">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+            {groupedMenuItems.management.length > 0 && (
+              <div className="admin-menu-section">
+                <div className="admin-menu-title">Management</div>
+                {groupedMenuItems.management.map((item) => {
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`admin-menu-item ${active ? 'active' : ''}`}
+                    >
+                      <span className="material-symbols-outlined">{item.icon}</span>
+                      <span className="admin-menu-text">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
             
             {/* Settings Section */}
-            <div className="admin-menu-section">
-              <div className="admin-menu-title">Settings</div>
-              {groupedMenuItems.settings.map((item) => {
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`admin-menu-item ${active ? 'active' : ''}`}
-                  >
-                    <span className="material-symbols-outlined">{item.icon}</span>
-                    <span className="admin-menu-text">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+            {groupedMenuItems.settings.length > 0 && (
+              <div className="admin-menu-section">
+                <div className="admin-menu-title">Settings</div>
+                {groupedMenuItems.settings.map((item) => {
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`admin-menu-item ${active ? 'active' : ''}`}
+                    >
+                      <span className="material-symbols-outlined">{item.icon}</span>
+                      <span className="admin-menu-text">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
             
             {/* Store Link */}
             <div className="admin-menu-section" style={{ borderTop: '1px solid var(--admin-border)', paddingTop: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>

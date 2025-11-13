@@ -14,7 +14,8 @@ urlpatterns = [
     path('api/', include('products.urls')),
     path('api/', include('cart.urls')),
     path('api/', include('orders.urls')),
-    path('api/admin/', include('admin_api.urls')),
+    path('api/admin/', include('admin_api.urls')),  # Super admin only
+    path('api/seller/', include('seller_api.urls')),  # Seller/Vendor panel
     path('', root_welcome),
     
     # Swagger Documentation

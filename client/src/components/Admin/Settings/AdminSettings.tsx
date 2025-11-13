@@ -128,7 +128,7 @@ const AdminSettings: React.FC = () => {
     <div className="admin-settings-simple">
       <div className="admin-header-actions tw-mb-6">
         <h2 className="tw-flex tw-items-center tw-gap-3 tw-text-3xl tw-font-bold tw-text-gray-800">
-          <span className="material-symbols-outlined tw-text-4xl tw-text-orange-600">settings</span>
+          <span className="material-symbols-outlined tw-text-4xl tw-text-blue-600">settings</span>
           Admin Settings
         </h2>
       </div>
@@ -151,18 +151,18 @@ const AdminSettings: React.FC = () => {
       
       <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
         {/* Admin Information Card */}
-        <div className="tw-bg-white tw-rounded-xl tw-shadow-lg tw-border-2 tw-border-orange-100 tw-overflow-hidden hover:tw-shadow-xl tw-transition-all">
-          <div className="tw-bg-gradient-to-r tw-from-orange-50 tw-via-orange-100 tw-to-orange-50 tw-px-6 tw-py-4 tw-border-b-2 tw-border-orange-200">
+        <div className="tw-bg-white tw-rounded-xl tw-shadow-lg tw-border-2 tw-border-blue-100 tw-overflow-hidden hover:tw-shadow-xl tw-transition-all">
+          <div className="tw-bg-gradient-to-r tw-from-blue-50 tw-via-blue-100 tw-to-blue-50 tw-px-6 tw-py-4 tw-border-b-2 tw-border-blue-200">
             <h3 className="tw-flex tw-items-center tw-gap-3 tw-text-xl tw-font-bold tw-text-gray-800">
-              <span className="material-symbols-outlined tw-text-orange-600 tw-text-2xl">person</span>
+              <span className="material-symbols-outlined tw-text-blue-600 tw-text-2xl">person</span>
               Admin Information
             </h3>
           </div>
           
           <div className="tw-p-6 tw-space-y-5">
             <div className="tw-flex tw-items-start tw-gap-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200">
-              <div className="tw-p-2 tw-bg-orange-100 tw-rounded-lg">
-                <span className="material-symbols-outlined tw-text-orange-600 tw-text-xl">email</span>
+              <div className="tw-p-2 tw-bg-blue-100 tw-rounded-lg">
+                <span className="material-symbols-outlined tw-text-blue-600 tw-text-xl">email</span>
               </div>
               <div className="tw-flex-1">
                 <label className="tw-block tw-text-sm tw-font-semibold tw-text-gray-600 tw-mb-1">Email Address</label>

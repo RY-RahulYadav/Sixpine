@@ -24,7 +24,7 @@ const ManagePaymentPage: React.FC = () => {
         <SubNav />
         <CategoryTabs />
       </div>
-      <ManagePaymentMethods />
+      <ManagePaymentMethods preference={null as any} onUpdateClick={() => {}} onDeleteCard={() => {}} />
           <div className="productdetails_container">
         
         {/* First Row - Customers frequently viewed */}

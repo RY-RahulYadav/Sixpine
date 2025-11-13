@@ -47,7 +47,7 @@ const HeroSection = () => {
       imageSrc: "/images/Home/livingroom.jpg"
     }
   ]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [specialDealBanner, setSpecialDealBanner] = useState<any>(null);
   const [mattressBanner, setMattressBanner] = useState<any>(null);
   const [bottomBanner, setBottomBanner] = useState<any>(null);

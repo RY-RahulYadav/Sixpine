@@ -9,9 +9,9 @@ import {
   FaStarHalfAlt,
   FaRegStar,
   FaTrash,
-  FaCheckCircle,
+  // FaCheckCircle,
 } from "react-icons/fa";
-import { AiOutlineInfoCircle } from "react-icons/ai";
+// import { AiOutlineInfoCircle } from "react-icons/ai";
 import { BsTagFill } from "react-icons/bs";
 
 interface ProductDetailsProps {
@@ -145,27 +145,27 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
   
   const [modalContent, setModalContent] = useState<ModalContent | null>(null);
 
-  const handleOpenModal = (type: string) => {
-    if (type === "delivery") {
-      setModalContent({
-        title: "Free Delivery",
-        text: "Get free doorstep delivery on all orders above ₹20,000.",
-        buttons: ["Got it", "Shop More"],
-      });
-    } else if (type === "replacement") {
-      setModalContent({
-        title: "7 Days Replacement",
-        text: "You can replace this product within 7 days of delivery if it has defects.",
-        buttons: ["Understood", "See Policy"],
-      });
-    } else if (type === "secure") {
-      setModalContent({
-        title: "Secure Transaction",
-        text: "Your payment is protected by end-to-end encryption and secure gateways.",
-        buttons: ["Okay", "Know More"],
-      });
-    }
-  };
+  // const handleOpenModal = (type: string) => {
+  //   if (type === "delivery") {
+  //     setModalContent({
+  //       title: "Free Delivery",
+  //       text: "Get free doorstep delivery on all orders above ₹20,000.",
+  //       buttons: ["Got it", "Shop More"],
+  //     });
+  //   } else if (type === "replacement") {
+  //     setModalContent({
+  //       title: "7 Days Replacement",
+  //       text: "You can replace this product within 7 days of delivery if it has defects.",
+  //       buttons: ["Understood", "See Policy"],
+  //     });
+  //   } else if (type === "secure") {
+  //     setModalContent({
+  //       title: "Secure Transaction",
+  //       text: "Your payment is protected by end-to-end encryption and secure gateways.",
+  //       buttons: ["Okay", "Know More"],
+  //     });
+  //   }
+  // };
 
   const handleCloseModal = () => {
     setModalContent(null);

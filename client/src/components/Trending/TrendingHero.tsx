@@ -51,7 +51,7 @@ const TrendingHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slides, setSlides] = useState(defaultSlides);
   const [trendingStats, setTrendingStats] = useState(defaultStats);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchHeroData = async () => {

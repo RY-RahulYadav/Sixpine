@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import adminAPI from '../../../services/adminApi';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { formatCurrency } from '../utils/adminUtils';
 import '../../../styles/admin-theme.css';
 
@@ -95,9 +95,10 @@ const AdminDashboard: React.FC = () => {
             <div className="admin-stat-icon primary">
               <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>payments</span>
             </div>
-            <div className="admin-stat-label">Total Revenue</div>
-            <div className="admin-stat-value">{formatCurrency(stats.total_revenue)}</div>
-            
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div className="admin-stat-label">Total Revenue</div>
+              <div className="admin-stat-value">{formatCurrency(stats.total_revenue)}</div>
+            </div>
           </div>
         </div>
         
@@ -106,9 +107,10 @@ const AdminDashboard: React.FC = () => {
             <div className="admin-stat-icon secondary">
               <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>shopping_cart</span>
             </div>
-            <div className="admin-stat-label">Total Orders</div>
-            <div className="admin-stat-value">{stats.total_orders}</div>
-            
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div className="admin-stat-label">Total Orders</div>
+              <div className="admin-stat-value">{stats.total_orders}</div>
+            </div>
           </div>
         </div>
         
@@ -117,9 +119,10 @@ const AdminDashboard: React.FC = () => {
             <div className="admin-stat-icon success">
               <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>inventory_2</span>
             </div>
-            <div className="admin-stat-label">Products</div>
-            <div className="admin-stat-value">{stats.total_products}</div>
-            
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div className="admin-stat-label">Products</div>
+              <div className="admin-stat-value">{stats.total_products}</div>
+            </div>
           </div>
         </div>
         
@@ -128,9 +131,10 @@ const AdminDashboard: React.FC = () => {
             <div className="admin-stat-icon warning">
               <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>people</span>
             </div>
-            <div className="admin-stat-label">Customers</div>
-            <div className="admin-stat-value">{stats.total_users}</div>
-            
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div className="admin-stat-label">Customers</div>
+              <div className="admin-stat-value">{stats.total_users}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -152,7 +156,7 @@ const AdminDashboard: React.FC = () => {
               }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>shopping_cart</span>
               </div>
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--admin-text-light)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Orders Placed
                 </div>
@@ -182,7 +186,7 @@ const AdminDashboard: React.FC = () => {
               }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>local_shipping</span>
               </div>
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--admin-text-light)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Delivered
                 </div>
@@ -212,7 +216,7 @@ const AdminDashboard: React.FC = () => {
               }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>money</span>
               </div>
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--admin-text-light)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   COD Orders
                 </div>
@@ -242,7 +246,7 @@ const AdminDashboard: React.FC = () => {
               }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>credit_card</span>
               </div>
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--admin-text-light)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Online Payment
                 </div>
@@ -257,22 +261,6 @@ const AdminDashboard: React.FC = () => {
           </Link>
         </div>
       </div>
-      
-      {/* Low Stock Alert */}
-      {stats.low_stock_products > 0 && (
-        <div className="admin-alert warning" style={{ marginBottom: 'var(--spacing-xl)' }}>
-          <span className="material-symbols-outlined">inventory</span>
-          <div className="admin-alert-content">
-            <div className="admin-alert-title">Low Stock Alert</div>
-            <div className="admin-alert-message">
-              You have {stats.low_stock_products} products running low on stock.{' '}
-              <Link to="/admin/products?stock_status=low_stock" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: '600' }}>
-                View all low stock items →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Recent Orders & Top Products */}
       <div className="admin-grid-2">

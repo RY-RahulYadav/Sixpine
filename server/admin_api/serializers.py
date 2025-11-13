@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from accounts.models import User
+from accounts.models import User, Vendor
 from products.models import (
     Category, Subcategory, Color, Material, Product, ProductImage, 
     ProductVariant, ProductVariantImage, ProductSpecification, ProductFeature, 
@@ -770,6 +770,55 @@ class PaymentChargeSerializer(serializers.Serializer):
     cod_enabled = serializers.BooleanField()
 
 
+# ==================== Brand/Vendor Serializers ====================
+class AdminBrandSerializer(serializers.ModelSerializer):
+    """Serializer for brand/vendor listing in admin panel"""
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.SerializerMethodField()
+    total_products = serializers.SerializerMethodField()
+    total_orders = serializers.SerializerMethodField()
+    total_revenue = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = Vendor
+        fields = [
+            'id', 'user', 'user_email', 'user_name',
+            'business_name', 'business_email', 'business_phone',
+            'brand_name', 'status', 'status_display', 'is_verified',
+            'created_at', 'updated_at',
+            'total_products', 'total_orders', 'total_revenue'
+        ]
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at', 'total_products', 'total_orders', 'total_revenue']
+    
+    def get_user_name(self, obj):
+        """Get user's full name"""
+        if obj.user:
+            full_name = f"{obj.user.first_name or ''} {obj.user.last_name or ''}".strip()
+            return full_name or obj.user.username or obj.user.email
+        return 'N/A'
+    
+    def get_total_products(self, obj):
+        """Get total products count for this vendor"""
+        from products.models import Product
+        return Product.objects.filter(vendor=obj).count()
+    
+    def get_total_orders(self, obj):
+        """Get total orders count for this vendor"""
+        from orders.models import Order, OrderItem
+        return Order.objects.filter(items__vendor=obj).distinct().count()
+    
+    def get_total_revenue(self, obj):
+        """Get total revenue for this vendor"""
+        from orders.models import OrderItem
+        from django.db.models import Sum, F
+        from decimal import Decimal
+        revenue = OrderItem.objects.filter(vendor=obj).aggregate(
+            total=Sum(F('price') * F('quantity'))
+        )['total'] or Decimal('0.00')
+        return str(revenue)
+
+
 # ==================== Contact Query Serializers ====================
 class AdminContactQuerySerializer(serializers.ModelSerializer):
     """Serializer for contact queries in admin panel"""
@@ -837,16 +886,20 @@ class AdminLogSerializer(serializers.ModelSerializer):
 class AdminCouponSerializer(serializers.ModelSerializer):
     is_valid_now = serializers.SerializerMethodField()
     remaining_uses = serializers.SerializerMethodField()
+    vendor_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Coupon
         fields = [
-            'id', 'code', 'description', 'discount_type', 'discount_value',
+            'id', 'code', 'vendor', 'vendor_name', 'description', 'discount_type', 'discount_value',
             'min_order_amount', 'max_discount_amount', 'valid_from', 'valid_until',
             'is_active', 'usage_limit', 'used_count', 'one_time_use_per_user',
             'is_valid_now', 'remaining_uses', 'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at', 'used_count']
+    
+    def get_vendor_name(self, obj):
+        return obj.vendor.brand_name if obj.vendor else None
     
     def get_is_valid_now(self, obj):
         return obj.is_valid()

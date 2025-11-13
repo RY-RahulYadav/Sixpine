@@ -145,7 +145,23 @@ class OrderCreateSerializer(serializers.ModelSerializer):
                 coupon = Coupon.objects.get(id=coupon_id)
                 can_use, message = coupon.can_be_used_by_user(user)
                 if can_use:
-                    discount_amount, _ = coupon.calculate_discount(subtotal)
+                    # If coupon is vendor-specific, calculate discount only on vendor's products
+                    if coupon.vendor:
+                        vendor_subtotal = Decimal('0.00')
+                        for item_data in items_data:
+                            product = Product.objects.get(id=item_data['product_id'])
+                            if product.vendor and product.vendor.id == coupon.vendor.id:
+                                vendor_subtotal += product.price * item_data['quantity']
+                        
+                        if vendor_subtotal == 0:
+                            raise serializers.ValidationError({
+                                'coupon_id': f'This coupon applies only to products from {coupon.vendor.brand_name}. Please add products from this vendor to your cart.'
+                            })
+                        
+                        discount_amount, _ = coupon.calculate_discount(subtotal, vendor_subtotal)
+                    else:
+                        discount_amount, _ = coupon.calculate_discount(subtotal)
+                    
                     coupon_discount = Decimal(str(discount_amount))
                     # Update coupon usage
                     coupon.used_count += 1
@@ -195,10 +211,14 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             if variant and variant.price:
                 price = variant.price
             
+            # Get vendor from product
+            vendor = product.vendor if hasattr(product, 'vendor') else None
+            
             OrderItem.objects.create(
                 order=order,
                 product=product,
                 variant=variant,
+                vendor=vendor,
                 quantity=item_data['quantity'],
                 price=price,
                 variant_color=variant.color.name if variant else '',

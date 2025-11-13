@@ -41,4 +41,9 @@ urlpatterns = [
     # Account closure
     path('account/check-deletion-eligibility/', views.check_account_deletion_eligibility, name='check_account_deletion_eligibility'),
     path('account/close/', views.close_account, name='close_account'),
+    
+    # Vendor authentication
+    path('vendor/register/', views.vendor_register_view, name='vendor_register'),
+    path('vendor/login/', views.vendor_login_view, name='vendor_login'),
+    path('vendor/profile/', views.vendor_profile_view, name='vendor_profile'),
 ]

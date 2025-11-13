@@ -33,7 +33,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({ title, products, caro
     }
 
     // If product has variants, navigate to product detail page for variant selection
-    if (product.variants && product.variants.length > 0) {
+    if ((product as any).variants && (product as any).variants.length > 0) {
       if (product.slug) {
         navigate(`/products-details/${product.slug}`);
       }
@@ -59,7 +59,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({ title, products, caro
     }
 
     // If product has variants, navigate to product detail page for variant selection
-    if (product.variants && product.variants.length > 0) {
+    if ((product as any).variants && (product as any).variants.length > 0) {
       if (product.slug) {
         navigate(`/products-details/${product.slug}`);
       }

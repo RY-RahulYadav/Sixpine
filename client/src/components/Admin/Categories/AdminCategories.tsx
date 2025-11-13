@@ -312,7 +312,7 @@ const AdminCategories: React.FC = () => {
               
               {categories.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="admin-empty-state">
+                  <td colSpan={6} className="admin-empty-state empty-state-cell">
                     <div>
                       <span className="material-symbols-outlined">category</span>
                       <h3>No categories found</h3>

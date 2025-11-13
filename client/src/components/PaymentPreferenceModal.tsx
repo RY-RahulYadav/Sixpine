@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styles from './PaymentPreferenceModal.module.css';
 
 interface PaymentPreference {
@@ -45,7 +45,7 @@ interface PaymentPreferenceModalProps {
 const PaymentPreferenceModal: React.FC<PaymentPreferenceModalProps> = ({
   preference,
   savedCards,
-  addresses,
+  addresses: _addresses,
   onClose,
   onSave
 }) => {
@@ -72,19 +72,19 @@ const PaymentPreferenceModal: React.FC<PaymentPreferenceModalProps> = ({
     onSave(data);
   };
 
-  const formatCardName = (card: SavedCard) => {
-    const issuer = card.card.issuer || '';
-    const network = card.card.network || '';
-    const last4 = card.card.last4 || '';
-    
-    if (issuer && network) {
-      return `${issuer} ${network} ending in ${last4}`;
-    } else if (network) {
-      return `${network} ending in ${last4}`;
-    } else {
-      return `Card ending in ${last4}`;
-    }
-  };
+  // const formatCardName = (card: SavedCard) => {
+  //   const issuer = card.card.issuer || '';
+  //   const network = card.card.network || '';
+  //   const last4 = card.card.last4 || '';
+  //   
+  //   if (issuer && network) {
+  //     return `${issuer} ${network} ending in ${last4}`;
+  //   } else if (network) {
+  //     return `${network} ending in ${last4}`;
+  //   } else {
+  //     return `Card ending in ${last4}`;
+  //   }
+  // };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>

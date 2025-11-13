@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import adminAPI from '../../../services/adminApi';
+import { useAdminAPI } from '../../../hooks/useAdminAPI';
 import { showToast } from '../utils/adminUtils';
 
 interface OrderItem {
@@ -26,6 +26,14 @@ interface Order {
   id: number;
   order_number: string;
   order_id?: string;
+  coupon?: {
+    id: number;
+    code: string;
+    discount_type: string;
+    discount_value: string;
+  } | null;
+  coupon_discount?: number;
+  tax_rate?: string;
   user: {
     id: number;
     username: string;
@@ -44,7 +52,6 @@ interface Order {
   platform_fee?: number | string;
   tax: number | string;
   tax_amount?: number | string;
-  discount: number | string;
   shipping_address: {
     address_line1: string;
     address_line2: string;
@@ -60,6 +67,7 @@ interface Order {
 }
 
 const AdminOrderDetail: React.FC = () => {
+  const api = useAdminAPI();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
@@ -67,17 +75,7 @@ const AdminOrderDetail: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState<boolean>(false);
-  const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>('');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>('');
-  
-  const orderStatuses = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'confirmed', label: 'Confirmed' },
-    { value: 'processing', label: 'Processing' },
-    { value: 'shipped', label: 'Shipped' },
-    { value: 'delivered', label: 'Delivered' },
-    { value: 'cancelled', label: 'Cancelled' }
-  ];
   
   const paymentStatuses = [
     { value: 'pending', label: 'Pending' },
@@ -99,7 +97,7 @@ const AdminOrderDetail: React.FC = () => {
           return;
         }
         
-        const response = await adminAPI.getOrder(parseInt(id!));
+        const response = await api.getOrder(parseInt(id!));
         
         if (!response || !response.data) {
           setError('Order not found');
@@ -132,7 +130,6 @@ const AdminOrderDetail: React.FC = () => {
         };
         
         setOrder(normalizedOrder);
-        setSelectedOrderStatus(normalizedOrder.status);
         setSelectedPaymentStatus(normalizedOrder.payment_status);
         
       } catch (err: any) {
@@ -149,40 +146,13 @@ const AdminOrderDetail: React.FC = () => {
     }
   }, [id]);
   
-  const handleOrderStatusUpdate = async () => {
-    if (!order || !id || selectedOrderStatus === order.status) return;
-    
-    try {
-      setStatusUpdating(true);
-      
-      await adminAPI.updateOrderStatus(
-        parseInt(id), 
-        selectedOrderStatus,
-        `Order status changed to ${selectedOrderStatus}`
-      );
-      
-      setOrder({
-        ...order,
-        status: selectedOrderStatus.toLowerCase().trim()
-      });
-      
-      showToast(`Order status updated to ${selectedOrderStatus}`, 'success');
-    } catch (err) {
-      console.error('Error updating order status:', err);
-      showToast('Failed to update order status', 'error');
-      setSelectedOrderStatus(order.status);
-    } finally {
-      setStatusUpdating(false);
-    }
-  };
-  
   const handlePaymentStatusChange = async (paymentStatus: string) => {
     if (!order || !id || paymentStatus === order.payment_status) return;
     
     try {
       setStatusUpdating(true);
       
-      await adminAPI.updatePaymentStatus(
+      await (api as any).updatePaymentStatus(
         parseInt(id), 
         paymentStatus,
         `Payment status changed to ${paymentStatus}`
@@ -195,9 +165,10 @@ const AdminOrderDetail: React.FC = () => {
       
       setSelectedPaymentStatus(paymentStatus);
       showToast(`Payment status updated to ${paymentStatus}`, 'success');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating payment status:', err);
-      showToast('Failed to update payment status', 'error');
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.response?.data?.message || 'Failed to update payment status';
+      showToast(errorMessage, 'error');
       setSelectedPaymentStatus(order.payment_status);
     } finally {
       setStatusUpdating(false);
@@ -262,21 +233,6 @@ const AdminOrderDetail: React.FC = () => {
     }).format(safeAmount);
   };
   
-  const getStatusBadgeClass = (status: string) => {
-    switch (status && status?.toLowerCase()) {
-      case 'pending': return 'pending';
-      case 'confirmed': return 'confirmed';
-      case 'processing': return 'processing';
-      case 'shipped': return 'shipped';
-      case 'delivered': return 'delivered';
-      case 'cancelled': return 'cancelled';
-      case 'paid': return 'delivered';
-      case 'failed': return 'cancelled';
-      case 'refunded': return 'cancelled';
-      case 'partially_refunded': return 'warning';
-      default: return '';
-    }
-  };
   
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -380,13 +336,15 @@ const AdminOrderDetail: React.FC = () => {
                               <div className="product-title">
                                 {item.product?.title || item.product?.name || 'Unknown Product'}
                               </div>
-                              {item.product?.id && (
-                                  <button 
+                              {item.product?.slug && (
+                                  <a 
                                   className="view-product-link"
-                                  onClick={() => navigate(`/admin/products/${item.product.id}`)}
+                                  href={`/products-details/${item.product.slug}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   >
                                     View Product
-                                  </button>
+                                  </a>
                               )}
                             </div>
                           </div>
@@ -421,13 +379,13 @@ const AdminOrderDetail: React.FC = () => {
                 <span>Subtotal</span>
                 <span>{formatCurrency(order?.subtotal || 0)}</span>
               </div>
-              {(Number(order.coupon_discount) || Number(order.discount) || 0) > 0 && (
+              {(Number(order.coupon_discount) || 0) > 0 && (
                 <>
                   <div className="summary-row discount-row" style={{ color: '#28a745' }}>
                     <span>
                       {order.coupon?.code ? `Coupon Discount (${order.coupon.code})` : 'Discount'}
                     </span>
-                    <span>-{formatCurrency(order?.coupon_discount || order?.discount || 0)}</span>
+                    <span>-{formatCurrency(order?.coupon_discount || 0)}</span>
                   </div>
                   {order.coupon && (
                     <div className="summary-row" style={{ fontSize: '12px', color: '#666', fontStyle: 'italic', paddingTop: '4px' }}>
@@ -458,50 +416,7 @@ const AdminOrderDetail: React.FC = () => {
             </div>
           </div>
           
-          {/* Status Update Card */}
-          <div className="order-card">
-            <div className="card-header">
-              <h3>
-                <span className="material-symbols-outlined">tune</span>
-                Update Order Status
-              </h3>
-              </div>
-            <div className="status-update-section">
-              <div className="status-select-group">
-                <label>Order Status</label>
-                <div className="status-select-wrapper">
-                  <select
-                    value={selectedOrderStatus}
-                    onChange={(e) => setSelectedOrderStatus(e.target.value)}
-                    className="status-select"
-                    disabled={statusUpdating}
-                  >
-                    {orderStatuses.map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                    <button
-                    className="update-status-btn"
-                    onClick={handleOrderStatusUpdate}
-                    disabled={statusUpdating || selectedOrderStatus === order.status}
-                  >
-                    {statusUpdating ? (
-                      <span className="spinner-small"></span>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined">check</span>
-                        Update
-                      </>
-                    )}
-                    </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Payment Status Card */}
+          {/* Payment Status Update Card */}
           <div className="order-card">
             <div className="card-header">
               <h3>
@@ -512,18 +427,34 @@ const AdminOrderDetail: React.FC = () => {
             <div className="status-update-section">
               <div className="status-select-group">
                 <label>Payment Status</label>
-                <select
-                  value={selectedPaymentStatus}
-                  onChange={(e) => handlePaymentStatusChange(e.target.value)}
-                  className="status-select payment-select"
-                  disabled={statusUpdating}
-                >
-                  {paymentStatuses.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="status-select-wrapper">
+                  <select
+                    value={selectedPaymentStatus}
+                    onChange={(e) => setSelectedPaymentStatus(e.target.value)}
+                    className="status-select payment-select"
+                    disabled={statusUpdating}
+                  >
+                    {paymentStatuses.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="update-status-btn"
+                    onClick={() => handlePaymentStatusChange(selectedPaymentStatus)}
+                    disabled={statusUpdating || selectedPaymentStatus === order.payment_status}
+                  >
+                    {statusUpdating ? (
+                      <span className="spinner-small"></span>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined">check</span>
+                        Update
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

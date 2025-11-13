@@ -564,14 +564,17 @@ const CheckoutPage: React.FC = () => {
             <OrderConfirmation />
           </div>
           <div className="checkout-right">
-            {paymentSettings.coupons_enabled && (
-              <CouponInput
-                subtotal={state.cart?.total_price || 0}
-                onCouponApplied={(coupon) => setAppliedCoupon(coupon)}
-                onCouponRemoved={() => setAppliedCoupon(null)}
-                appliedCoupon={appliedCoupon}
-              />
-            )}
+            <CouponInput
+              subtotal={state.cart?.total_price || 0}
+              cartItems={state.cart?.items?.map((item: any) => ({
+                product_id: item.product?.id || item.product_id,
+                quantity: item.quantity,
+                price: item.variant?.price || item.product?.price || item.price || 0
+              })) || []}
+              onCouponApplied={(coupon) => setAppliedCoupon(coupon)}
+              onCouponRemoved={() => setAppliedCoupon(null)}
+              appliedCoupon={appliedCoupon}
+            />
             <OrderSummary 
               onPaymentClick={handlePayment}
               paymentDisabled={processing || !selectedAddressId || !selectedPaymentMethod}

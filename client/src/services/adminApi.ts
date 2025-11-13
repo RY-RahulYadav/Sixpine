@@ -150,6 +150,15 @@ export const adminAPI = {
   deleteDataRequest: (id: number) => API.delete(`/admin/data-requests/${id}/`),
   bulkDeleteDataRequests: (ids: number[]) => 
     API.post('/admin/data-requests/bulk_delete/', { ids }),
+  
+  // Brands/Vendors
+  getBrands: (params?: any) => API.get('/admin/brands/', { params }),
+  getBrand: (id: number) => API.get(`/admin/brands/${id}/`),
+  suspendBrand: (id: number) => API.post(`/admin/brands/${id}/suspend/`),
+  activateBrand: (id: number) => API.post(`/admin/brands/${id}/activate/`),
+  getBrandProducts: (id: number) => API.get(`/admin/brands/${id}/products/`),
+  getBrandOrders: (id: number) => API.get(`/admin/brands/${id}/orders/`),
+  getVendorFilterOptions: (vendorId: number) => API.get(`/admin/brands/${vendorId}/filter-options/`),
 };
 
 export default adminAPI;

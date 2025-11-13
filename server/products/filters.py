@@ -26,6 +26,9 @@ class ProductFilter(django_filters.FilterSet):
     # Brand filter
     brand = django_filters.CharFilter(field_name='brand', lookup_expr='icontains')
     
+    # Vendor filter
+    vendor = django_filters.NumberFilter(field_name='vendor_id', lookup_expr='exact')
+    
     # Search query
     q = django_filters.CharFilter(method='filter_search')
     
@@ -37,7 +40,7 @@ class ProductFilter(django_filters.FilterSet):
     
     class Meta:
         model = Product
-        fields = ['category', 'subcategory', 'min_price', 'max_price', 'color', 'material', 'min_rating', 'brand', 'q', 'min_discount']
+        fields = ['category', 'subcategory', 'min_price', 'max_price', 'color', 'material', 'min_rating', 'brand', 'vendor', 'q', 'min_discount']
     
     def filter_by_color(self, queryset, name, value):
         """Filter products by color through variants"""

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import adminAPI from '../../../services/adminApi';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
+import { useAdminAPI } from '../../../hooks/useAdminAPI';
 import { formatCurrency } from '../utils/adminUtils';
 import '../../../styles/admin-theme.css';
 
@@ -16,7 +16,11 @@ interface Order {
 }
 
 const AdminOrders: React.FC = () => {
+  const api = useAdminAPI();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const isSellerPanel = location.pathname.startsWith('/seller');
+  const basePath = isSellerPanel ? '/seller' : '/admin';
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +29,7 @@ const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || '');
   const [filterPayment, setFilterPayment] = useState<string>(searchParams.get('payment_status') || '');
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>(searchParams.get('payment_method') || '');
+  const [filterPaymentMethod] = useState<string>(searchParams.get('payment_method') || '');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   
@@ -44,9 +48,18 @@ const AdminOrders: React.FC = () => {
         if (filterPayment) params.payment_status = filterPayment;
         if (filterPaymentMethod) params.payment_method = filterPaymentMethod;
         
-        const response = await adminAPI.getOrders(params);
-        setOrders(response.data.results);
-        setTotalPages(Math.ceil(response.data.count / response.data.results.length));
+        const response = await api.getOrders(params);
+        // Handle both paginated and non-paginated responses
+        if (response.data.results) {
+          setOrders(response.data.results);
+          setTotalPages(Math.ceil(response.data.count / (response.data.results.length || 1)));
+        } else if (Array.isArray(response.data)) {
+          setOrders(response.data);
+          setTotalPages(1);
+        } else {
+          setOrders([]);
+          setTotalPages(1);
+        }
         setError(null);
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -221,7 +234,7 @@ const AdminOrders: React.FC = () => {
                   <strong>{formatCurrency(order.total_amount)}</strong>
                 </td>
                 <td className="actions" data-label="Actions">
-                  <Link to={`/admin/orders/${order.id}`} className="admin-modern-btn secondary icon-only">
+                  <Link to={`${basePath}/orders/${order.id}`} className="admin-modern-btn secondary icon-only">
                     <span className="material-symbols-outlined">visibility</span>
                   </Link>
                 </td>
@@ -230,7 +243,7 @@ const AdminOrders: React.FC = () => {
             
             {orders.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="admin-empty-state">
+                <td colSpan={8} className="admin-empty-state empty-state-cell">
                   <div>
                     <span className="material-symbols-outlined">receipt_long</span>
                     <h3>No orders found</h3>

@@ -108,8 +108,9 @@ class Product(models.Model):
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
     review_count = models.PositiveIntegerField(default=0)
     
-    # Product Details
-    brand = models.CharField(max_length=100, default='Sixpine')  # Single brand as per requirements
+    # Product Details - Multi-vendor support
+    vendor = models.ForeignKey('accounts.Vendor', on_delete=models.CASCADE, related_name='products', null=True, blank=True, help_text='Vendor/Seller who owns this product')
+    brand = models.CharField(max_length=100, blank=True, help_text='Brand name (can be different from vendor brand)')
     material = models.ForeignKey(Material, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     dimensions = models.CharField(max_length=100, blank=True)  # e.g., "L x W x H"
     weight = models.CharField(max_length=50, blank=True)
@@ -366,13 +367,14 @@ class Discount(models.Model):
 
 
 class Coupon(models.Model):
-    """Coupon codes for discounts"""
+    """Coupon codes for discounts - Vendor-specific"""
     DISCOUNT_TYPES = [
         ('percentage', 'Percentage'),
         ('fixed', 'Fixed Amount'),
     ]
     
-    code = models.CharField(max_length=50, unique=True, db_index=True)
+    code = models.CharField(max_length=50, db_index=True)
+    vendor = models.ForeignKey('accounts.Vendor', on_delete=models.CASCADE, related_name='coupons', null=True, blank=True, help_text='Vendor who owns this coupon. If null, coupon applies to all products.')
     description = models.TextField(blank=True)
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPES, default='percentage')
     discount_value = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
@@ -388,11 +390,14 @@ class Coupon(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        unique_together = [['code', 'vendor']]  # Code must be unique per vendor
         ordering = ['-created_at']
         verbose_name = "Coupon"
         verbose_name_plural = "Coupons"
     
     def __str__(self):
+        if self.vendor:
+            return f"{self.code} - {self.vendor.brand_name}"
         return f"{self.code} - {self.discount_value}{'%' if self.discount_type == 'percentage' else '₹'}"
     
     def is_valid(self):
@@ -418,24 +423,39 @@ class Coupon(models.Model):
         
         return True, "Valid"
     
-    def calculate_discount(self, order_amount):
-        """Calculate discount amount for given order amount"""
+    def calculate_discount(self, order_amount, vendor_products_amount=None):
+        """Calculate discount amount for given order amount
+        If vendor_products_amount is provided and coupon has a vendor, 
+        discount is calculated only on vendor's products amount.
+        """
         from decimal import Decimal
         
         # Convert order_amount to Decimal to ensure proper calculation
         if not isinstance(order_amount, Decimal):
             order_amount = Decimal(str(order_amount))
         
-        if order_amount < self.min_order_amount:
-            return Decimal('0'), f"Minimum order amount of ₹{self.min_order_amount} required"
+        # If coupon is vendor-specific, use vendor_products_amount if provided
+        if self.vendor and vendor_products_amount is not None:
+            if not isinstance(vendor_products_amount, Decimal):
+                vendor_products_amount = Decimal(str(vendor_products_amount))
+            # Check minimum order amount on vendor products
+            if vendor_products_amount < self.min_order_amount:
+                return Decimal('0'), f"Minimum order amount of ₹{self.min_order_amount} required for vendor products"
+            # Calculate discount on vendor products only
+            applicable_amount = vendor_products_amount
+        else:
+            # Check minimum order amount
+            if order_amount < self.min_order_amount:
+                return Decimal('0'), f"Minimum order amount of ₹{self.min_order_amount} required"
+            applicable_amount = order_amount
         
         if self.discount_type == 'percentage':
             # Both are now Decimal, so calculation is safe
-            discount = (order_amount * self.discount_value) / Decimal('100')
+            discount = (applicable_amount * self.discount_value) / Decimal('100')
             if self.max_discount_amount:
                 discount = min(discount, self.max_discount_amount)
         else:
-            discount = min(self.discount_value, order_amount)
+            discount = min(self.discount_value, applicable_amount)
         
         return discount, "Discount applied"
 

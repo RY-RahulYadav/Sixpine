@@ -7,10 +7,12 @@ interface ProcessStep {
   number: string;
   title: string;
   description: string;
+  icon?: React.ReactNode;
 }
 
 const defaultSteps: ProcessStep[] = [
     {
+      id: 1,
       number: '01',
       title: 'Submit Your Requirements',
       description: 'Fill out our bulk order form with your specific furniture needs, quantities, and project timeline.',
@@ -24,6 +26,7 @@ const defaultSteps: ProcessStep[] = [
       )
     },
     {
+      id: 2,
       number: '02',
       title: 'Receive Custom Quote',
       description: 'Our team analyzes your requirements and provides a detailed quote with volume discounts within 24-48 hours.',
@@ -35,6 +38,7 @@ const defaultSteps: ProcessStep[] = [
       )
     },
     {
+      id: 3,
       number: '03',
       title: 'Consultation & Customization',
       description: 'Work with our specialists to refine your order, select materials, colors, and finalize specifications.',
@@ -48,6 +52,7 @@ const defaultSteps: ProcessStep[] = [
       )
     },
     {
+      id: 4,
       number: '04',
       title: 'Production & Quality Check',
       description: 'Your furniture is manufactured with premium materials and undergoes rigorous quality inspections.',
@@ -59,6 +64,7 @@ const defaultSteps: ProcessStep[] = [
       )
     },
     {
+      id: 5,
       number: '05',
       title: 'Delivery & Installation',
       description: 'Scheduled delivery to your location with professional installation services included.',
@@ -71,6 +77,7 @@ const defaultSteps: ProcessStep[] = [
       )
     },
     {
+      id: 6,
       number: '06',
       title: 'Ongoing Support',
       description: 'Dedicated account manager provides continued support, warranties, and maintenance services.',

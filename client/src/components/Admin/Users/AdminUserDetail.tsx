@@ -12,6 +12,7 @@ interface UserDetails {
   is_active: boolean;
   is_staff: boolean;
   is_superuser?: boolean;
+  is_verified?: boolean;
   date_joined: string;
   last_login: string | null;
   mobile?: string;
@@ -82,7 +83,7 @@ const AdminUserDetail: React.FC = () => {
         </div>
         <button 
           className="admin-btn"
-          onClick={() => navigate('/admin/users')}
+          onClick={() => navigate('/admin/customers')}
         >
           Back to Users
         </button>
@@ -96,7 +97,7 @@ const AdminUserDetail: React.FC = () => {
         <div className="admin-header-with-back">
           <button 
             className="admin-back-button" 
-            onClick={() => navigate('/admin/users')}
+            onClick={() => navigate('/admin/customers')}
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
@@ -114,7 +115,7 @@ const AdminUserDetail: React.FC = () => {
                 adminAPI.deleteUser(parseInt(id!))
                   .then(() => {
                     showToast('User deleted successfully', 'success');
-                    navigate('/admin/users');
+                    navigate('/admin/customers');
                   })
                   .catch((err: any) => {
                     console.error('Error deleting user:', err);

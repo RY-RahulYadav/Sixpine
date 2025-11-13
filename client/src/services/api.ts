@@ -95,6 +95,78 @@ export const authAPI = {
   }) => API.post('/auth/password-reset/confirm/', data),
 };
 
+// Vendor API calls
+export const vendorAPI = {
+  register: (vendorData: {
+    business_name: string;
+    business_email: string;
+    business_phone: string;
+    business_address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+    gst_number?: string;
+    pan_number?: string;
+    business_type?: string;
+    brand_name: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    username?: string;
+    password: string;
+    password_confirm: string;
+  }) => API.post('/auth/vendor/register/', vendorData),
+  
+  login: (credentials: { username: string; password: string }) =>
+    API.post('/auth/vendor/login/', credentials),
+  
+  getProfile: () => API.get('/auth/vendor/profile/'),
+};
+
+// Seller API calls (for seller panel)
+export const sellerAPI = {
+  getDashboardStats: () => API.get('/seller/dashboard/stats/'),
+  getProducts: (params?: any) => API.get('/seller/products/', { params }),
+  getProduct: (id: number) => API.get(`/seller/products/${id}/`),
+  createProduct: (data: any) => API.post('/seller/products/', data, {
+    timeout: 60000
+  }),
+  updateProduct: (id: number, data: any) => API.patch(`/seller/products/${id}/`, data, {
+    timeout: 60000
+  }),
+  deleteProduct: (id: number) => API.delete(`/seller/products/${id}/`),
+  toggleProductActive: (id: number) => API.post(`/seller/products/${id}/toggle_active/`),
+  toggleProductFeatured: (id: number) => API.post(`/seller/products/${id}/toggle_featured/`),
+  updateProductStock: (id: number, variant_id: number, quantity: number) => 
+    API.post(`/seller/products/${id}/update_stock/`, { variant_id, quantity }),
+  getOrders: (params?: any) => API.get('/seller/orders/', { params }),
+  getOrder: (id: number) => API.get(`/seller/orders/${id}/`),
+  updateOrder: (id: number, data: any) => API.patch(`/seller/orders/${id}/`, data),
+  updateOrderStatus: (id: number, status: string, notes?: string) =>
+    API.post(`/seller/orders/${id}/update_status/`, { status, notes }),
+  getCategories: () => API.get('/seller/categories/'),
+  getCategoriesHierarchical: () => API.get('/seller/categories/'), // Same endpoint
+  getCategory: (id: number) => API.get(`/seller/categories/${id}/`),
+  getSubcategories: (params?: any) => API.get('/seller/subcategories/', { params }),
+  getSubcategory: (id: number) => API.get(`/seller/subcategories/${id}/`),
+  getColors: () => API.get('/seller/colors/'),
+  getColor: (id: number) => API.get(`/seller/colors/${id}/`),
+  getMaterials: () => API.get('/seller/materials/'),
+  getMaterial: (id: number) => API.get(`/seller/materials/${id}/`),
+  getCoupons: (params?: any) => API.get('/seller/coupons/', { params }),
+  getCoupon: (id: number) => API.get(`/seller/coupons/${id}/`),
+  createCoupon: (data: any) => API.post('/seller/coupons/', data),
+  updateCoupon: (id: number, data: any) => API.put(`/seller/coupons/${id}/`, data),
+  deleteCoupon: (id: number) => API.delete(`/seller/coupons/${id}/`),
+  getBrandAnalytics: () => API.get('/seller/brand-analytics/'),
+  getShipmentSettings: () => API.get('/seller/shipment-settings/'),
+  updateShipmentSettings: (data: any) => API.put('/seller/shipment-settings/', data),
+  getSettings: () => API.get('/seller/settings/'),
+  updateSettings: (data: any) => API.put('/seller/settings/', data),
+  changePassword: (data: { current_password: string; new_password: string }) => API.post('/seller/settings/change-password/', data),
+};
+
 // Product API calls
 export const productAPI = {
   getCategories: () => API.get('/categories/'),
@@ -135,6 +207,7 @@ export const productAPI = {
     API.get(`/products/${slug}/recommendations/`),
   
   getFilterOptions: (params?: any) => API.get('/filter-options/', { params }),
+  getBrands: () => API.get('/brands/'),
   
   // Browsing history
   trackBrowsingHistory: (productId: number) =>
@@ -237,8 +310,8 @@ export const orderAPI = {
   checkoutWithCOD: (data: { shipping_address_id: number; order_notes?: string; coupon_id?: number }) =>
     API.post('/orders/checkout/cod/', data),
   
-  validateCoupon: (data: { code: string; order_amount: number }) =>
-    API.post('/coupons/validate/', data),
+  validateCoupon: (data: { code: string; order_amount: number; cart_items?: Array<{ product_id: number; quantity: number; price: number }> }) =>
+    API.post('/orders/validate-coupon/', data),
   
   completePayment: (data: {
     order_id: string;

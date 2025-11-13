@@ -17,8 +17,8 @@ const NewPaymentMethod: React.FC<NewPaymentMethodProps> = ({
   // Use parent's selectedPaymentMethod as the source of truth if provided
   // Otherwise use local state for default selection
   const [localSelectedPayment, setLocalSelectedPayment] = useState<string>('');
-  const [, setPromoCode] = useState('');
-  const [selectedBank, setSelectedBank] = useState('');
+  // const [, setPromoCode] = useState('');
+  // const [selectedBank, setSelectedBank] = useState('');
   const isInitialized = useRef(false);
   
   // Determine which value to use - prop takes precedence

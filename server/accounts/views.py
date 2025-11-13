@@ -12,14 +12,15 @@ from django.conf import settings
 import random
 import string
 import os
-from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference, DataRequest
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference, DataRequest, Vendor
 from .serializers import (
     UserLoginSerializer, UserRegistrationSerializer, UserSerializer,
     OTPRequestSerializer, OTPVerificationSerializer, OTPResendSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
     ChangePasswordSerializer, ContactQuerySerializer, ContactQueryCreateSerializer,
     BulkOrderSerializer, BulkOrderCreateSerializer, PaymentPreferenceSerializer,
-    DataRequestSerializer, DataRequestCreateSerializer
+    DataRequestSerializer, DataRequestCreateSerializer,
+    VendorRegistrationSerializer, VendorSerializer, VendorLoginSerializer
 )
 from .data_export_utils import export_orders_to_excel, export_addresses_to_excel, export_payment_options_to_excel
 from .gmail_oauth_service import GmailOAuth2Service
@@ -946,3 +947,69 @@ def close_account(request):
             'success': False,
             'error': f'Failed to close account: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== Vendor Authentication Views ====================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def vendor_register_view(request):
+    """Vendor registration endpoint"""
+    serializer = VendorRegistrationSerializer(data=request.data)
+    if serializer.is_valid():
+        vendor = serializer.save()
+        return Response({
+            'success': True,
+            'message': 'Vendor registration successful. Your account is pending approval.',
+            'vendor': VendorSerializer(vendor).data
+        }, status=status.HTTP_201_CREATED)
+    
+    return Response({
+        'success': False,
+        'error': 'Registration failed',
+        'details': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def vendor_login_view(request):
+    """Vendor login endpoint"""
+    serializer = VendorLoginSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.validated_data['user']
+        vendor = serializer.validated_data['vendor']
+        login(request, user)
+        
+        # Generate or get existing token
+        token, created = Token.objects.get_or_create(user=user)
+        
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'user': UserSerializer(user).data,
+            'vendor': VendorSerializer(vendor).data,
+            'token': token.key
+        }, status=status.HTTP_200_OK)
+    
+    return Response({
+        'success': False,
+        'error': serializer.errors.get('non_field_errors', ['Invalid credentials'])[0]
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def vendor_profile_view(request):
+    """Get vendor profile"""
+    if not hasattr(request.user, 'vendor_profile'):
+        return Response({
+            'success': False,
+            'error': 'User is not a vendor'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    vendor = request.user.vendor_profile
+    return Response({
+        'success': True,
+        'vendor': VendorSerializer(vendor).data
+    }, status=status.HTTP_200_OK)

@@ -66,11 +66,10 @@ interface Testimonial {
 }
 
 const AdminBulkOrderPageManagement: React.FC = () => {
-  const [, setSections] = useState<BulkOrderPageContent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('hero');
-  const [editingSection, setEditingSection] = useState<BulkOrderPageContent | null>(null);
+  const [sections, setSections] = useState<BulkOrderPageContent[]>([]);
   const [saving, setSaving] = useState<boolean>(false);
 
   // Default Hero Section
@@ -241,11 +240,11 @@ const AdminBulkOrderPageManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await adminAPI.getBulkOrderPageContent();
-      const sections = Array.isArray(response.data) ? response.data : response.data.results || [];
-      setSections(sections);
+      const fetchedSections = Array.isArray(response.data) ? response.data : response.data.results || [];
+      setSections(fetchedSections);
 
       // Load existing content
-      sections.forEach((section: BulkOrderPageContent) => {
+      fetchedSections.forEach((section: BulkOrderPageContent) => {
         if (section.section_key === 'hero' && section.content) {
           setHeroContent(section.content);
         } else if (section.section_key === 'categories' && section.content) {
@@ -285,7 +284,7 @@ const AdminBulkOrderPageManagement: React.FC = () => {
         order: 1
       };
 
-      const existingSection = sections.find(s => s.section_key === 'hero');
+      const existingSection = sections.find((s: BulkOrderPageContent) => s.section_key === 'hero');
       if (existingSection) {
         await adminAPI.patchBulkOrderPageContent(existingSection.id, heroData);
         showToast('Hero section updated successfully', 'success');

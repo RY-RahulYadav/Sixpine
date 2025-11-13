@@ -12,36 +12,42 @@ interface CategoryItem {
 
 const defaultCategories: CategoryItem[] = [
     {
+      id: 1,
       title: 'Corporate Offices',
       description: 'Complete office furniture solutions for modern workspaces',
       image: 'https://file.aiquickdraw.com/imgcompressed/img/compressed_215a8341218b7c5192cd014e00644358.webp',
       items: ['Desks & Workstations', 'Conference Tables', 'Office Chairs', 'Storage Solutions']
     },
     {
+      id: 2,
       title: 'Hospitality',
       description: 'Elegant furniture for hotels, restaurants, and resorts',
       image: 'https://file.aiquickdraw.com/imgcompressed/img/compressed_6a37c6cb1e2f2462556bc01b836b7fc8.webp',
       items: ['Guest Room Furniture', 'Lobby Seating', 'Dining Sets', 'Outdoor Furniture']
     },
     {
+      id: 3,
       title: 'Educational Institutions',
       description: 'Durable and functional furniture for schools and universities',
       image: 'https://file.aiquickdraw.com/imgcompressed/img/compressed_215a8341218b7c5192cd014e00644358.webp',
       items: ['Classroom Furniture', 'Library Shelving', 'Auditorium Seating', 'Lab Tables']
     },
     {
+      id: 4,
       title: 'Healthcare Facilities',
       description: 'Specialized furniture for hospitals and clinics',
       image: 'https://file.aiquickdraw.com/imgcompressed/img/compressed_6a37c6cb1e2f2462556bc01b836b7fc8.webp',
       items: ['Waiting Area Seating', 'Medical Cabinets', 'Patient Room Furniture', 'Staff Lounges']
     },
     {
+      id: 5,
       title: 'Retail Spaces',
       description: 'Custom displays and fixtures for retail environments',
       image: 'https://file.aiquickdraw.com/imgcompressed/img/compressed_215a8341218b7c5192cd014e00644358.webp',
       items: ['Display Units', 'Checkout Counters', 'Storage Racks', 'Seating Areas']
     },
     {
+      id: 6,
       title: 'Residential Projects',
       description: 'Bulk orders for apartments, condos, and housing complexes',
       image: 'https://file.aiquickdraw.com/imgcompressed/img/compressed_6a37c6cb1e2f2462556bc01b836b7fc8.webp',

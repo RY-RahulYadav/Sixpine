@@ -32,9 +32,9 @@ const ProfileSection: React.FC = () => {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [categories, setCategories] = useState<Category[]>([]);
-  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [, setSubcategories] = useState<Subcategory[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   
   // Accordion states
   const [accountDetailOpen, setAccountDetailOpen] = useState(true); // Open by default

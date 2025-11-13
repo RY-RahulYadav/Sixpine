@@ -10,14 +10,14 @@ class Command(BaseCommand):
         Category.objects.all().delete()
         Subcategory.objects.all().delete()
         Color.objects.all().delete()
-        # Create colors
+        # Create colors (5-6 colors for default filter options)
         colors_data = [
             {'name': 'Red', 'hex_code': '#FF0000'},
             {'name': 'Blue', 'hex_code': '#0000FF'},
             {'name': 'Black', 'hex_code': '#000000'},
             {'name': 'White', 'hex_code': '#FFFFFF'},
             {'name': 'Brown', 'hex_code': '#8B4513'},
-    
+            {'name': 'Grey', 'hex_code': '#808080'},
         ]
         
         for color_data in colors_data:

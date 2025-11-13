@@ -6,10 +6,13 @@ import ProductListPage from './pages/ProductListPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import VendorLoginPage from './pages/VendorLoginPage';
+import VendorRegisterPage from './pages/VendorRegisterPage';
 import CartPage from './pages/CartPage';
 import OrdersPage from './pages/OrdersPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminRouter from './components/Admin/AdminRouter';
+import SellerRouter from './components/Seller/SellerRouter';
 import './App.css';
 import './styles/admin-theme.css';
 import './styles/auth.css';
@@ -64,6 +67,9 @@ function AppContent() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            {/* Vendor routes */}
+            <Route path="/vendor/login" element={<VendorLoginPage />} />
+            <Route path="/vendor/register" element={<VendorRegisterPage />} />
             <Route path="/products" element={<ProductListPage />} />
             <Route path="/products-details/:slug" element={<NewProductDetails />} />
             <Route path="/about" element={<AboutPage />} />
@@ -125,6 +131,7 @@ function AppContent() {
 
             {/* Admin routes */}
             <Route path="/admin/*" element={<AdminRouter />} />
+            <Route path="/seller/*" element={<SellerRouter />} />
         </Routes>
       </div>
     </Router>

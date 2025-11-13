@@ -6,6 +6,7 @@ interface Benefit {
   id: number;
   title: string;
   description: string;
+  icon?: React.ReactNode;
 }
 
 interface Testimonial {
@@ -18,6 +19,7 @@ interface Testimonial {
 
 const defaultBenefits: Benefit[] = [
     {
+      id: 1,
       icon: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
           <path d="M12 1V23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -28,6 +30,7 @@ const defaultBenefits: Benefit[] = [
       description: "Special pricing with progressive discounts based on order quantity."
     },
     {
+      id: 2,
       icon: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
           <path d="M12 15C15.866 15 19 11.866 19 8C19 4.13401 15.866 1 12 1C8.13401 1 5 4.13401 5 8C5 11.866 8.13401 15 12 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

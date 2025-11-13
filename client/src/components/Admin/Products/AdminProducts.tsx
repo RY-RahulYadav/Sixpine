@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import adminAPI from '../../../services/adminApi';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
+import { useAdminAPI } from '../../../hooks/useAdminAPI';
 import { formatCurrency, showToast } from '../utils/adminUtils';
 import '../../../styles/admin-theme.css';
 
@@ -39,9 +39,14 @@ interface Product {
 }
 
 const AdminProducts: React.FC = () => {
+  const api = useAdminAPI();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const isSellerPanel = location.pathname.startsWith('/seller');
+  const basePath = isSellerPanel ? '/seller' : '/admin';
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -51,12 +56,13 @@ const AdminProducts: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>(searchParams.get('category') || '');
   const [filterStock, setFilterStock] = useState<string>(searchParams.get('stock_status') || '');
   const [filterActive, setFilterActive] = useState<string>(searchParams.get('is_active') || '');
+  const [filterBrand, setFilterBrand] = useState<string>(searchParams.get('vendor') || '');
   
   // Fetch categories for filter dropdown
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await adminAPI.getCategories();
+        const response = await api.getCategories();
         if (response.data && Array.isArray(response.data.results)) {
           setCategories(response.data.results);
         } else if (response.data && Array.isArray(response.data)) {
@@ -69,6 +75,26 @@ const AdminProducts: React.FC = () => {
     
     fetchCategories();
   }, []);
+
+  // Fetch brands for filter dropdown (only in admin panel)
+  useEffect(() => {
+    if (!isSellerPanel) {
+      const fetchBrands = async () => {
+        try {
+          const response = await (api as any).getBrands();
+          if (response.data && Array.isArray(response.data.results)) {
+            setBrands(response.data.results);
+          } else if (response.data && Array.isArray(response.data)) {
+            setBrands(response.data);
+          }
+        } catch (err) {
+          console.error('Error fetching brands:', err);
+        }
+      };
+      
+      fetchBrands();
+    }
+  }, [isSellerPanel, api]);
   
   useEffect(() => {
     const fetchProducts = async () => {
@@ -82,9 +108,10 @@ const AdminProducts: React.FC = () => {
         if (filterCategory) params.category = filterCategory;
         if (filterStock) params.stock_status = filterStock;
         if (filterActive) params.is_active = filterActive;
+        if (filterBrand && !isSellerPanel) params.vendor = filterBrand;
         
         console.log('Fetching products with params:', params);
-        const response = await adminAPI.getProducts(params);
+        const response = await api.getProducts(params);
         
         console.log('API Response:', response.data);
         
@@ -126,7 +153,7 @@ const AdminProducts: React.FC = () => {
     };
     
     fetchProducts();
-  }, [currentPage, searchTerm, filterCategory, filterStock, filterActive]);
+  }, [currentPage, searchTerm, filterCategory, filterStock, filterActive, filterBrand, isSellerPanel]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +162,7 @@ const AdminProducts: React.FC = () => {
   
   const handleToggleActive = async (id: number, isActive: boolean) => {
     try {
-      await adminAPI.toggleProductActive(id);
+      await api.toggleProductActive(id);
       setProducts(products.map(product => 
         product.id === id ? { ...product, is_active: !isActive } : product
       ));
@@ -149,7 +176,7 @@ const AdminProducts: React.FC = () => {
   const handleDeleteProduct = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await adminAPI.deleteProduct(id);
+        await api.deleteProduct(id);
         setProducts(products.filter(product => product.id !== id));
         showToast('Product deleted successfully', 'success');
       } catch (err) {
@@ -180,7 +207,7 @@ const AdminProducts: React.FC = () => {
           </div>
         </div>
         <div className="admin-page-actions">
-          <Link to="/admin/products/new" className="admin-modern-btn primary">
+          <Link to={`${basePath}/products/new`} className="admin-modern-btn primary">
             <span className="material-symbols-outlined">add</span>
             Add New Product
           </Link>
@@ -205,6 +232,22 @@ const AdminProducts: React.FC = () => {
         </form>
         
         <div className="admin-filters-group">
+          {!isSellerPanel && (
+            <select
+              value={filterBrand}
+              onChange={(e) => {
+                setFilterBrand(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="admin-form-select"
+            >
+              <option value="">All Brands</option>
+              {brands.map(brand => (
+                <option key={brand.id} value={brand.id}>{brand.brand_name || brand.business_name || `Brand ${brand.id}`}</option>
+              ))}
+            </select>
+          )}
+          
           <select
             value={filterCategory}
             onChange={(e) => {
@@ -309,7 +352,7 @@ const AdminProducts: React.FC = () => {
                   <td>
                     <div>
                       <Link 
-                        to={`/admin/products/${product.id}`} 
+                        to={`${basePath}/products/${product.id}`} 
                         style={{ 
                           color: '#ff6f00', 
                           fontWeight: '600', 
@@ -360,49 +403,9 @@ const AdminProducts: React.FC = () => {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: '500' }}>
-                        {product.variant_count || 0} variants
-                      </span>
-                      {product.variants && product.variants.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                          {product.variants.slice(0, 3).map((v) => (
-                            <span
-                              key={v.id}
-                              style={{
-                                fontSize: '11px',
-                                padding: '2px 6px',
-                                background: '#f5f5f5',
-                                borderRadius: '4px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                              title={`${v.color.name} ${v.size || ''} ${v.pattern || ''} - Stock: ${v.stock_quantity}`}
-                            >
-                              {v.color.hex_code && (
-                                <span
-                                  style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    border: '1px solid #ddd',
-                                    backgroundColor: v.color.hex_code,
-                                    display: 'inline-block'
-                                  }}
-                                ></span>
-                              )}
-                              {v.color.name}
-                            </span>
-                          ))}
-                          {product.variants.length > 3 && (
-                            <span style={{ fontSize: '11px', color: '#666' }}>
-                              +{product.variants.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--admin-text)' }}>
+                      {product.variant_count || 0}
+                    </span>
                   </td>
                   <td>
                     <div style={{ fontSize: '13px' }}>{product.category}</div>
@@ -428,7 +431,7 @@ const AdminProducts: React.FC = () => {
                           {product.is_active ? 'visibility_off' : 'visibility'}
                         </span>
                       </button>
-                      <Link to={`/admin/products/${product.id}`} className="admin-modern-btn secondary icon-only">
+                      <Link to={`${basePath}/products/${product.id}`} className="admin-modern-btn secondary icon-only">
                         <span className="material-symbols-outlined">edit</span>
                       </Link>
                       <button 
@@ -444,14 +447,12 @@ const AdminProducts: React.FC = () => {
               
               {products.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={8} className="admin-empty-state empty-state-cell">
                     <div className="admin-empty-state">
-                      <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#ccc' }}>
-                        inventory_2
-                      </span>
+                      <span className="material-symbols-outlined">inventory_2</span>
                       <h3>No products found</h3>
                       <p>Start by adding your first product to the catalog</p>
-                      <Link to="/admin/products/new" className="admin-modern-btn primary">
+                      <Link to={`${basePath}/products/new`} className="admin-modern-btn primary">
                         <span className="material-symbols-outlined">add</span>
                         Add New Product
                       </Link>
