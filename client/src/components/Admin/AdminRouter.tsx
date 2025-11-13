@@ -10,7 +10,9 @@ import AdminPaymentCharges from './PaymentCharges/AdminPaymentCharges';
 import AdminSettings from './Settings/AdminSettings';
 import AdminBulkOrders from './BulkOrders/AdminBulkOrders';
 import AdminContactQueries from './ContactQueries/AdminContactQueries';
-const AdminLogs = lazy(() => import('./Logs/AdminLogs'));
+
+// Lazy load AdminLogs - using index file for better module resolution
+const AdminLogs = lazy(() => import('./Logs'));
 import AdminHomePageManagement from './HomePageManagement/AdminHomePageManagement';
 import AdminTrendingPageManagement from './TrendingPageManagement/AdminTrendingPageManagement';
 import AdminBestDealsPageManagement from './BestDealsPageManagement/AdminBestDealsPageManagement';
