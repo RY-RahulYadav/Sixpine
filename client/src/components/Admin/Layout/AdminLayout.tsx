@@ -49,14 +49,18 @@ const AdminLayout: React.FC = () => {
     { path: '/admin/products', icon: 'inventory_2', label: 'Products', section: 'main' },
     { path: '/admin/orders', icon: 'shopping_bag', label: 'Orders', section: 'main' },
     { path: '/admin/users', icon: 'people', label: 'Customers', section: 'main' },
-    { path: '/admin/analytics', icon: 'analytics', label: 'Brand Analytics', section: 'analytics' },
+    // { path: '/admin/analytics', icon: 'analytics', label: 'Brand Analytics', section: 'analytics' },
     { path: '/admin/contact-queries', icon: 'contact_support', label: 'Contact Queries', section: 'management' },
     { path: '/admin/bulk-orders', icon: 'local_shipping', label: 'Bulk Orders', section: 'management' },
+    { path: '/admin/data-requests', icon: 'download', label: 'Data Requests', section: 'management' },
     { path: '/admin/logs', icon: 'list_alt', label: 'Activity Logs', section: 'management' },
     { path: '/admin/coupons', icon: 'local_offer', label: 'Coupons', section: 'settings' },
     { path: '/admin/filter-options', icon: 'tune', label: 'Filter Options', section: 'settings' },
     { path: '/admin/payment-charges', icon: 'payments', label: 'Payment & Charges', section: 'settings' },
     { path: '/admin/homepage', icon: 'home', label: 'Home Page', section: 'settings' },
+    { path: '/admin/bulk-order-page', icon: 'inventory_2', label: 'Bulk Order Page', section: 'settings' },
+    // { path: '/admin/trending', icon: 'trending_up', label: 'Trending', section: 'settings' },
+    // { path: '/admin/best-deals', icon: 'local_offer', label: 'Best Deals', section: 'settings' },
     { path: '/admin/settings', icon: 'settings', label: 'Settings', section: 'settings' },
   ];
   
@@ -157,7 +161,7 @@ const AdminLayout: React.FC = () => {
             
             {/* Analytics Section */}
             <div className="admin-menu-section">
-              <div className="admin-menu-title">Analytics</div>
+              {/* <div className="admin-menu-title">Analytics</div> */}
               {groupedMenuItems.analytics.map((item) => {
                 const active = isActive(item.path);
                 return (

@@ -24,6 +24,10 @@ import AdminContactQueries from './ContactQueries/AdminContactQueries';
 import AdminBulkOrders from './BulkOrders/AdminBulkOrders';
 import AdminLogs from './Logs/AdminLogs';
 import AdminHomePageManagement from './HomePageManagement/AdminHomePageManagement';
+import AdminTrendingPageManagement from './TrendingPageManagement/AdminTrendingPageManagement';
+import AdminBestDealsPageManagement from './BestDealsPageManagement/AdminBestDealsPageManagement';
+import AdminBulkOrderPageManagement from './BulkOrderPageManagement/AdminBulkOrderPageManagement';
+import AdminDataRequests from './DataRequests/AdminDataRequests';
 
 const AdminRouter = () => {
   const { state } = useApp();
@@ -78,6 +82,10 @@ const AdminRouter = () => {
         <Route path="bulk-orders" element={<AdminBulkOrders />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="homepage" element={<AdminHomePageManagement />} />
+        <Route path="trending" element={<AdminTrendingPageManagement />} />
+        <Route path="best-deals" element={<AdminBestDealsPageManagement />} />
+        <Route path="bulk-order-page" element={<AdminBulkOrderPageManagement />} />
+        <Route path="data-requests" element={<AdminDataRequests />} />
       </Route>
     </Routes>
   );

@@ -3,10 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useApp } from '../context/AppContext';
-import { addressAPI } from '../services/api';
+import { addressAPI, homepageAPI } from '../services/api';
 import styles from '../styles/AddressesPage.module.css';
 import Productdetails_Slider1 from "../components/Products_Details/productdetails_slider1";
-import { recommendedProducts } from "../data/productSliderData";
+
+// Product interface matching the slider component
+interface Product {
+  img: string;
+  title: string;
+  desc: string;
+  rating: number;
+  reviews: number;
+  oldPrice: string;
+  newPrice: string;
+}
 
 interface Address {
   id: number;
@@ -40,6 +50,55 @@ const AddressesPage: React.FC = () => {
     is_default: false
   });
   const [submitting, setSubmitting] = useState(false);
+  const [frequentlyViewedProducts, setFrequentlyViewedProducts] = useState<Product[]>([]);
+  const [inspiredProducts, setInspiredProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    fetchHomepageData();
+  }, []);
+
+  const fetchHomepageData = async () => {
+    try {
+      setLoadingProducts(true);
+      const response = await homepageAPI.getHomepageContent('banner-cards');
+      const content = response.data.content || response.data;
+      
+      // Transform slider1Products (frequently viewed)
+      if (content.slider1Products && Array.isArray(content.slider1Products)) {
+        const transformedFrequentlyViewed = content.slider1Products.map((product: any) => ({
+          img: product.img || product.image || product.main_image || '/images/placeholder.jpg',
+          title: product.title || product.name || '',
+          desc: product.desc || product.short_description || product.description || '',
+          rating: product.rating || product.average_rating || 4.5,
+          reviews: product.reviews || product.review_count || 0,
+          oldPrice: product.oldPrice || (product.old_price ? `₹${parseInt(String(product.old_price)).toLocaleString()}` : ''),
+          newPrice: product.newPrice || product.price || '',
+        }));
+        setFrequentlyViewedProducts(transformedFrequentlyViewed);
+      }
+      
+      // Transform slider2Products (inspired by browsing history)
+      if (content.slider2Products && Array.isArray(content.slider2Products)) {
+        const transformedInspired = content.slider2Products.map((product: any) => ({
+          img: product.img || product.image || product.main_image || '/images/placeholder.jpg',
+          title: product.title || product.name || '',
+          desc: product.desc || product.short_description || product.description || '',
+          rating: product.rating || product.average_rating || 4.5,
+          reviews: product.reviews || product.review_count || 0,
+          oldPrice: product.oldPrice || (product.old_price ? `₹${parseInt(String(product.old_price)).toLocaleString()}` : ''),
+          newPrice: product.newPrice || product.price || '',
+        }));
+        setInspiredProducts(transformedInspired);
+      }
+    } catch (error) {
+      console.error('Error fetching homepage data:', error);
+      setFrequentlyViewedProducts([]);
+      setInspiredProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   useEffect(() => {
     // Wait for auth initialization to complete
@@ -378,23 +437,30 @@ const AddressesPage: React.FC = () => {
           )}
         </div>
 
-        {/* Product Carousel 1 */}
-        <div className={styles.carouselSection}>
-          <Productdetails_Slider1 
-            title="Customers Frequently viewed | Popular products in the last 7 days"
-            products={recommendedProducts}
-          />
-        </div>
+        {/* Product Sections */}
+        {!loadingProducts && (
+          <>
+            {/* First Row - Customers frequently viewed */}
+            {frequentlyViewedProducts.length > 0 && (
+              <div className={styles.carouselSection}>
+                <Productdetails_Slider1 
+                  title="Customers frequently viewed | Popular products in the last 7 days"
+                  products={frequentlyViewedProducts}
+                />
+              </div>
+            )}
 
-        {/* Products Carousel 2 */}
-        <div className={styles.carouselSection}>
-          <section className="mc-products-section">
-            <Productdetails_Slider1 
-              title="Customers Frequently viewed | Popular products in the last 7 days"
-              products={recommendedProducts}
-            />
-          </section>
-        </div>
+            {/* Second Row - Inspired by your browsing history */}
+            {inspiredProducts.length > 0 && (
+              <div className={styles.carouselSection}>
+                <Productdetails_Slider1 
+                  title="Inspired by your browsing history"
+                  products={inspiredProducts}
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
       <Footer />
     </>

@@ -1,19 +1,152 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "../styles/communication-preferences.module.css";
+import { authAPI } from '../services/api';
+import { useApp } from '../context/AppContext';
 
 export default function CommunicationPreferences() {
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupContent, setPopupContent] = useState("");
+  const { state } = useApp();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  // WhatsApp preferences
+  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const [whatsappOrderUpdates, setWhatsappOrderUpdates] = useState(true);
+  const [whatsappPromotional, setWhatsappPromotional] = useState(true);
+  
+  // Email preferences
+  const [emailPromotional, setEmailPromotional] = useState(true);
+  
+  // Original values for cancel functionality
+  const [originalValues, setOriginalValues] = useState({
+    whatsappEnabled: true,
+    whatsappOrderUpdates: true,
+    whatsappPromotional: true,
+    emailPromotional: true,
+  });
 
-  const handleOpenPopup = (content: string) => {
-    setPopupContent(content);
-    setShowPopup(true);
+  useEffect(() => {
+    fetchUserPreferences();
+  }, []);
+
+  const fetchUserPreferences = async () => {
+    try {
+      setLoading(true);
+      const response = await authAPI.getProfile();
+      const profile = response.data.user || response.data;
+      
+      const userFromStorage = state.user || (() => {
+        try {
+          const stored = localStorage.getItem('user');
+          return stored ? JSON.parse(stored) : null;
+        } catch {
+          return null;
+        }
+      })();
+      
+      const mergedProfile = {
+        ...userFromStorage,
+        ...profile,
+      };
+      
+      // Set preferences, defaulting to true if not set
+      const prefs = {
+        whatsappEnabled: mergedProfile.whatsapp_enabled !== false,
+        whatsappOrderUpdates: mergedProfile.whatsapp_order_updates !== false,
+        whatsappPromotional: mergedProfile.whatsapp_promotional !== false,
+        emailPromotional: mergedProfile.email_promotional !== false,
+      };
+      
+      setWhatsappEnabled(prefs.whatsappEnabled);
+      setWhatsappOrderUpdates(prefs.whatsappOrderUpdates);
+      setWhatsappPromotional(prefs.whatsappPromotional);
+      setEmailPromotional(prefs.emailPromotional);
+      setOriginalValues(prefs);
+    } catch (error) {
+      console.error('Error fetching preferences:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleClosePopup = () => {
-    setShowPopup(false);
-    setPopupContent("");
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await authAPI.updateProfile({
+        whatsapp_enabled: whatsappEnabled,
+        whatsapp_order_updates: whatsappOrderUpdates,
+        whatsapp_promotional: whatsappPromotional,
+        email_promotional: emailPromotional,
+      });
+      
+      // Update original values after successful save
+      setOriginalValues({
+        whatsappEnabled,
+        whatsappOrderUpdates,
+        whatsappPromotional,
+        emailPromotional,
+      });
+      
+      alert('Communication preferences updated successfully');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error updating preferences';
+      alert(errorMsg);
+      console.error('Update preferences error:', error);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const handleCancel = () => {
+    // Reset to original values
+    setWhatsappEnabled(originalValues.whatsappEnabled);
+    setWhatsappOrderUpdates(originalValues.whatsappOrderUpdates);
+    setWhatsappPromotional(originalValues.whatsappPromotional);
+    setEmailPromotional(originalValues.emailPromotional);
+  };
+
+  const handleChangeClick = () => {
+    navigate('/login-security');
+  };
+  
+  // Get masked phone number
+  const getMaskedPhone = () => {
+    const userFromStorage = state.user || (() => {
+      try {
+        const stored = localStorage.getItem('user');
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    })();
+    const phone = userFromStorage?.mobile || '';
+    if (phone && phone.length > 3) {
+      return `91${phone.slice(-3)}`;
+    }
+    return '91•••';
+  };
+  
+  // Get user email
+  const getUserEmail = () => {
+    const userFromStorage = state.user || (() => {
+      try {
+        const stored = localStorage.getItem('user');
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    })();
+    return userFromStorage?.email || 'your-email@example.com';
+  };
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -29,10 +162,10 @@ export default function CommunicationPreferences() {
           <div className={styles.cardHeader}>
             <span>General Settings</span>
             <span>
-              WhatsApp notifications are currently being sent to 91•••754{" "}
+              WhatsApp notifications are currently being sent to {getMaskedPhone()}{" "}
               <button
                 className={styles.changeBtn}
-                onClick={() => handleOpenPopup("Change WhatsApp number")}
+                onClick={handleChangeClick}
               >
                 Change
               </button>
@@ -41,11 +174,21 @@ export default function CommunicationPreferences() {
 
           <div className={styles.checkboxGroup}>
             <label>
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                checked={whatsappOrderUpdates}
+                onChange={(e) => setWhatsappOrderUpdates(e.target.checked)}
+                disabled={saving}
+              />
               Key order updates, shipments, payments and more
             </label>
             <label>
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                checked={whatsappPromotional}
+                onChange={(e) => setWhatsappPromotional(e.target.checked)}
+                disabled={saving}
+              />
               Personalised deals, recommendations, sales events, and more
             </label>
             <p className={styles.hint}>
@@ -54,67 +197,36 @@ export default function CommunicationPreferences() {
           </div>
 
           <div className={styles.actions}>
-            <button className={styles.cancelBtn}>Cancel</button>
-            <button className={styles.updateBtn}>Update</button>
+            <button 
+              className={styles.cancelBtn}
+              onClick={handleCancel}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button 
+              className={styles.updateBtn}
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Update'}
+            </button>
           </div>
         </div>
       </div>
-
-      {/* SMS Preferences */}
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>SMS Preferences</h3>
-        <p className={styles.subtext}>
-          You consent to receive automated text messages regarding issues with
-          your order, account security, or other customer service purposes from
-          or on behalf of Sixpine at the mobile number provided below.
-        </p>
-
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span>General Settings</span>
-            <span>
-              SMS notifications are being sent to 91•••678{" "}
-              <button
-                className={styles.changeBtn}
-                onClick={() => handleOpenPopup("Change SMS number")}
-              >
-                Change
-              </button>
-            </span>
-          </div>
-
-          <div className={styles.radioGroup}>
-            <label>
-              <input type="radio" name="sms" />
-              Send SMS messages from 08:00 → 23:00
-            </label>
-            <label>
-              <input type="radio" name="sms" defaultChecked />
-              SMS notifications are sent from 06:00 → 23:00
-            </label>
-          </div>
-
-          <div className={styles.actions}>
-            <button className={styles.cancelBtn}>Cancel</button>
-            <button className={styles.updateBtn}>Update</button>
-          </div>
-        </div>
-      </div>
-
 
       {/* Email  Preferences */}
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Email  Preferences</h3>
+        <h3 className={styles.sectionTitle}>Email Preferences</h3>
         
-
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <span>General Settings</span>
             <span>
-              email notifications are being sent to sixpine@gmail.com{" "}
+              Email notifications are being sent to {getUserEmail()}{" "}
               <button
                 className={styles.changeBtn}
-                onClick={() => handleOpenPopup("Change email ID")}
+                onClick={handleChangeClick}
               >
                 Change
               </button>
@@ -123,31 +235,36 @@ export default function CommunicationPreferences() {
 
            <div className={styles.checkboxGroup}>
             <label>
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                checked={emailPromotional}
+                onChange={(e) => setEmailPromotional(e.target.checked)}
+                disabled={saving}
+              />
               Promotional Emails
             </label>
           </div>
 
           <div className={styles.actions}>
-            <button className={styles.cancelBtn}>Cancel</button>
-            <button className={styles.updateBtn}>Update</button>
+            <button 
+              className={styles.cancelBtn}
+              onClick={handleCancel}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button 
+              className={styles.updateBtn}
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Update'}
+            </button>
           </div>
         </div>
       </div>
 
 
-      {/* Popup */}
-      {showPopup && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popup}>
-            <h4>{popupContent}</h4>
-            <p>You can add your custom form or settings here.</p>
-            <button className={styles.closeBtn} onClick={handleClosePopup}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

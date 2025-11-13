@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import adminAPI from '../../../services/adminApi';
 import { showToast } from '../utils/adminUtils';
 import '../../../styles/admin-theme.css';
@@ -11,11 +12,20 @@ interface User {
   last_name: string;
   is_active: boolean;
   is_staff: boolean;
+  is_superuser?: boolean;
   date_joined: string;
   last_login: string;
+  // Preferences
+  interests?: string[];
+  advertising_enabled?: boolean;
+  whatsapp_enabled?: boolean;
+  whatsapp_order_updates?: boolean;
+  whatsapp_promotional?: boolean;
+  email_promotional?: boolean;
 }
 
 const AdminUsers: React.FC = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +63,12 @@ const AdminUsers: React.FC = () => {
   };
   
   const handleToggleActive = async (id: number, isActive: boolean) => {
+    const user = users.find(u => u.id === id);
+    if (user?.is_superuser) {
+      showToast('Cannot deactivate superuser accounts', 'error');
+      return;
+    }
+    
     try {
       await adminAPI.toggleUserActive(id);
       
@@ -62,13 +78,20 @@ const AdminUsers: React.FC = () => {
       ));
       
       showToast(`User ${!isActive ? 'activated' : 'suspended'} successfully`, 'success');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error toggling user status:', err);
-      showToast('Failed to update user status', 'error');
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Failed to update user status';
+      showToast(errorMessage, 'error');
     }
   };
 
   const handleDeleteUser = async (id: number, username: string) => {
+    const user = users.find(u => u.id === id);
+    if (user?.is_superuser) {
+      showToast('Cannot delete superuser accounts', 'error');
+      return;
+    }
+    
     if (!window.confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
       return;
     }
@@ -79,7 +102,7 @@ const AdminUsers: React.FC = () => {
       showToast('User deleted successfully', 'success');
     } catch (err: any) {
       console.error('Error deleting user:', err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Failed to delete user';
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.response?.data?.message || 'Failed to delete user';
       showToast(errorMessage, 'error');
     }
   };
@@ -147,6 +170,7 @@ const AdminUsers: React.FC = () => {
               <th>Joined</th>
               <th>Status</th>
               <th>Actions</th>
+              <th>Details</th>
             </tr>
           </thead>
           <tbody>
@@ -167,6 +191,7 @@ const AdminUsers: React.FC = () => {
                       className={`admin-modern-btn ${user.is_active ? 'warning' : 'success'} icon-only`}
                       onClick={() => handleToggleActive(user.id, user.is_active)}
                       title={user.is_active ? 'Suspend user' : 'Activate user'}
+                      disabled={user.is_superuser}
                     >
                       <span className="material-symbols-outlined">
                         {user.is_active ? 'block' : 'check_circle'}
@@ -176,17 +201,27 @@ const AdminUsers: React.FC = () => {
                       className="admin-modern-btn danger icon-only"
                       onClick={() => handleDeleteUser(user.id, user.username)}
                       title="Delete user"
+                      disabled={user.is_superuser}
                     >
                       <span className="material-symbols-outlined">delete</span>
                     </button>
                   </div>
+                </td>
+                <td data-label="Details">
+                  <button
+                    className="admin-modern-btn secondary icon-only"
+                    onClick={() => navigate(`/admin/users/${user.id}`)}
+                    title="View user details"
+                  >
+                    <span className="material-symbols-outlined">visibility</span>
+                  </button>
                 </td>
               </tr>
             ))}
             
             {users.length === 0 && !loading && (
               <tr>
-                <td colSpan={6} className="admin-empty-state">
+                <td colSpan={7} className="admin-empty-state">
                   <div>
                     <span className="material-symbols-outlined">people</span>
                     <h3>No customers found</h3>

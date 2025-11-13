@@ -32,4 +32,13 @@ urlpatterns = [
     path('payment-preferences/update/', views.update_payment_preference, name='update_payment_preference'),
     path('payment-preferences/saved-cards/', views.get_saved_cards, name='get_saved_cards'),
     path('payment-preferences/saved-cards/<str:token_id>/delete/', views.delete_saved_card, name='delete_saved_card'),
+    
+    # Data requests
+    path('data-requests/create/', views.create_data_request, name='create_data_request'),
+    path('data-requests/', views.get_user_data_requests, name='get_user_data_requests'),
+    path('data-requests/<int:request_id>/download/', views.download_data_file, name='download_data_file'),
+    
+    # Account closure
+    path('account/check-deletion-eligibility/', views.check_account_deletion_eligibility, name='check_account_deletion_eligibility'),
+    path('account/close/', views.close_account, name='close_account'),
 ]

@@ -188,7 +188,7 @@ const HeroSection3 = () => {
           {data.sliderCards.map((s) => {
             const handleClick = () => {
               if (s.productSlug) {
-                window.location.href = `/product/${s.productSlug}`;
+                window.location.href = `/products-details/${s.productSlug}`;
               }
             };
             return (

@@ -127,3 +127,38 @@ class HomePageContent(models.Model):
     
     def __str__(self):
         return f"{self.section_name} ({self.section_key})"
+
+
+class BulkOrderPageContent(models.Model):
+    """Bulk order page content sections for customization"""
+    section_key = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text='Unique identifier for the section'
+    )
+    section_name = models.CharField(
+        max_length=200,
+        help_text='Human-readable section name'
+    )
+    content = models.JSONField(
+        default=dict,
+        help_text='Section content as JSON'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Whether this section is visible on the bulk order page'
+    )
+    order = models.IntegerField(
+        default=0,
+        help_text='Display order on the page'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Bulk Order Page Content"
+        verbose_name_plural = "Bulk Order Page Contents"
+        ordering = ['order', 'section_name']
+    
+    def __str__(self):
+        return f"{self.section_name} ({self.section_key})"

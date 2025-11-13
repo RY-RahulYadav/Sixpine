@@ -56,9 +56,6 @@ const TrendingPage: React.FC = () => {
       </div>
 
       <div className="trending_container">
-        {/* Trending Hero Banner */}
-       
-
         {/* Currently Trending Products */}
         <TrendingCategories />
         <TrendingCollections />

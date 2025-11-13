@@ -14,15 +14,54 @@ import AdBanner from "../components/ProductDetail/AdBanner";
 // Import product data
 import Productdetails_Slider1 from "../components/Products_Details/productdetails_slider1";
 import Footer from "../components/Footer";
-import { productAPI } from "../services/api";
+import { productAPI, authAPI } from "../services/api";
+import { useApp } from "../context/AppContext";
 
 
 const NewProductDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { state } = useApp();
   const [product, setProduct] = useState<any>(null);
   const [recommendations, setRecommendations] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAdBanner, setShowAdBanner] = useState(true);
+
+  useEffect(() => {
+    // Check user's advertising preference
+    const checkAdvertisingPreference = async () => {
+      if (!state.isAuthenticated) {
+        setShowAdBanner(true); // Show by default for non-authenticated users
+        return;
+      }
+      
+      try {
+        const response = await authAPI.getProfile();
+        const profile = response.data.user || response.data;
+        const userFromStorage = state.user || (() => {
+          try {
+            const stored = localStorage.getItem('user');
+            return stored ? JSON.parse(stored) : null;
+          } catch {
+            return null;
+          }
+        })();
+        
+        const mergedProfile = {
+          ...userFromStorage,
+          ...profile,
+        };
+        
+        // Show banner only if advertising is enabled (default to true)
+        setShowAdBanner(mergedProfile.advertising_enabled !== false);
+      } catch (error) {
+        console.error('Error checking advertising preference:', error);
+        setShowAdBanner(true); // Default to showing banner
+      }
+    };
+    
+    checkAdvertisingPreference();
+  }, [state.isAuthenticated, state.user]);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -107,11 +146,13 @@ const NewProductDetails: React.FC = () => {
           <div id="navbar-changed">
             <SubNav />
             <CategoryTabs />
-            <div className="row mb-3">
-              <div className="d-flex justify-content-center">
-                <AdBanner />
+            {showAdBanner && (
+              <div className="row mb-3">
+                <div className="d-flex justify-content-center">
+                  <AdBanner />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
         <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
@@ -132,11 +173,13 @@ const NewProductDetails: React.FC = () => {
           <div id="navbar-changed">
             <SubNav />
             <CategoryTabs />
-            <div className="row mb-3">
-              <div className="d-flex justify-content-center">
-                <AdBanner />
+            {showAdBanner && (
+              <div className="row mb-3">
+                <div className="d-flex justify-content-center">
+                  <AdBanner />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
         <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
@@ -156,11 +199,13 @@ const NewProductDetails: React.FC = () => {
         <div id="navbar-changed">
           <SubNav />
           <CategoryTabs />
-          <div className="row mb-3">
+          {showAdBanner && (
+            <div className="row mb-3">
               <div className="d-flex justify-content-center">
                 <AdBanner />
               </div>
             </div>
+          )}
         </div>
         </div>
              

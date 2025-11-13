@@ -7,9 +7,10 @@ from django.db.models import Sum, Count, Q, Avg
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+import os
 
 from .permissions import IsAdminUser
-from .models import GlobalSettings, HomePageContent
+from .models import GlobalSettings, HomePageContent, BulkOrderPageContent
 from .serializers import (
     DashboardStatsSerializer, AdminUserListSerializer, AdminUserDetailSerializer,
     AdminUserCreateSerializer, AdminUserUpdateSerializer, AdminCategorySerializer,
@@ -18,9 +19,11 @@ from .serializers import (
     AdminOrderListSerializer, AdminOrderDetailSerializer, AdminDiscountSerializer,
     PaymentChargeSerializer, GlobalSettingsSerializer,
     AdminContactQuerySerializer, AdminBulkOrderSerializer, AdminLogSerializer,
-    AdminCouponSerializer, HomePageContentSerializer
+    AdminCouponSerializer, HomePageContentSerializer, BulkOrderPageContentSerializer,
+    AdminDataRequestSerializer
 )
-from accounts.models import User, ContactQuery, BulkOrder
+from accounts.models import User, ContactQuery, BulkOrder, DataRequest
+from accounts.data_export_utils import export_orders_to_excel, export_addresses_to_excel, export_payment_options_to_excel
 from products.models import (
     Category, Subcategory, Color, Material, Product, ProductImage,
     ProductVariant, ProductVariantImage, ProductSpecification, ProductFeature,
@@ -167,6 +170,55 @@ class AdminUserViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
         
         return queryset
     
+    def perform_destroy(self, instance):
+        """Override destroy to check for orders and handle ProtectedError"""
+        from django.db.models.deletion import ProtectedError
+        from rest_framework.exceptions import ValidationError, PermissionDenied
+        
+        # Check if user is superuser
+        if instance.is_superuser:
+            raise PermissionDenied("Cannot delete superuser accounts")
+        
+        # Check if user has orders
+        order_count = Order.objects.filter(user=instance).count()
+        if order_count > 0:
+            raise ValidationError(
+                f"Cannot delete user because they have {order_count} order(s). "
+                "Please delete or reassign the orders first."
+            )
+        
+        # Try to delete and catch ProtectedError
+        try:
+            # Log before deletion
+            try:
+                create_admin_log(
+                    request=self.request,
+                    action_type='delete',
+                    model_name='User',
+                    object_id=instance.id,
+                    object_repr=str(instance),
+                    details={'action': 'delete'}
+                )
+            except Exception as e:
+                print(f"Error creating admin log: {e}")
+            
+            instance.delete()
+        except ProtectedError as e:
+            # Extract order information from the error
+            protected_objects = list(e.protected_objects)
+            order_count = len([obj for obj in protected_objects if isinstance(obj, Order)])
+            
+            if order_count > 0:
+                raise ValidationError(
+                    f"Cannot delete user because they have {order_count} order(s). "
+                    "Please delete or reassign the orders first."
+                )
+            else:
+                raise ValidationError(
+                    "Cannot delete user because they are referenced by other records. "
+                    "Please remove all associated data first."
+                )
+    
     @action(detail=True, methods=['post'])
     def toggle_active(self, request, pk=None):
         """Toggle user active status"""
@@ -175,7 +227,7 @@ class AdminUserViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
         user.save()
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='activate' if user.is_active else 'deactivate',
             model_name='User',
             object_id=user.id,
@@ -193,7 +245,7 @@ class AdminUserViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
         user.save()
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='User',
             object_id=user.id,
@@ -220,7 +272,7 @@ class AdminUserViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
         user.save()
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='User',
             object_id=user.id,
@@ -368,7 +420,7 @@ class AdminProductViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
         product.save()
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='activate' if product.is_active else 'deactivate',
             model_name='Product',
             object_id=product.id,
@@ -386,7 +438,7 @@ class AdminProductViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
         product.save()
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='Product',
             object_id=product.id,
@@ -416,7 +468,7 @@ class AdminProductViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
             variant.save()
             
             create_admin_log(
-                user=request.user,
+                request=request,
                 action_type='update',
                 model_name='ProductVariant',
                 object_id=variant.id,
@@ -502,7 +554,7 @@ class AdminOrderViewSet(AdminLoggingMixin, viewsets.ReadOnlyModelViewSet):
         )
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='Order',
             object_id=order.id,
@@ -539,7 +591,7 @@ class AdminOrderViewSet(AdminLoggingMixin, viewsets.ReadOnlyModelViewSet):
             )
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='Order',
             object_id=order.id,
@@ -573,7 +625,7 @@ class AdminOrderViewSet(AdminLoggingMixin, viewsets.ReadOnlyModelViewSet):
             )
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='Order',
             object_id=order.id,
@@ -616,7 +668,7 @@ class AdminOrderViewSet(AdminLoggingMixin, viewsets.ReadOnlyModelViewSet):
         )
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='Order',
             object_id=order.id,
@@ -696,7 +748,7 @@ def payment_charges_settings(request):
         GlobalSettings.set_setting('delivery_charge', data.get('delivery_charge', 0), 'Delivery charge amount')
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='GlobalSettings',
             object_id=None,
@@ -751,7 +803,7 @@ def global_settings(request):
         setting = GlobalSettings.set_setting(key, value, description)
         
         create_admin_log(
-            user=request.user,
+            request=request,
             action_type='update',
             model_name='GlobalSettings',
             object_id=setting.id,
@@ -984,3 +1036,269 @@ class AdminHomePageContentViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
             details={'section_key': instance.section_key}
         )
         instance.delete()
+
+
+# ==================== Bulk Order Page Content Views ====================
+class AdminBulkOrderPageContentViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
+    """Admin viewset for managing bulk order page content sections"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = BulkOrderPageContent.objects.all()
+    serializer_class = BulkOrderPageContentSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        section_key = self.request.query_params.get('section_key', None)
+        is_active = self.request.query_params.get('is_active', None)
+        
+        if section_key:
+            queryset = queryset.filter(section_key=section_key)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        
+        return queryset.order_by('order', 'section_name')
+    
+    def perform_create(self, serializer):
+        """Create with logging"""
+        instance = serializer.save()
+        create_admin_log(
+            request=self.request,
+            action_type='create',
+            model_name='BulkOrderPageContent',
+            object_id=instance.id,
+            object_repr=str(instance),
+            details={'section_key': instance.section_key}
+        )
+    
+    def perform_update(self, serializer):
+        """Update with logging"""
+        instance = serializer.save()
+        create_admin_log(
+            request=self.request,
+            action_type='update',
+            model_name='BulkOrderPageContent',
+            object_id=instance.id,
+            object_repr=str(instance),
+            details={'section_key': instance.section_key}
+        )
+    
+    def perform_destroy(self, instance):
+        """Delete with logging"""
+        create_admin_log(
+            request=self.request,
+            action_type='delete',
+            model_name='BulkOrderPageContent',
+            object_id=instance.id,
+            object_repr=str(instance),
+            details={'section_key': instance.section_key}
+        )
+        instance.delete()
+
+
+class AdminDataRequestViewSet(AdminLoggingMixin, viewsets.ModelViewSet):
+    """ViewSet for managing data requests"""
+    queryset = DataRequest.objects.all().order_by('-requested_at')
+    serializer_class = AdminDataRequestSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Filter by status if provided
+        status_filter = self.request.query_params.get('status', None)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        # Filter by request_type if provided
+        request_type = self.request.query_params.get('request_type', None)
+        if request_type:
+            queryset = queryset.filter(request_type=request_type)
+        return queryset
+    
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve a data request and generate Excel file"""
+        data_request = self.get_object()
+        
+        if data_request.status != 'pending':
+            return Response({
+                'error': f'Request is already {data_request.status}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            import os
+            from django.conf import settings
+            
+            # Generate file path
+            file_name = f"{data_request.user.email}_{data_request.request_type}_{data_request.id}.xlsx"
+            media_root = getattr(settings, 'MEDIA_ROOT', 'media')
+            data_export_dir = os.path.join(media_root, 'data_exports')
+            file_path = os.path.join(data_export_dir, file_name)
+            
+            # Generate Excel file based on request type
+            if data_request.request_type == 'orders':
+                export_orders_to_excel(data_request.user, file_path)
+            elif data_request.request_type == 'addresses':
+                export_addresses_to_excel(data_request.user, file_path)
+            elif data_request.request_type == 'payment_options':
+                export_payment_options_to_excel(data_request.user, file_path)
+            
+            # Update request status
+            data_request.status = 'approved'
+            data_request.approved_at = timezone.now()
+            data_request.approved_by = request.user
+            data_request.file_path = file_path
+            data_request.save()
+            
+            # Log action
+            create_admin_log(
+                request=request,
+                action_type='update',
+                model_name='DataRequest',
+                object_id=data_request.id,
+                object_repr=str(data_request),
+                details={'action': 'approve', 'request_type': data_request.request_type}
+            )
+            
+            return Response({
+                'success': True,
+                'message': 'Request approved and file generated successfully',
+                'data': AdminDataRequestSerializer(data_request).data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Failed to approve request: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject a data request"""
+        data_request = self.get_object()
+        
+        if data_request.status != 'pending':
+            return Response({
+                'error': f'Request is already {data_request.status}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        admin_notes = request.data.get('admin_notes', '')
+        
+        data_request.status = 'rejected'
+        data_request.approved_by = request.user
+        data_request.admin_notes = admin_notes
+        data_request.save()
+        
+        # Log action
+        create_admin_log(
+            request=request,
+            action_type='update',
+            model_name='DataRequest',
+            object_id=data_request.id,
+            object_repr=str(data_request),
+            details={'action': 'reject'}
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Request rejected successfully',
+            'data': AdminDataRequestSerializer(data_request).data
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """Download the generated Excel file"""
+        data_request = self.get_object()
+        
+        if data_request.status != 'approved' and data_request.status != 'completed':
+            return Response({
+                'error': 'Request is not approved yet'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not data_request.file_path or not os.path.exists(data_request.file_path):
+            return Response({
+                'error': 'File not found. Please regenerate the file.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        from django.http import FileResponse
+        
+        file_name = os.path.basename(data_request.file_path)
+        response = FileResponse(open(data_request.file_path, 'rb'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+        
+        # Mark as completed
+        if data_request.status == 'approved':
+            data_request.status = 'completed'
+            data_request.completed_at = timezone.now()
+            data_request.save()
+        
+        return response
+    
+    def perform_destroy(self, instance):
+        """Override destroy to delete file and log action"""
+        # Delete the Excel file if it exists
+        if instance.file_path and os.path.exists(instance.file_path):
+            try:
+                os.remove(instance.file_path)
+            except Exception as e:
+                print(f"Error deleting file {instance.file_path}: {e}")
+        
+        # Log the deletion
+        create_admin_log(
+            request=self.request,
+            action_type='delete',
+            model_name='DataRequest',
+            object_id=instance.id,
+            object_repr=str(instance),
+            details={'action': 'delete', 'request_type': instance.request_type, 'user_email': instance.user.email}
+        )
+        
+        instance.delete()
+    
+    @action(detail=False, methods=['post'])
+    def bulk_delete(self, request):
+        """Delete multiple data requests"""
+        request_ids = request.data.get('ids', [])
+        
+        if not request_ids or not isinstance(request_ids, list):
+            return Response({
+                'error': 'Please provide a list of request IDs to delete'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        deleted_count = 0
+        errors = []
+        
+        for request_id in request_ids:
+            try:
+                data_request = DataRequest.objects.get(id=request_id)
+                
+                # Delete the Excel file if it exists
+                if data_request.file_path and os.path.exists(data_request.file_path):
+                    try:
+                        os.remove(data_request.file_path)
+                    except Exception as e:
+                        print(f"Error deleting file {data_request.file_path}: {e}")
+                
+                # Log the deletion
+                create_admin_log(
+                    request=request,
+                    action_type='delete',
+                    model_name='DataRequest',
+                    object_id=data_request.id,
+                    object_repr=str(data_request),
+                    details={'action': 'bulk_delete', 'request_type': data_request.request_type, 'user_email': data_request.user.email}
+                )
+                
+                data_request.delete()
+                deleted_count += 1
+            except DataRequest.DoesNotExist:
+                errors.append(f"Request {request_id} not found")
+            except Exception as e:
+                errors.append(f"Error deleting request {request_id}: {str(e)}")
+        
+        response_data = {
+            'success': True,
+            'message': f'Successfully deleted {deleted_count} request(s)',
+            'deleted_count': deleted_count
+        }
+        
+        if errors:
+            response_data['errors'] = errors
+        
+        return Response(response_data, status=status.HTTP_200_OK)

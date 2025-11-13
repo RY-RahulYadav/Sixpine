@@ -1,7 +1,285 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './ProfileSection.module.css';
+import { authAPI, productAPI } from '../services/api';
+import { useApp } from '../context/AppContext';
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  subcategories?: Subcategory[];
+}
+
+interface Subcategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface UserProfile {
+  id?: number;
+  username?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  date_joined?: string;
+}
 
 const ProfileSection: React.FC = () => {
+  const { state } = useApp();
+  const navigate = useNavigate();
+  const [userProfile, setUserProfile] = useState<UserProfile>({});
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Accordion states
+  const [accountDetailOpen, setAccountDetailOpen] = useState(true); // Open by default
+  
+  // Modal states
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [tempSelectedCategories, setTempSelectedCategories] = useState<number[]>([]);
+  
+  // Form states
+  const [editFormData, setEditFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: ''
+  });
+  const [passwordFormData, setPasswordFormData] = useState({
+    old_password: '',
+    new_password: '',
+    new_password_confirm: ''
+  });
+
+  useEffect(() => {
+    fetchUserProfile();
+    fetchCategories();
+    fetchSubcategories();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      // Handle both response formats: {user: {...}} or direct user object
+      const profile = response.data.user || response.data;
+      
+      // Merge with user from context/localStorage as fallback
+      const userFromStorage = state.user || (() => {
+        try {
+          const stored = localStorage.getItem('user');
+          return stored ? JSON.parse(stored) : null;
+        } catch {
+          return null;
+        }
+      })();
+      
+      const mergedProfile = {
+        ...userFromStorage,
+        ...profile,
+        first_name: profile?.first_name || userFromStorage?.first_name || '',
+        last_name: profile?.last_name || userFromStorage?.last_name || '',
+        email: profile?.email || userFromStorage?.email || '',
+        username: profile?.username || userFromStorage?.username || '',
+        phone: profile?.phone || profile?.mobile || userFromStorage?.phone || userFromStorage?.mobile || '',
+      };
+      
+      setUserProfile(mergedProfile);
+      setEditFormData({
+        first_name: mergedProfile.first_name || '',
+        last_name: mergedProfile.last_name || '',
+        email: mergedProfile.email || '',
+        phone: mergedProfile.phone || ''
+      });
+      
+      // Load saved interests - always set, even if empty
+      if (profile?.interests) {
+        if (Array.isArray(profile.interests)) {
+          setInterests(profile.interests);
+        } else if (typeof profile.interests === 'string') {
+          try {
+            const parsed = JSON.parse(profile.interests);
+            setInterests(Array.isArray(parsed) ? parsed : []);
+          } catch {
+            setInterests(profile.interests.split(',').map((i: string) => i.trim()).filter(Boolean));
+          }
+        } else {
+          setInterests([]);
+        }
+      } else {
+        setInterests([]);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      // Fallback to localStorage user
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          const userFromStorage = JSON.parse(stored);
+          setUserProfile({
+            username: userFromStorage.username || '',
+            email: userFromStorage.email || '',
+            first_name: userFromStorage.first_name || '',
+            last_name: userFromStorage.last_name || '',
+          });
+          setEditFormData({
+            first_name: userFromStorage.first_name || '',
+            last_name: userFromStorage.last_name || '',
+            email: userFromStorage.email || '',
+            phone: userFromStorage.phone || ''
+          });
+        } catch (e) {
+          console.error('Error parsing stored user:', e);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await productAPI.getCategories();
+      const cats = response.data.results || response.data || [];
+      setCategories(cats);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchSubcategories = async () => {
+    try {
+      const response = await productAPI.getSubcategories();
+      const subcats = response.data.results || response.data || [];
+      setSubcategories(subcats);
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      const response = await authAPI.updateProfile(editFormData);
+      // Update localStorage user if response includes user data
+      if (response.data && response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      await fetchUserProfile();
+      setShowEditProfile(false);
+      alert('Profile updated successfully');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error updating profile';
+      alert(errorMsg);
+      console.error('Update profile error:', error);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordFormData.new_password !== passwordFormData.new_password_confirm) {
+      alert('New passwords do not match');
+      return;
+    }
+    if (passwordFormData.new_password.length < 8) {
+      alert('Password must be at least 8 characters long');
+      return;
+    }
+    try {
+      await authAPI.changePassword(passwordFormData);
+      setShowChangePassword(false);
+      setPasswordFormData({ old_password: '', new_password: '', new_password_confirm: '' });
+      alert('Password changed successfully');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.response?.data?.old_password?.[0] || 'Error changing password';
+      alert(errorMsg);
+      console.error('Change password error:', error);
+    }
+  };
+
+  const handleOpenCategoryModal = () => {
+    // Get currently selected category IDs based on interests
+    const currentCategoryIds = categories
+      .filter(cat => interests.includes(cat.name))
+      .map(cat => cat.id);
+    setTempSelectedCategories(currentCategoryIds);
+    setShowCategoryModal(true);
+  };
+
+  const handleCategoryModalToggle = (categoryId: number) => {
+    setTempSelectedCategories(prev => 
+      prev.includes(categoryId) 
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const handleSaveCategoryModal = async () => {
+    // Convert selected category IDs to category names for interests
+    const selectedCategoryNames = tempSelectedCategories
+      .map(id => categories.find(cat => cat.id === id)?.name)
+      .filter(Boolean) as string[];
+    
+    // Update interests with selected category names
+    const updatedInterests = [...new Set(selectedCategoryNames)];
+    setInterests(updatedInterests);
+    setShowCategoryModal(false);
+    
+    // Auto-save to backend
+    try {
+      const updateData: any = {
+        interests: updatedInterests
+      };
+      await authAPI.updateProfile(updateData);
+      await fetchUserProfile(); // Refresh profile data
+    } catch (error: any) {
+      console.error('Error saving categories:', error);
+      alert('Error saving categories. Please try again.');
+    }
+  };
+
+  const handleRemoveInterest = async (interest: string) => {
+    const updatedInterests = interests.filter(i => i !== interest);
+    setInterests(updatedInterests);
+    
+    // Auto-save to backend
+    try {
+      const updateData: any = {
+        interests: updatedInterests
+      };
+      await authAPI.updateProfile(updateData);
+      await fetchUserProfile(); // Refresh profile data
+    } catch (error: any) {
+      console.error('Error removing interest:', error);
+      alert('Error removing interest. Please try again.');
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      const updateData: any = {
+        // Always include interests field, even if empty, to ensure they're saved/cleared in backend
+        interests: interests
+      };
+      
+      await authAPI.updateProfile(updateData);
+      await fetchUserProfile(); // Refresh profile data
+      alert('Preferences saved successfully');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error saving preferences';
+      alert(errorMsg);
+      console.error('Save preferences error:', error);
+    }
+  };
+
+  const displayName = userProfile.first_name && userProfile.last_name 
+    ? `${userProfile.first_name} ${userProfile.last_name}`
+    : userProfile.username || 'User';
+
   return (
     <div className={styles['sx-profile-hub-container']}>
       <div className={`${styles['sx-profile-header']} ${styles['sx-desktop']} ${styles['sx-lop-header']}`}>
@@ -11,19 +289,12 @@ const ProfileSection: React.FC = () => {
           src="https://m.media-amazon.com/images/G/01/IdentityAvatarService/Prod/DefaultAvatars/identity-avatar-head-n-shoulder-default-299BD1.png"
         />
         <div className={`${styles['sx-profile-name-container']} ${styles['sx-desktop']}`}>
-          <div className={`${styles['sx-profile-name']} ${styles['sx-desktop']}`}>Rahul Yadav</div>
+          <div className={`${styles['sx-profile-name']} ${styles['sx-desktop']}`}>{displayName}</div>
           <span className={styles['sx-edit-profile']}>
-            <div className={`${styles['sx-a-changeover']} ${styles['sx-edit-name-changeover']}`} style={{ display: 'none' }}>
-              <div className={styles['sx-a-changeover-inner']}>
-                <i className={`${styles['sx-a-icon']} ${styles['sx-a-icon-checkmark-inverse']}`} />
-                <strong className={styles['sx-a-size-medium']}>Profile name has been updated</strong>
-              </div>
-            </div>
-            <span
-              className={styles['sx-a-declarative']}
-              data-a-modal='{"name":"editProfileModal","header":"Edit profile name","width":350}'
-              data-action="a-modal">
-              <button className={styles['sx-edit-pencil-icon-button']}>
+            <button 
+              className={styles['sx-edit-pencil-icon-button']}
+              onClick={() => navigate('/login-security')}
+            >
                 <svg
                   aria-label="Edit your details"
                   className={styles['sx-edit-name-icon']}
@@ -41,88 +312,22 @@ const ProfileSection: React.FC = () => {
                 </svg>
               </button>
             </span>
-            <div className={`${styles['sx-a-popover-preload']}`} id="a-popover-editProfileModal">
-              <span id="editProfileModal">
-                <span>
-                  <div className={styles['sx-edit-profile-image-wrapper']}>
-                    <img
-                      alt="Profile image"
-                      className={styles['sx-edit-profile-image']}
-                      id="editProfileImage"
-                      src="https://m.media-amazon.com/images/G/01/IdentityAvatarService/Prod/DefaultAvatars/identity-avatar-head-n-shoulder-default-299BD1.png"
-                    />
-                    <div className={styles['sx-change-avatar-link-wrapper']}>
-                      <label>
-                        <button className={styles['sx-change-avatar-button']}>
-                          <span className={`${styles['sx-a-size-base-plus']} ${styles['sx-a-color-link']} ${styles['sx-change-avatar-link']} ${styles['sx-a-text-normal']}`}>
-                            Change profile photo
-                          </span>
-                        </button>
-                        <input
-                          accept="image/*"
-                          className={styles['sx-aok-hidden']}
-                          data-testid="photo-uploader"
-                          id="profile-preferences-avatar-upload-id"
-                          type="file"
-                        />
-                      </label>
                     </div>
-                  </div>
-                  <form>
-                    <input
-                      aria-label="Text input which lets you update your profile's name"
-                      defaultValue=""
-                      id="editProfileNameInputId"
-                      maxLength={50}
-                      type="text"
-                    />
-                    <span className={styles['sx-edit-error']} id="editError" />
-                    <div className={`${styles['sx-a-row']} ${styles['sx-edit-profile-buttons']}`}>
-                      <div className={`${styles['sx-a-column']} ${styles['sx-a-span4']}`}>
-                        <button className={styles['sx-edit-profile-cancel-button-wrapper']}>
-                          <span
-                            className={styles['sx-edit-profile-cancel-button']}
-                            id="editProfileCancelButton">
-                            Cancel
-                          </span>
+        <button
+          className={styles['sx-change-password-button']}
+          onClick={() => navigate('/login-security')}
+          style={{
+            marginTop: '12px',
+            padding: '8px 16px',
+            background: '#ffd814',
+            border: '1px solid #ffd814',
+            borderRadius: '4px',
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}
+        >
+          Change Password
                         </button>
-                      </div>
-                      <div className={`${styles['sx-a-column']} ${styles['sx-a-span4']} ${styles['sx-a-span-last']}`}>
-                        <span
-                          className={`${styles['sx-button']} ${styles['sx-button-primary']} ${styles['sx-edit-profile-continue-button']}`}
-                          id="editProfileContinueButton">
-                          <span className={styles['sx-button-inner']}>
-                            <input
-                              aria-labelledby="editProfileContinueButton-announce"
-                              className={styles['sx-button-input']}
-                              type="submit"
-                            />
-                            <span
-                              aria-hidden="true"
-                              className={`${styles['sx-button-text']}`}
-                              id="editProfileContinueButton-announce">
-                              Continue
-                            </span>
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  </form>
-                </span>
-              </span>
-            </div>
-            <div className={`${styles['sx-a-section']} ${styles['sx-aok-hidden']}`} id="editProfileBottomSheet" />
-          </span>
-        </div>
-        <a
-          className={`${styles['sx-language-of-preference']} ${styles['sx-desktop']}`}
-          href="/customer-preferences/edit?ie=UTF8&preferencesReturnUrl=%2Fslc%2Fhub&ref_=ph_lop">
-          <span
-            aria-label="Choose a language for shopping in Amazon India. The current selection is English (EN)."
-            className={`${styles['sx-flag']} ${styles['sx-flag-in']}`}
-          />
-          <span>EN</span>
-        </a>
       </div>
 
       <div className={styles['sx-profile-hub-content']}>
@@ -138,11 +343,6 @@ const ProfileSection: React.FC = () => {
             </div>
 
             <div className={`${styles['sx-profile-hub-category']} ${styles['sx-desktop']}`} id="sl_preferences">
-              <div aria-level={2} className={`${styles['sx-header']} ${styles['sx-desktop']}`} role="heading">
-                <div className={`${styles['sx-title']} ${styles['sx-desktop']}`}>Clothing and Shoes</div>
-                <div className={`${styles['sx-subtitle']} ${styles['sx-desktop']}`}>Size, fit and price</div>
-              </div>
-
               <div className={styles['sx-content']}>
                 <div className={`${styles['sx-section-header']} ${styles['sx-desktop']}`} id="general-section-header">
                   <div
@@ -158,117 +358,50 @@ const ProfileSection: React.FC = () => {
                   <div className={styles['sx-profile-hub-attributes-data-list']}>
                     <div id="personal-info">
                       <div className={styles['sx-accordion']} data-orientation="vertical">
-                        <div className={`${styles['sx-accordion-item']}`} data-orientation="vertical" data-state="closed">
-                          <h3 className={`${styles['sx-accordion-header']}`} data-orientation="vertical" data-state="closed">
+                        {/* Account Detail */}
+                        <div className={`${styles['sx-accordion-item']}`} data-orientation="vertical" data-state={accountDetailOpen ? "open" : "closed"}>
+                          <h3 className={`${styles['sx-accordion-header']}`} data-orientation="vertical" data-state={accountDetailOpen ? "open" : "closed"}>
                             <button
-                              aria-controls="radix-0"
-                              aria-expanded={false}
                               className={`${styles['sx-accordion-trigger']} ${styles['sx-desktop']}`}
-                              data-orientation="vertical"
-                              data-radix-collection-item=""
-                              data-state="closed"
-                              id="accordion-preferred-department-id"
+                              onClick={() => setAccountDetailOpen(!accountDetailOpen)}
                               type="button">
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Preferred department</div>
+                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Account Detail</div>
                               <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}>
-                                <span>--</span>
+                                <span>{userProfile.email || '--'}</span>
                               </div>
-                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
+                              <svg 
+                                aria-hidden="true" 
+                                className={styles['sx-chevron']} 
+                                fill="none" 
+                                height="12" 
+                                viewBox="0 0 15 12" 
+                                width="15" 
+                                xmlns="http://www.w3.org/2000/svg"
+                                style={{ transform: accountDetailOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                              >
                                 <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
                               </svg>
                             </button>
                           </h3>
+                          {accountDetailOpen && (
+                            <div className={styles['sx-accordion-content']} style={{ padding: '16px', borderTop: '1px solid #d5d9d9' }}>
+                              <div style={{ marginBottom: '12px' }}>
+                                <strong>Email:</strong> {userProfile.email || '--'}
                         </div>
-
-                        <div className={`${styles['sx-accordion-item']}`} data-orientation="vertical" data-state="closed">
-                          <h3 className={`${styles['sx-accordion-header']}`} data-orientation="vertical" data-state="closed">
-                            <button
-                              aria-controls="radix-2"
-                              aria-expanded={false}
-                              className={`${styles['sx-accordion-trigger']} ${styles['sx-desktop']}`}
-                              data-orientation="vertical"
-                              data-radix-collection-item=""
-                              data-state="closed"
-                              id="accordion-height-and-weight-id"
-                              type="button">
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Height and weight</div>
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}>
-                                <span>--</span>
+                              <div style={{ marginBottom: '12px' }}>
+                                <strong>Username:</strong> {userProfile.username || '--'}
                               </div>
-                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
-                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
-                              </svg>
-                            </button>
-                          </h3>
+                              <div style={{ marginBottom: '12px' }}>
+                                <strong>Phone:</strong> {userProfile.phone || '--'}
                         </div>
-
-                        <div className={`${styles['sx-accordion-item']}`} data-orientation="vertical" data-state="closed">
-                          <h3 className={`${styles['sx-accordion-header']}`} data-orientation="vertical" data-state="closed">
-                            <button
-                              aria-controls="radix-4"
-                              aria-expanded={false}
-                              className={`${styles['sx-accordion-trigger']} ${styles['sx-desktop']}`}
-                              data-orientation="vertical"
-                              data-radix-collection-item=""
-                              data-state="closed"
-                              id="accordion-age-group-id"
-                              type="button">
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Age group</div>
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}>
-                                <span>--</span>
-                              </div>
-                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
-                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
-                              </svg>
-                            </button>
-                          </h3>
-                        </div>
-
+                              <div style={{ marginBottom: '12px' }}>
+                                <strong>Member since:</strong> {userProfile.date_joined ? new Date(userProfile.date_joined).toLocaleDateString() : '--'}
                       </div>
                     </div>
-                  </div>
+                          )}
                 </div>
 
 
-                <div className={`${styles['sx-section-header']} ${styles['sx-desktop']}`} id="sl_preferences-section-header">
-                  <div aria-label="Department preferences" aria-level={3} className={`${styles['sx-primary']} ${styles['sx-desktop']}`} role="heading">
-                    Department preferences
-                  </div>
-                  <div className={styles['sx-secondary'] + ' ' + styles['sx-desktop']}>
-                    Share preferences for each department to get improved recommendations when you shop there.
-                  </div>
-                </div>
-
-                <div className={styles['sx-profile-hub-attributes-section']}>
-                  <div className={styles['sx-profile-hub-attributes-data-list']}>
-                    <div id="preferences">
-                      <div className={styles['sx-filters-container']} role="tablist">
-                        <button aria-selected="false" className={styles['sx-filter-pill']} role="tab">Women's</button>
-                        <button aria-selected="true" className={`${styles['sx-filter-pill']} ${styles['sx-selected']}`} role="tab">Men's</button>
-                      </div>
-                      <div aria-labelledby="cpp-view-filter-department-mens-tab" className={styles['sx-accordion']} data-orientation="vertical" role="tabpanel">
-                        <div className={styles['sx-accordion-item']} data-orientation="vertical" data-state="closed">
-                          <h3 className={styles['sx-accordion-header']}>
-                            <button className={`${styles['sx-accordion-trigger']} ${styles['sx-desktop']}`} type="button">
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Fit attributes</div>
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}><span>--</span></div>
-                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
-                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
-                              </svg>
-                            </button>
-                          </h3>
-                        </div>
-                        <div className={styles['sx-accordion-item']} data-orientation="vertical" data-state="closed">
-                          <h3 className={styles['sx-accordion-header']}>
-                            <button className={`${styles['sx-accordion-trigger']} ${styles['sx-desktop']}`} type="button">
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-desktop']}`}>Shoes</div>
-                              <div className={`${styles['sx-accordion-trigger-content']} ${styles['sx-preview']} ${styles['sx-desktop']}`}><span>--</span></div>
-                              <svg aria-hidden="true" className={styles['sx-chevron']} fill="none" height="12" viewBox="0 0 15 12" width="15" xmlns="http://www.w3.org/2000/svg">
-                                <path clipRule="evenodd" d="M0.5 3.48303L7.494 11L14.488 3.48303L13.116 2.00903L7.494 8.05103L1.872 2.00903L0.5 3.48303Z" fill="#0F1111" fillRule="evenodd" />
-                              </svg>
-                            </button>
-                          </h3>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -278,33 +411,54 @@ const ProfileSection: React.FC = () => {
                 <div style={{ margin: '24px 0 0 0' }}>
                   <div style={{ border: '1px solid #d5d9d9', borderRadius: 4, display: 'flex', alignItems: 'center', padding: '16px', marginBottom: 8, background: '#f7fafa' }}>
                     <span style={{ fontWeight: 700, fontSize: 20, marginRight: 16 }}>Interests</span>
-                    <input style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, background: 'transparent' }} placeholder="Activities and hobbies" />
+                    <button
+                      onClick={handleOpenCategoryModal}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#ffd814',
+                        border: '1px solid #ffd814',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        marginLeft: 'auto'
+                      }}
+                    >
+                      Add
+                    </button>
                   </div>
                 </div>
 
                 <div className={styles['sx-pill-drawer']} role="group">
                   <div className={styles['sx-pill-drawer-label']}>
                     <div className={`${styles['sx-inline-header']} ${styles['sx-desktop']}`} id="suggested-interests-section-header">
-                      <div aria-label="Suggested interests" aria-level={3} className={`${styles['sx-primary']} ${styles['sx-desktop']}`} role="heading">Suggested interests</div>
-                      <div className={styles['sx-mako-description'] + ' ' + styles['sx-desktop']}>Based on your Amazon activity and popular interests. Select to get personalised recommendations</div>
+                      <div aria-label="Your interests" aria-level={3} className={`${styles['sx-primary']} ${styles['sx-desktop']}`} role="heading">Your interests</div>
+                      <div className={styles['sx-mako-description'] + ' ' + styles['sx-desktop']}>Select interests to get personalised recommendations</div>
                     </div>
                   </div>
                   <ul className={styles['sx-pill-drawer-content']}>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Skin Care</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Interior Design</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Storage & Organization</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Dorm Essentials</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Hair Care and Styling</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Babies and Toddlers</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Women's Attire</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Men's Attire</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Baking</button></li>
-                    <li><button className={styles['sx-pill-container']}><span style={{fontWeight:600,marginRight:4}}>+</span>Makeup</button></li>
+                    {interests.map((interest, index) => (
+                      <li key={index}>
+                        <button 
+                          className={styles['sx-pill-container']}
+                          onClick={() => handleRemoveInterest(interest)}
+                        >
+                          <span style={{fontWeight:600,marginRight:4}}>×</span>{interest}
+                        </button>
+                      </li>
+                    ))}
+                    {interests.length === 0 && (
+                      <li style={{ padding: '8px', color: '#666' }}>No interests added yet</li>
+                    )}
                   </ul>
                 </div>
 
                 <div style={{marginTop:12}}>
-                  <button style={{background:'#ffd814',border:'1px solid #ffd814',borderRadius:100,padding:'2px 18px',fontWeight:400,fontSize:15,color:'#0f1111',boxShadow:'0 2px 5px 0 rgba(213,217,217,0.5)'}}>Save</button>
+                  <button 
+                    onClick={handleSavePreferences}
+                    style={{background:'#ffd814',border:'1px solid #ffd814',borderRadius:100,padding:'2px 18px',fontWeight:400,fontSize:15,color:'#0f1111',boxShadow:'0 2px 5px 0 rgba(213,217,217,0.5)', cursor: 'pointer'}}
+                  >
+                    Save
+                  </button>
                 </div>
 
               </div>
@@ -314,8 +468,219 @@ const ProfileSection: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles['sx-footer-container']} />
+      {/* Category Selection Modal */}
+      {showCategoryModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            width: '600px',
+            maxWidth: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h2 style={{ marginBottom: '16px' }}>Select Categories</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategoryModalToggle(category.id)}
+                  style={{
+                    padding: '8px 16px',
+                    border: tempSelectedCategories.includes(category.id) ? '2px solid #ffd814' : '1px solid #d5d9d9',
+                    borderRadius: '100px',
+                    background: tempSelectedCategories.includes(category.id) ? '#ffd814' : 'white',
+                    cursor: 'pointer',
+                    fontWeight: tempSelectedCategories.includes(category.id) ? 600 : 400
+                  }}
+                >
+                  {category.name}
+                </button>
+              ))}
+              {categories.length === 0 && (
+                <div style={{ padding: '8px', color: '#666' }}>Loading categories...</div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowCategoryModal(false);
+                  setTempSelectedCategories([]);
+                }}
+                style={{ padding: '8px 16px', border: '1px solid #d5d9d9', background: 'white', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveCategoryModal}
+                style={{ padding: '8px 16px', background: '#ffd814', border: '1px solid #ffd814', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
+              >
+                Add Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* Edit Profile Modal */}
+      {showEditProfile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            width: '400px',
+            maxWidth: '90%'
+          }}>
+            <h2 style={{ marginBottom: '16px' }}>Edit Profile</h2>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>First Name</label>
+              <input
+                type="text"
+                value={editFormData.first_name}
+                onChange={(e) => setEditFormData({...editFormData, first_name: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #d5d9d9', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Last Name</label>
+              <input
+                type="text"
+                value={editFormData.last_name}
+                onChange={(e) => setEditFormData({...editFormData, last_name: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #d5d9d9', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Email</label>
+              <input
+                type="email"
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #d5d9d9', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Phone</label>
+              <input
+                type="tel"
+                value={editFormData.phone}
+                onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #d5d9d9', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowEditProfile(false)}
+                style={{ padding: '8px 16px', border: '1px solid #d5d9d9', background: 'white', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateProfile}
+                style={{ padding: '8px 16px', background: '#ffd814', border: '1px solid #ffd814', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            width: '400px',
+            maxWidth: '90%'
+          }}>
+            <h2 style={{ marginBottom: '16px' }}>Change Password</h2>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Old Password</label>
+              <input
+                type="password"
+                value={passwordFormData.old_password}
+                onChange={(e) => setPasswordFormData({...passwordFormData, old_password: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #d5d9d9', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>New Password</label>
+              <input
+                type="password"
+                value={passwordFormData.new_password}
+                onChange={(e) => setPasswordFormData({...passwordFormData, new_password: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #d5d9d9', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordFormData.new_password_confirm}
+                onChange={(e) => setPasswordFormData({...passwordFormData, new_password_confirm: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #d5d9d9', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowChangePassword(false);
+                  setPasswordFormData({ old_password: '', new_password: '', new_password_confirm: '' });
+                }}
+                style={{ padding: '8px 16px', border: '1px solid #d5d9d9', background: 'white', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                style={{ padding: '8px 16px', background: '#ffd814', border: '1px solid #ffd814', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
+              >
+                Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={styles['sx-footer-container']} />
     </div>
   );
 };

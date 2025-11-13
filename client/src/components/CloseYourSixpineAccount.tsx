@@ -1,23 +1,90 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "../styles/CloseYourSixpineAccount.module.css";
 import { AlertTriangle } from "lucide-react";
+import { accountClosureAPI } from "../services/api";
+import { useApp } from "../context/AppContext";
 
 export default function CloseYourSixpineAccount() {
+  const { state, logout } = useApp();
+  const navigate = useNavigate();
   const [reason, setReason] = useState("");
   const [confirm, setConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [canDelete, setCanDelete] = useState(false);
+  const [ongoingOrdersCount, setOngoingOrdersCount] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    // Wait for auth state to load
+    if (state.loading) {
+      return;
+    }
+    
+    if (!state.isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    checkEligibility();
+  }, [state.isAuthenticated, state.loading]);
+
+  const checkEligibility = async () => {
+    try {
+      setChecking(true);
+      const response = await accountClosureAPI.checkEligibility();
+      if (response.data.success) {
+        setCanDelete(response.data.can_delete);
+        setOngoingOrdersCount(response.data.ongoing_orders_count || 0);
+        if (!response.data.can_delete) {
+          setErrorMessage(response.data.message || 'You have ongoing orders. Please complete or cancel them before closing your account.');
+        }
+      }
+    } catch (error: any) {
+      console.error('Error checking eligibility:', error);
+      setErrorMessage('Failed to check account status. Please try again.');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     if (!confirm) {
       alert("⚠️ Please check the confirmation box before proceeding.");
       return;
     }
-    alert(
-      `✅ Your Sixpine account will be closed permanently.\nReason: ${
-        reason || "Not provided"
-      }`
-    );
-    // 👉 Yahan API call laga sakte ho for backend request
+    
+    if (!canDelete) {
+      alert("⚠️ You cannot close your account because you have ongoing or pending orders. Please complete or cancel them first.");
+      return;
+    }
+    
+    if (!window.confirm("⚠️ Are you absolutely sure you want to permanently close your account? This action cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const response = await accountClosureAPI.closeAccount(reason);
+      
+      if (response.data.success) {
+        alert(response.data.message || 'Your account has been closed successfully.');
+        // Logout and redirect to home
+        logout();
+        navigate('/');
+      } else {
+        alert(response.data.error || 'Failed to close account. Please try again.');
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Failed to close account. Please try again.';
+      alert(errorMsg);
+      console.error('Error closing account:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,6 +105,29 @@ export default function CloseYourSixpineAccount() {
         example, images, videos, or documents), we recommend downloading a copy
         before closing your account.
       </p>
+
+      {checking && (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <p>Checking account status...</p>
+        </div>
+      )}
+
+      {/* Order Status Warning */}
+      {!checking && !canDelete && ongoingOrdersCount > 0 && (
+        <div style={{
+          padding: '16px',
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffc107',
+          borderRadius: '8px',
+          marginBottom: '20px'
+        }}>
+          <AlertTriangle style={{ color: '#ff9800', marginRight: '8px', verticalAlign: 'middle', display: 'inline-block' }} />
+          <strong style={{ color: '#856404' }}>Cannot Close Account</strong>
+          <p style={{ color: '#856404', marginTop: '8px', marginBottom: 0 }}>
+            {errorMessage || `You have ${ongoingOrdersCount} ongoing or pending order(s). Please complete or cancel all orders before closing your account.`}
+          </p>
+        </div>
+      )}
 
       {/* Warning box */}
       <div className={styles.warningBox}>
@@ -63,6 +153,7 @@ export default function CloseYourSixpineAccount() {
           id="reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
+          disabled={!canDelete || loading}
         >
           <option value="">Choose Reason</option>
           <option value="Privacy concerns">Privacy concerns</option>
@@ -78,6 +169,7 @@ export default function CloseYourSixpineAccount() {
     type="checkbox"
     checked={confirm}
     onChange={(e) => setConfirm(e.target.checked)}
+    disabled={!canDelete || loading}
   />
   Yes, I want to permanently close my Sixpine Account and
   <span className={styles.mobileBreak}><br /></span>
@@ -85,8 +177,16 @@ export default function CloseYourSixpineAccount() {
 </label>
 
 
-        <button type="submit" className={styles.submitBtn}>
-          Close My Account
+        <button 
+          type="submit" 
+          className={styles.submitBtn}
+          disabled={!canDelete || loading || !confirm}
+          style={{
+            opacity: (!canDelete || loading || !confirm) ? 0.6 : 1,
+            cursor: (!canDelete || loading || !confirm) ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading ? 'Closing Account...' : 'Close My Account'}
         </button>
       </form>
 

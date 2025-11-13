@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './BulkOrderCategories.module.css';
+import { bulkOrderPageAPI } from '../../services/api';
 
-const BulkOrderCategories: React.FC = () => {
-  const categories = [
+interface CategoryItem {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+  items: string[];
+}
+
+const defaultCategories: CategoryItem[] = [
     {
       title: 'Corporate Offices',
       description: 'Complete office furniture solutions for modern workspaces',
@@ -41,13 +49,43 @@ const BulkOrderCategories: React.FC = () => {
     }
   ];
 
+const BulkOrderCategories: React.FC = () => {
+  const [categories, setCategories] = useState<CategoryItem[]>(defaultCategories);
+  const [sectionTitle, setSectionTitle] = useState<string>('Industries We Serve');
+  const [sectionSubtitle, setSectionSubtitle] = useState<string>('Tailored furniture solutions for every business sector');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCategoriesContent = async () => {
+      try {
+        const response = await bulkOrderPageAPI.getBulkOrderPageContent('categories');
+        if (response.data && response.data.content) {
+          setCategories(response.data.content.categories || defaultCategories);
+          setSectionTitle(response.data.content.title || 'Industries We Serve');
+          setSectionSubtitle(response.data.content.subtitle || 'Tailored furniture solutions for every business sector');
+        }
+      } catch (error) {
+        console.error('Error fetching categories content:', error);
+        // Keep default content if API fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategoriesContent();
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
+  }
+
   return (
     <section className={styles.categoriesSection}>
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Industries We Serve</h2>
+          <h2 className={styles.sectionTitle}>{sectionTitle}</h2>
           <p className={styles.sectionSubtitle}>
-            Tailored furniture solutions for every business sector
+            {sectionSubtitle}
           </p>
         </div>
 

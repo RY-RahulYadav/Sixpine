@@ -7,8 +7,8 @@ from products.models import (
     ProductOffer, Discount, ProductRecommendation, Coupon
 )
 from orders.models import Order, OrderItem, OrderStatusHistory, OrderNote
-from accounts.models import ContactQuery, BulkOrder
-from .models import GlobalSettings, AdminLog, HomePageContent
+from accounts.models import ContactQuery, BulkOrder, DataRequest
+from .models import GlobalSettings, AdminLog, HomePageContent, BulkOrderPageContent
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import timedelta
@@ -67,6 +67,7 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
     total_spent = serializers.SerializerMethodField()
     recent_orders = serializers.SerializerMethodField()
     addresses_count = serializers.SerializerMethodField()
+    interests = serializers.JSONField(default=list, allow_null=False)
     
     class Meta:
         model = User
@@ -74,8 +75,26 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name', 'mobile',
             'is_active', 'is_staff', 'is_superuser', 'is_verified',
             'date_joined', 'last_login', 'order_count', 'total_spent',
-            'recent_orders', 'addresses_count'
+            'recent_orders', 'addresses_count', 'interests', 'advertising_enabled',
+            'whatsapp_enabled', 'whatsapp_order_updates', 'whatsapp_promotional', 'email_promotional'
         ]
+    
+    def to_representation(self, instance):
+        """Ensure empty lists are returned instead of None"""
+        data = super().to_representation(instance)
+        if data.get('interests') is None:
+            data['interests'] = []
+        if data.get('advertising_enabled') is None:
+            data['advertising_enabled'] = True
+        if data.get('whatsapp_enabled') is None:
+            data['whatsapp_enabled'] = True
+        if data.get('whatsapp_order_updates') is None:
+            data['whatsapp_order_updates'] = True
+        if data.get('whatsapp_promotional') is None:
+            data['whatsapp_promotional'] = True
+        if data.get('email_promotional') is None:
+            data['email_promotional'] = True
+        return data
     
     def get_order_count(self, obj):
         return obj.orders.count()
@@ -124,6 +143,14 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
             'username', 'email', 'first_name', 'last_name', 'mobile',
             'is_active', 'is_staff', 'is_superuser', 'is_verified'
         ]
+    
+    def update(self, instance, validated_data):
+        """Update user instance"""
+        # Update basic fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 # ==================== Category & Subcategory Serializers ====================
@@ -846,4 +873,42 @@ class HomePageContentSerializer(serializers.ModelSerializer):
         if not isinstance(value, dict):
             raise serializers.ValidationError("Content must be a JSON object")
         return value
+
+
+class BulkOrderPageContentSerializer(serializers.ModelSerializer):
+    """Serializer for bulk order page content sections"""
+    class Meta:
+        model = BulkOrderPageContent
+        fields = [
+            'id', 'section_key', 'section_name', 'content',
+            'is_active', 'order', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def validate_content(self, value):
+        """Validate that content is a dict"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Content must be a JSON object")
+        return value
+
+
+class AdminDataRequestSerializer(serializers.ModelSerializer):
+    """Serializer for data requests in admin panel"""
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.SerializerMethodField()
+    request_type_display = serializers.CharField(source='get_request_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    approved_by_email = serializers.EmailField(source='approved_by.email', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = DataRequest
+        fields = [
+            'id', 'user', 'user_email', 'user_name', 'request_type', 'request_type_display',
+            'status', 'status_display', 'file_path', 'requested_at', 'approved_at',
+            'approved_by', 'approved_by_email', 'completed_at', 'admin_notes'
+        ]
+        read_only_fields = ['id', 'requested_at', 'approved_at', 'approved_by', 'completed_at']
+    
+    def get_user_name(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.email
 

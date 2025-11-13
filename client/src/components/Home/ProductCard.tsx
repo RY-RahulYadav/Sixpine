@@ -41,7 +41,7 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const handleProductClick = () => {
     if (productSlug) {
-      window.location.href = `/product/${productSlug}`;
+      window.location.href = `/products-details/${productSlug}`;
     }
   };
 
@@ -50,7 +50,7 @@ const ProductCard = ({
     if (onBuyNow) {
       onBuyNow(e);
     } else if (productSlug) {
-      window.location.href = `/product/${productSlug}`;
+      window.location.href = `/products-details/${productSlug}`;
     }
   };
 

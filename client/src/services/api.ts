@@ -259,4 +259,31 @@ export const homepageAPI = {
   },
 };
 
+// Bulk Order Page Content API calls (public)
+export const bulkOrderPageAPI = {
+  getBulkOrderPageContent: (sectionKey?: string) => {
+    const params = sectionKey ? { section_key: sectionKey } : {};
+    return API.get('/bulk-order-page-content/', { params });
+  },
+};
+
+// Data Request API calls
+export const dataRequestAPI = {
+  createRequest: (requestType: 'orders' | 'addresses' | 'payment_options') =>
+    API.post('/auth/data-requests/create/', { request_type: requestType }),
+  
+  getUserRequests: () => API.get('/auth/data-requests/'),
+  
+  downloadFile: (requestId: number) =>
+    API.get(`/auth/data-requests/${requestId}/download/`, {
+      responseType: 'blob',
+    }),
+};
+
+// Account Closure API calls
+export const accountClosureAPI = {
+  checkEligibility: () => API.get('/auth/account/check-deletion-eligibility/'),
+  closeAccount: (reason?: string) => API.post('/auth/account/close/', { reason }),
+};
+
 export default API;

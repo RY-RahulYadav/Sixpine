@@ -11,14 +11,17 @@ from django.core.mail import send_mail
 from django.conf import settings
 import random
 import string
-from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference
+import os
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference, DataRequest
 from .serializers import (
     UserLoginSerializer, UserRegistrationSerializer, UserSerializer,
     OTPRequestSerializer, OTPVerificationSerializer, OTPResendSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
     ChangePasswordSerializer, ContactQuerySerializer, ContactQueryCreateSerializer,
-    BulkOrderSerializer, BulkOrderCreateSerializer, PaymentPreferenceSerializer
+    BulkOrderSerializer, BulkOrderCreateSerializer, PaymentPreferenceSerializer,
+    DataRequestSerializer, DataRequestCreateSerializer
 )
+from .data_export_utils import export_orders_to_excel, export_addresses_to_excel, export_payment_options_to_excel
 from .gmail_oauth_service import GmailOAuth2Service
 from .whatsapp_service import WhatsAppService
 
@@ -755,4 +758,191 @@ def delete_saved_card(request, token_id):
         return Response({
             'success': False,
             'error': f'Failed to delete saved card: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_data_request(request):
+    """Create a data request"""
+    try:
+        serializer = DataRequestCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            # Check if user already has a pending or approved request of this type
+            # Allow new requests if previous one is completed
+            existing = DataRequest.objects.filter(
+                user=request.user,
+                request_type=serializer.validated_data['request_type'],
+                status__in=['pending', 'approved']
+            ).first()
+            
+            if existing:
+                return Response({
+                    'success': False,
+                    'error': 'You already have a pending or approved request for this data type. Please download it first or wait for approval.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            data_request = DataRequest.objects.create(
+                user=request.user,
+                request_type=serializer.validated_data['request_type']
+            )
+            
+            return Response({
+                'success': True,
+                'message': 'Data request submitted successfully',
+                'data': DataRequestSerializer(data_request).data
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'success': False,
+            'error': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to create data request: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_data_requests(request):
+    """Get current user's data requests"""
+    try:
+        data_requests = DataRequest.objects.filter(user=request.user).order_by('-requested_at')
+        serializer = DataRequestSerializer(data_requests, many=True)
+        
+        return Response({
+            'success': True,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to fetch data requests: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_data_file(request, request_id):
+    """Download approved data file - users can download their own files, admins can download any"""
+    try:
+        data_request = DataRequest.objects.get(id=request_id)
+        
+        # Check if user owns the request or is admin
+        if data_request.user != request.user and not request.user.is_staff:
+            return Response({
+                'success': False,
+                'error': 'Permission denied'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if request is approved and file exists
+        if data_request.status != 'approved' and data_request.status != 'completed':
+            return Response({
+                'success': False,
+                'error': 'Request is not approved yet'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not data_request.file_path or not os.path.exists(data_request.file_path):
+            return Response({
+                'success': False,
+                'error': 'File not found. Please contact admin.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        from django.http import FileResponse
+        
+        file_name = os.path.basename(data_request.file_path)
+        response = FileResponse(open(data_request.file_path, 'rb'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+        
+        # Mark as completed if it was approved
+        if data_request.status == 'approved':
+            data_request.status = 'completed'
+            data_request.completed_at = timezone.now()
+            data_request.save()
+        
+        return response
+        
+    except DataRequest.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Data request not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to download file: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_account_deletion_eligibility(request):
+    """Check if user can delete their account (no pending/ongoing orders)"""
+    try:
+        from orders.models import Order
+        
+        # Check for pending, confirmed, processing, or shipped orders (ongoing orders)
+        ongoing_orders = Order.objects.filter(
+            user=request.user,
+            status__in=['pending', 'confirmed', 'processing', 'shipped']
+        ).count()
+        
+        return Response({
+            'success': True,
+            'can_delete': ongoing_orders == 0,
+            'ongoing_orders_count': ongoing_orders,
+            'message': f'You have {ongoing_orders} ongoing or pending order(s). Please complete or cancel them before closing your account.' if ongoing_orders > 0 else 'You can close your account.'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to check account deletion eligibility: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def close_account(request):
+    """Close user account permanently - only if no ongoing/pending orders"""
+    try:
+        from orders.models import Order
+        
+        # Check for ongoing orders
+        ongoing_orders = Order.objects.filter(
+            user=request.user,
+            status__in=['pending', 'confirmed', 'processing', 'shipped']
+        )
+        
+        if ongoing_orders.exists():
+            order_count = ongoing_orders.count()
+            return Response({
+                'success': False,
+                'error': f'Cannot close account. You have {order_count} ongoing or pending order(s). Please complete or cancel them before closing your account.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get reason if provided
+        reason = request.data.get('reason', '')
+        
+        # Deactivate the account (soft delete - set is_active to False)
+        # We don't hard delete to maintain order history for legal/tax purposes
+        request.user.is_active = False
+        request.user.save()
+        
+        # Logout the user
+        logout(request)
+        
+        return Response({
+            'success': True,
+            'message': 'Your account has been closed successfully. You have been logged out.'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': f'Failed to close account: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

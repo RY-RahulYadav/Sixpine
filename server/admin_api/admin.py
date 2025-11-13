@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GlobalSettings, AdminLog, AdminDashboardSetting, HomePageContent
+from .models import GlobalSettings, AdminLog, AdminDashboardSetting, HomePageContent, BulkOrderPageContent
 
 
 @admin.register(GlobalSettings)
@@ -32,6 +32,16 @@ class AdminDashboardSettingAdmin(admin.ModelAdmin):
 @admin.register(HomePageContent)
 class HomePageContentAdmin(admin.ModelAdmin):
     """Home Page Content admin"""
+    list_display = ('section_name', 'section_key', 'is_active', 'order', 'updated_at')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('section_name', 'section_key')
+    ordering = ('order', 'section_name')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(BulkOrderPageContent)
+class BulkOrderPageContentAdmin(admin.ModelAdmin):
+    """Bulk Order Page Content admin"""
     list_display = ('section_name', 'section_key', 'is_active', 'order', 'updated_at')
     list_filter = ('is_active', 'created_at', 'updated_at')
     search_fields = ('section_name', 'section_key')

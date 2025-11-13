@@ -59,6 +59,49 @@ class ProductListView(generics.ListAPIView):
         """Override list to include filter options and expand variants"""
         queryset = self.filter_queryset(self.get_queryset())
         
+        # Check if we should prioritize products from user's interest categories
+        # Only if user is authenticated, has interests (category names), and no category filter/search is applied
+        user_interest_category_ids = []
+        if request.user.is_authenticated:
+            user_interests = request.user.interests or []
+            if isinstance(user_interests, str):
+                import json
+                try:
+                    user_interests = json.loads(user_interests)
+                except:
+                    user_interests = []
+            
+            # Convert category names to category IDs
+            if user_interests and isinstance(user_interests, list):
+                from .models import Category
+                interest_categories = Category.objects.filter(
+                    name__in=user_interests,
+                    is_active=True
+                ).values_list('id', flat=True)
+                user_interest_category_ids = list(interest_categories)
+        
+        # Check if category filter or search query is applied
+        category_filter = request.query_params.get('category') or request.query_params.get('category__slug')
+        search_query = request.query_params.get('q') or request.query_params.get('search')
+        
+        # Prioritize products from interest categories if applicable
+        if user_interest_category_ids and not category_filter and not search_query:
+            from django.db.models import Case, When, IntegerField
+            # Get the current sort option to preserve it within priority groups
+            sort_option = request.query_params.get('sort', 'relevance')
+            sort_field = ProductSortFilter.SORT_OPTIONS.get(sort_option, '-created_at')
+            
+            # Create a case statement to prioritize products from interest categories
+            when_conditions = [When(category_id=cat_id, then=0) for cat_id in user_interest_category_ids]
+            if when_conditions:
+                queryset = queryset.annotate(
+                    priority=Case(
+                        *when_conditions,
+                        default=1,
+                        output_field=IntegerField()
+                    )
+                ).order_by('priority', sort_field)
+        
         # Check if we should expand variants into separate items
         expand_variants = request.query_params.get('expand_variants', 'false').lower() == 'true'
         
@@ -418,6 +461,41 @@ def get_homepage_content(request):
     else:
         # Return all active sections
         contents = HomePageContent.objects.filter(is_active=True).order_by('order', 'section_name')
+        result = {}
+        for content in contents:
+            result[content.section_key] = {
+                'section_name': content.section_name,
+                'content': content.content,
+                'is_active': content.is_active
+            }
+        return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_bulk_order_page_content(request):
+    """Get bulk order page content sections for public display"""
+    from admin_api.models import BulkOrderPageContent
+    
+    section_key = request.query_params.get('section_key', None)
+    
+    if section_key:
+        try:
+            content = BulkOrderPageContent.objects.get(section_key=section_key, is_active=True)
+            return Response({
+                'section_key': content.section_key,
+                'section_name': content.section_name,
+                'content': content.content,
+                'is_active': content.is_active
+            })
+        except BulkOrderPageContent.DoesNotExist:
+            return Response(
+                {'error': 'Content section not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    else:
+        # Return all active sections
+        contents = BulkOrderPageContent.objects.filter(is_active=True).order_by('order', 'section_name')
         result = {}
         for content in contents:
             result[content.section_key] = {

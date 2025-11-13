@@ -392,17 +392,17 @@ def seed_all_homepage_sections():
         if i < 3:
             offer_products_1.append({
                 'imageUrl': product_img,
-                'navigateUrl': f"/product/{product.get('productSlug', '#')}" if product.get('productSlug') else '#'
+                'navigateUrl': f"/products-details/{product.get('productSlug', '#')}" if product.get('productSlug') else '#'
             })
         elif i < 6:
             offer_products_2.append({
                 'imageUrl': product_img,
-                'navigateUrl': f"/product/{product.get('productSlug', '#')}" if product.get('productSlug') else '#'
+                'navigateUrl': f"/products-details/{product.get('productSlug', '#')}" if product.get('productSlug') else '#'
             })
         else:
             offer_products_3.append({
                 'imageUrl': product_img,
-                'navigateUrl': f"/product/{product.get('productSlug', '#')}" if product.get('productSlug') else '#'
+                'navigateUrl': f"/products-details/{product.get('productSlug', '#')}" if product.get('productSlug') else '#'
             })
     
     # Fill remaining slots with default images if needed

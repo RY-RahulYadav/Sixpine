@@ -17,6 +17,16 @@ class User(AbstractUser):
     # Make username optional since we're using email as primary identifier
     username = models.CharField(max_length=150, blank=True, null=True, unique=True)
     
+    # User preferences
+    interests = models.JSONField(blank=True, default=list, help_text='User interests as a list of category names (strings)')
+    advertising_enabled = models.BooleanField(default=True, help_text='Whether user wants to see personalized advertisements')
+    
+    # Communication preferences
+    whatsapp_enabled = models.BooleanField(default=True, help_text='Whether user wants to receive WhatsApp notifications')
+    whatsapp_order_updates = models.BooleanField(default=True, help_text='Receive WhatsApp notifications for order updates, shipments, payments and more')
+    whatsapp_promotional = models.BooleanField(default=True, help_text='Receive WhatsApp notifications for personalised deals, recommendations, sales events, and more')
+    email_promotional = models.BooleanField(default=True, help_text='Receive promotional emails')
+    
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
     
@@ -203,3 +213,38 @@ class PaymentPreference(models.Model):
     
     def __str__(self):
         return f"{self.user.email} - {self.get_preferred_method_display()}"
+
+
+class DataRequest(models.Model):
+    """Model for user data export requests"""
+    REQUEST_TYPE_CHOICES = [
+        ('orders', 'Your Orders'),
+        ('addresses', 'Your Addresses'),
+        ('payment_options', 'Payment Options'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='data_requests')
+    request_type = models.CharField(max_length=20, choices=REQUEST_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    file_path = models.CharField(max_length=500, blank=True, null=True, help_text='Path to generated Excel file')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(blank=True, null=True)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='approved_data_requests')
+    completed_at = models.DateTimeField(blank=True, null=True)
+    admin_notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        db_table = 'data_requests'
+        ordering = ['-requested_at']
+        verbose_name = 'Data Request'
+        verbose_name_plural = 'Data Requests'
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.get_request_type_display()} ({self.status})"

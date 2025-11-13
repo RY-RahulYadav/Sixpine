@@ -130,6 +130,26 @@ export const adminAPI = {
   updateHomepageContent: (id: number, contentData: any) => API.put(`/admin/homepage-content/${id}/`, contentData),
   patchHomepageContent: (id: number, contentData: any) => API.patch(`/admin/homepage-content/${id}/`, contentData),
   deleteHomepageContent: (id: number) => API.delete(`/admin/homepage-content/${id}/`),
+  
+  // Bulk Order Page Content
+  getBulkOrderPageContent: (params?: any) => API.get('/admin/bulk-order-page-content/', { params }),
+  getBulkOrderPageContentItem: (id: number) => API.get(`/admin/bulk-order-page-content/${id}/`),
+  createBulkOrderPageContent: (contentData: any) => API.post('/admin/bulk-order-page-content/', contentData),
+  updateBulkOrderPageContent: (id: number, contentData: any) => API.put(`/admin/bulk-order-page-content/${id}/`, contentData),
+  patchBulkOrderPageContent: (id: number, contentData: any) => API.patch(`/admin/bulk-order-page-content/${id}/`, contentData),
+  deleteBulkOrderPageContent: (id: number) => API.delete(`/admin/bulk-order-page-content/${id}/`),
+  
+  // Data Requests
+  getDataRequests: (params?: any) => API.get('/admin/data-requests/', { params }),
+  getDataRequest: (id: number) => API.get(`/admin/data-requests/${id}/`),
+  approveDataRequest: (id: number) => API.post(`/admin/data-requests/${id}/approve/`),
+  rejectDataRequest: (id: number, adminNotes?: string) => 
+    API.post(`/admin/data-requests/${id}/reject/`, { admin_notes: adminNotes }),
+  downloadDataRequest: (id: number) => 
+    API.get(`/admin/data-requests/${id}/download/`, { responseType: 'blob' }),
+  deleteDataRequest: (id: number) => API.delete(`/admin/data-requests/${id}/`),
+  bulkDeleteDataRequests: (ids: number[]) => 
+    API.post('/admin/data-requests/bulk_delete/', { ids }),
 };
 
 export default adminAPI;

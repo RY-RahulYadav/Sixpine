@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHeart, FaShoppingCart } from 'react-icons/fa';
+import { FaShoppingCart } from 'react-icons/fa';
 import { productAPI } from '../../services/api';
 import styles from './RecentlyBrowsed.module.css';
 
@@ -118,15 +118,25 @@ const BrowsingHistory = () => {
     );
   }
 
+  const calculateDiscount = (oldPrice: string, newPrice: string) => {
+    if (!oldPrice) return null;
+    const old = parseFloat(oldPrice);
+    const newP = parseFloat(newPrice);
+    if (old <= newP) return null;
+    const discount = Math.round(((old - newP) / old) * 100);
+    return `${discount}% OFF`;
+  };
+
   return (
     <div className={styles.browsingHistorySection}>
-      <div className={styles.sectionHeader}>
-        <div className={styles.titleContainer}>
-          <h2 className={styles.sectionTitle}>Recently Viewed</h2>
-          <span className={styles.itemCount}>{historyItems.length} items</span>
+      <div className={styles.sectionHeaderWithClear}>
+        <div className={styles.headerContent}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.highlightTitle}>Recently</span> Viewed
+          </h2>
+          <p className={styles.sectionSubtitle}>Your recently browsed products</p>
         </div>
-        
-        <div className={styles.controls}>
+        <div className={styles.headerActions}>
           <button 
             className={styles.clearButton}
             onClick={handleClearHistory}
@@ -136,75 +146,61 @@ const BrowsingHistory = () => {
         </div>
       </div>
 
-      <div className={styles.historyItems}>
+      <div className={styles.productsGrid}>
         {historyItems.map(item => {
-          const variantCount = item.product.variant_count || 0;
-          const colorCount = item.product.available_colors?.length || 0;
-          const colorText = variantCount > 1 ? `+${variantCount - 1} color` : colorCount > 1 ? `+${colorCount - 1} color` : '';
           const rating = item.product.average_rating || 0;
+          const discount = item.product.old_price 
+            ? calculateDiscount(item.product.old_price, item.product.price)
+            : null;
           
           return (
             <div 
               key={item.id} 
-              className={styles.craftedProductCard}
+              className={styles.productCard}
               onClick={() => handleProductClick(item.product.slug)}
               style={{ cursor: 'pointer' }}
             >
-              <img 
-                src={item.product.main_image || '/images/placeholder.jpg'} 
-                alt={item.product.title} 
-                className={styles.productImg1}
-              />
-              <h4 className={styles.productTitle}>
-                {item.product.title}
-              </h4>
-              <p className={styles.productDesc}>
-                {item.product.short_description || item.product.category.name}
-              </p>
-              
-              <div className={styles.productRating}>
-                {'★'.repeat(Math.floor(rating))}
-                {'☆'.repeat(5 - Math.floor(rating))}
-                <span> ({item.product.review_count} reviews)</span>
-                {colorText && (
-                  <div className={styles.colorSwatches}>
-                    <span className={styles.moreCount}>{colorText}</span>
+              <div className={styles.productImageContainer}>
+                <img 
+                  src={item.product.main_image || '/images/placeholder.jpg'} 
+                  alt={item.product.title} 
+                  className={styles.productImage}
+                />
+                <span className={styles.trendingTag}>Recently Viewed</span>
+                {discount && (
+                  <div className={styles.discountBadge}>{discount}</div>
+                )}
+              </div>
+              <div className={styles.productInfo}>
+                <h3 className={styles.productName}>{item.product.title}</h3>
+                <div className={styles.productMeta}>
+                  <span className={styles.productPrice}>{formatPrice(item.product.price)}</span>
+                  <div className={styles.productRating}>
+                    <span className={styles.ratingValue}>{rating.toFixed(1)}</span>
+                    <span className={styles.ratingIcon}>★</span>
+                    <span className={styles.reviewCount}>({item.product.review_count})</span>
                   </div>
-                )}
-              </div>
-              
-              <div className={styles.productPrices}>
-                {item.product.old_price && (
-                  <span className={styles.oldPrice}>{formatPrice(item.product.old_price)}</span>
-                )}
-                <span className={styles.newPrice}>{formatPrice(item.product.price)}</span>
-              </div>
-
-              <div 
-                className={styles.actionRow}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button 
-                  className={styles.buyBtn}
-                  onClick={() => handleProductClick(item.product.slug)}
-                >
-                  Buy Now
-                </button>
-                <div className={styles.productIcons}>
-                  <FaHeart 
+                </div>
+                <div className={styles.productActionRow}>
+                  <button 
+                    className={styles.buyNowBtn}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // TODO: Add to wishlist
+                      handleProductClick(item.product.slug);
                     }}
-                    style={{ cursor: 'pointer' }} 
-                  />
-                  <FaShoppingCart 
+                  >
+                    Buy Now
+                  </button>
+                  <button 
+                    className={styles.cartIconBtn}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // TODO: Add to cart
+                      // TODO: Add to cart logic
                     }}
-                    style={{ cursor: 'pointer' }} 
-                  />
+                    title="Add to Cart"
+                  >
+                    <FaShoppingCart />
+                  </button>
                 </div>
               </div>
             </div>

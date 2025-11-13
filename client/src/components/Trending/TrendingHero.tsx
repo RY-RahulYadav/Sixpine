@@ -1,38 +1,82 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Trending.module.css';
+import { homepageAPI } from '../../services/api';
+
+const defaultSlides = [
+  {
+    id: 1,
+    title: "Trending Now",
+    subtitle: "Bestsellers 2025",
+    price: "₹ 1,999",
+    buttonText: "SHOP NOW",
+    backgroundColor: "#4A6FA5",
+    imageSrc: "/images/Home/furnishing.jpg"
+  },
+  {
+    id: 2,
+    title: "Most Popular",
+    subtitle: "Hot Items",
+    price: "₹ 3,499",
+    buttonText: "SHOP NOW",
+    backgroundColor: "#6B4A8C",
+    imageSrc: "/images/Home/studytable.jpg"
+  },
+  {
+    id: 3,
+    title: "Fan Favorites",
+    subtitle: "Top Rated Collection",
+    price: "₹ 5,999",
+    buttonText: "SHOP NOW",
+    backgroundColor: "#9E4A5A",
+    imageSrc: "/images/Home/livingroom.jpg"
+  }
+];
+
+const defaultStats = [
+  {
+    statNumber: '50K+',
+    statLabel: 'Customers Loved These'
+  },
+  {
+    statNumber: '4.8',
+    statLabel: 'Average Rating'
+  },
+  {
+    statNumber: '24hr',
+    statLabel: 'Trending Updates'
+  }
+];
 
 const TrendingHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [slides, setSlides] = useState(defaultSlides);
+  const [trendingStats, setTrendingStats] = useState(defaultStats);
+  const [loading, setLoading] = useState(true);
 
-  const slides = [
-    {
-      id: 1,
-      title: "Trending Now",
-      subtitle: "Bestsellers 2025",
-      price: "₹ 1,999",
-      buttonText: "SHOP NOW",
-      backgroundColor: "#4A6FA5",
-      imageSrc: "/images/Home/furnishing.jpg"
-    },
-    {
-      id: 2,
-      title: "Most Popular",
-      subtitle: "Hot Items",
-      price: "₹ 3,499",
-      buttonText: "SHOP NOW",
-      backgroundColor: "#6B4A8C",
-      imageSrc: "/images/Home/studytable.jpg"
-    },
-    {
-      id: 3,
-      title: "Fan Favorites",
-      subtitle: "Top Rated Collection",
-      price: "₹ 5,999",
-      buttonText: "SHOP NOW",
-      backgroundColor: "#9E4A5A",
-      imageSrc: "/images/Home/livingroom.jpg"
-    }
-  ];
+  useEffect(() => {
+    const fetchHeroData = async () => {
+      try {
+        setLoading(true);
+        const response = await homepageAPI.getHomepageContent('trending-hero');
+        
+        if (response.data && response.data.content) {
+          if (response.data.content.slides && Array.isArray(response.data.content.slides)) {
+            setSlides(response.data.content.slides);
+          }
+          if (response.data.content.trendingStats && Array.isArray(response.data.content.trendingStats)) {
+            setTrendingStats(response.data.content.trendingStats);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching trending hero data:', error);
+        // Keep default slides if API fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHeroData();
+  }, []);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -113,20 +157,15 @@ const TrendingHero = () => {
       
       {/* Trending Stats Banner */}
       <div className={styles.trendingStats}>
-        <div className={styles.statItem}>
-          <span className={styles.statNumber}>50K+</span>
-          <span className={styles.statLabel}>Customers Loved These</span>
-        </div>
-        <div className={styles.statDivider}></div>
-        <div className={styles.statItem}>
-          <span className={styles.statNumber}>4.8</span>
-          <span className={styles.statLabel}>Average Rating</span>
-        </div>
-        <div className={styles.statDivider}></div>
-        <div className={styles.statItem}>
-          <span className={styles.statNumber}>24hr</span>
-          <span className={styles.statLabel}>Trending Updates</span>
-        </div>
+        {trendingStats.map((stat, index) => (
+          <React.Fragment key={index}>
+            <div className={styles.statItem}>
+              <span className={styles.statNumber}>{stat.statNumber}</span>
+              <span className={styles.statLabel}>{stat.statLabel}</span>
+            </div>
+            {index < trendingStats.length - 1 && <div className={styles.statDivider}></div>}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );

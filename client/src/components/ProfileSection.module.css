@@ -202,8 +202,9 @@
   flex-direction: column;
   font-style: normal;
   line-height: 24px;
-  padding-block: 16px 12px;
+  padding-block: 8px 12px;
   gap: 4px;
+  margin-top: 0;
 }
 
 .sx-section-header .sx-primary {

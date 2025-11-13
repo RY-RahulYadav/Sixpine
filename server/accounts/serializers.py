@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference, SavedCard
+from .models import User, OTPVerification, PasswordResetToken, ContactQuery, BulkOrder, PaymentPreference, SavedCard, DataRequest
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -79,10 +79,31 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for user profile"""
+    interests = serializers.JSONField(default=list, allow_null=False)
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'mobile', 'is_verified', 'is_staff', 'is_superuser', 'date_joined')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'mobile', 'is_verified', 'is_staff', 'is_superuser', 'date_joined', 'interests', 'advertising_enabled', 'whatsapp_enabled', 'whatsapp_order_updates', 'whatsapp_promotional', 'email_promotional')
         read_only_fields = ('id', 'is_verified', 'is_staff', 'is_superuser', 'date_joined')
+    
+    def to_representation(self, instance):
+        """Ensure empty lists are returned instead of None"""
+        data = super().to_representation(instance)
+        # Ensure JSON fields are always arrays, never None
+        if data.get('interests') is None:
+            data['interests'] = []
+        # Ensure boolean fields default to True if None
+        if data.get('advertising_enabled') is None:
+            data['advertising_enabled'] = True
+        if data.get('whatsapp_enabled') is None:
+            data['whatsapp_enabled'] = True
+        if data.get('whatsapp_order_updates') is None:
+            data['whatsapp_order_updates'] = True
+        if data.get('whatsapp_promotional') is None:
+            data['whatsapp_promotional'] = True
+        if data.get('email_promotional') is None:
+            data['email_promotional'] = True
+        return data
 
 
 class OTPRequestSerializer(serializers.Serializer):
@@ -275,3 +296,31 @@ class SavedCardSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class DataRequestSerializer(serializers.ModelSerializer):
+    """Serializer for data requests"""
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.SerializerMethodField()
+    request_type_display = serializers.CharField(source='get_request_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    approved_by_email = serializers.EmailField(source='approved_by.email', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = DataRequest
+        fields = [
+            'id', 'user', 'user_email', 'user_name', 'request_type', 'request_type_display',
+            'status', 'status_display', 'file_path', 'requested_at', 'approved_at',
+            'approved_by', 'approved_by_email', 'completed_at', 'admin_notes'
+        ]
+        read_only_fields = ['id', 'requested_at', 'approved_at', 'approved_by', 'completed_at', 'file_path']
+    
+    def get_user_name(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.email
+
+
+class DataRequestCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating data requests"""
+    class Meta:
+        model = DataRequest
+        fields = ['request_type']

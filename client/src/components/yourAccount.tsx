@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import styles from "../styles/yourAccount.module.css";
 
 // React Icons
@@ -24,45 +25,41 @@ const YourAccount: React.FC<YourAccountProps> = ({ logoutButton }) => {
 
       {/* FIRST SECTION */}
       <div className={styles.grid}>
-        <div className={styles.card}>
+        <Link to="/orders" className={styles.card} style={{ textDecoration: 'none', color: 'inherit' }}>
           <FaBoxOpen className={styles.icon} />
           <h3>Your Orders</h3>
           <p>Track, return, or buy things again</p>
-        </div>
+        </Link>
 
-        <div className={styles.card}>
+        <Link to="/login-security" className={styles.card} style={{ textDecoration: 'none', color: 'inherit' }}>
           <FaLock className={styles.icon} />
           <h3>Login & Security</h3>
           <p>Edit login, name, and mobile number</p>
-        </div>
+        </Link>
 
-        <div className={styles.card}>
+        <Link to="/membership" className={styles.card} style={{ textDecoration: 'none', color: 'inherit' }}>
           <FaUserShield className={styles.icon} />
           <h3>Membership</h3>
           <p>View benefits and payment settings</p>
-        </div>
+        </Link>
 
-        <div className={styles.card}>
+        <Link to="/your-addresses" className={styles.card} style={{ textDecoration: 'none', color: 'inherit' }}>
           <FaMapMarkerAlt className={styles.icon} />
           <h3>Your Addresses</h3>
           <p>Edit addresses for orders and gifts</p>
-        </div>
+        </Link>
 
-       
-
-        <div className={styles.card}>
+        <Link to="/manage-payment" className={styles.card} style={{ textDecoration: 'none', color: 'inherit' }}>
           <FaCreditCard className={styles.icon} />
           <h3>Payment Options</h3>
           <p>Edit or add payment option methods</p>
-        </div>
+        </Link>
 
-        
-
-        <div className={styles.card}>
+        <Link to="/contact" className={styles.card} style={{ textDecoration: 'none', color: 'inherit' }}>
           <FaHeadset className={styles.icon} />
           <h3>Contact Us</h3>
           <p>Contact our customer care via phone or chat</p>
-        </div>
+        </Link>
       </div>
 
       {/* LINE */}
@@ -74,59 +71,59 @@ const YourAccount: React.FC<YourAccountProps> = ({ logoutButton }) => {
           {/* <FaEnvelope className={styles.icon} /> */}
           <h3>Email alerts, messages and ads</h3>
           <p>
-            Advertising preferences <br />
-            Communication Preferences <br />
-            Message Center
+            <Link to="/advertising-preferece" style={{ textDecoration: 'none', color: 'inherit' }}>Advertising preferences</Link>
+            <br />
+            <Link to="/communication-preferences" style={{ textDecoration: 'none', color: 'inherit' }}>Communication Preferences</Link>
+            <br />
           </p>
         </div>
 
-        <div className={styles.card}>
-          {/* <FaShoppingCart className={styles.icon} /> */}
-          <h3>Ordering and shopping preferences</h3>
-          <p>
-            <a href="#">Leave packaging feedback</a>
-            <br />
-            <a href="/shopping-list">Shopping Lists</a>
-            <br />
-            <a href="#">Shopping Preferences</a>
-            <br />
-            <a href="#">Language Settings</a>
-          </p>
-        </div>
+       
 
-        <div className={styles.card}>
-          {/* <FaTags className={styles.icon} /> */}
+        {/* <div className={styles.card}>
           <h3>More ways to pay</h3>
           <p>
-            <a href="#">Coupons</a>
+            <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>Coupons</a>
           </p>
-        </div>
-
+        </div> */}
+{/* 
         <div className={styles.card}>
-          {/* <FaSyncAlt className={styles.icon} /> */}
           <h3>Subscriptions</h3>
           <p>
-            <a href="#">Email</a>
+            <Link to="/email-subscribe" style={{ textDecoration: 'none', color: 'inherit' }}>Email</Link>
             <br />
-            <a href="#">Memberships & Subscription</a>
+            <Link to="/memberships-subscriptions" style={{ textDecoration: 'none', color: 'inherit' }}>Memberships & Subscription</Link>
           </p>
-        </div>
+        </div> */}
 
-        <div className={styles.card}>
-          {/* <FaGift className={styles.icon} /> */}
+        {/* <div className={styles.card}>
           <h3>Shopping Programs</h3>
-          <p>Subscribe & Save</p>
-        </div>
+          <p>
+            <Link to="/subscribe-save" style={{ textDecoration: 'none', color: 'inherit' }}>Subscribe & Save</Link>
+          </p>
+        </div> */}
 
         <div className={styles.card}>
           {/* <FaDatabase className={styles.icon} /> */}
           <h3>Manage your data</h3>
           <p>
-            <a href="#">Request your data</a>
+            <Link to="/data-request" style={{ textDecoration: 'none', color: 'inherit' }}>Request your data</Link>
             <br />
-            <a href="#">Close your account</a>
+            <Link to="/close-your-sixpine-account" style={{ textDecoration: 'none', color: 'inherit' }}>Close your account</Link>
             <br />
-            <a href="#">Privacy Notice</a>
+            <Link to="/privacy-policy" style={{ textDecoration: 'none', color: 'inherit' }}>Privacy Notice</Link>
+          </p>
+        </div>
+        <div className={styles.card}>
+          {/* <FaShoppingCart className={styles.icon} /> */}
+          <h3>Ordering and shopping preferences</h3>
+          <p>
+            <Link to="/packaging-feedback" style={{ textDecoration: 'none', color: 'inherit' }}>Leave packaging feedback</Link>
+            <br />
+            {/* <Link to="/shopping-list" style={{ textDecoration: 'none', color: 'inherit' }}>Shopping Lists</Link>
+            <br /> */}
+            <Link to="/shopping-preferences" style={{ textDecoration: 'none', color: 'inherit' }}>Shopping Preferences</Link>
+            <br />
           </p>
         </div>
       </div>

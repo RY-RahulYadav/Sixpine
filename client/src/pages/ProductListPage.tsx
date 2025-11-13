@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import SubNav from '../components/SubNav';
 import CategoryTabs from '../components/CategoryTabs';
 import Footer from '../components/Footer';
-import { productAPI } from '../services/api';
+import { productAPI, authAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import '../styles/productList.css';
 import '../styles/productListModern.css';
@@ -266,9 +266,10 @@ const ProductListPage: React.FC = () => {
       params.page_size = pageSize;
 
       // Get products without expanding variants - backend returns all products with variants included
+      // Backend now handles prioritizing products from user's interest categories
       console.log('Fetching products with params:', params);
       const response = await productAPI.getProducts(params);
-      const productsList = response.data.results || response.data;
+      let productsList = response.data.results || response.data;
       
       setProducts(productsList);
       // Update total count and pagination info

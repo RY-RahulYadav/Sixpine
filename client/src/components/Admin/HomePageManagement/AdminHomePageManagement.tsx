@@ -2788,7 +2788,7 @@ const AdminHomePageManagement: React.FC = () => {
                             placeholder="product-slug"
                           />
                           <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
-                            {card.productSlug ? `Will navigate to: /product/${card.productSlug}` : 'Leave empty if no product link'}
+                            {card.productSlug ? `Will navigate to: /products-details/${card.productSlug}` : 'Leave empty if no product link'}
                           </span>
                         </div>
                       </div>
