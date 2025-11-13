@@ -1,4 +1,5 @@
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { useApp } from '../../context/AppContext';
 
 // Admin Components (Super Admin Only - Restricted Features)
@@ -9,7 +10,7 @@ import AdminPaymentCharges from './PaymentCharges/AdminPaymentCharges';
 import AdminSettings from './Settings/AdminSettings';
 import AdminBulkOrders from './BulkOrders/AdminBulkOrders';
 import AdminContactQueries from './ContactQueries/AdminContactQueries';
-import AdminLogs from './Logs/AdminLogs';
+const AdminLogs = lazy(() => import('./Logs/AdminLogs'));
 import AdminHomePageManagement from './HomePageManagement/AdminHomePageManagement';
 import AdminTrendingPageManagement from './TrendingPageManagement/AdminTrendingPageManagement';
 import AdminBestDealsPageManagement from './BestDealsPageManagement/AdminBestDealsPageManagement';
@@ -66,7 +67,11 @@ const AdminRouter = () => {
         <Route path="best-deals" element={<AdminBestDealsPageManagement />} />
         <Route path="bulk-order-page" element={<AdminBulkOrderPageManagement />} />
         {/* Management Section */}
-        <Route path="logs" element={<AdminLogs />} />
+        <Route path="logs" element={
+          <Suspense fallback={<div className="admin-loading-state"><div className="admin-loader"></div><p>Loading...</p></div>}>
+            <AdminLogs />
+          </Suspense>
+        } />
         <Route path="contact-queries" element={<AdminContactQueries />} />
         <Route path="bulk-orders" element={<AdminBulkOrders />} />
         {/* Settings Section */}
